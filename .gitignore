@@ -8,3 +8,4 @@ dist/
 credentials*
 secrets*
 .scratch/
+data/local-overrides.json

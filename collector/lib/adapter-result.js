@@ -37,6 +37,9 @@ export function unknown(id, reason, extra = {}) {
     lastUpdate: extra.lastUpdate ?? null,
     pace: extra.pace || { daily: null, monthly: null, weeklyTarget: null },
     history: extra.history || [],
+    collectionMode: extra.collectionMode || "unavailable",
+    coverageStart: extra.coverageStart ?? null,
+    breakdown: extra.breakdown ?? null,
     ...(extra.budget ? { budget: extra.budget } : {}),
     ...(extra.name ? { name: extra.name } : {}),
   };

@@ -4,6 +4,8 @@ import {
   validateSnapshot,
   emptySource,
   assertHonestSource,
+  assertPublishableSnapshot,
+  validateLocalOverrides,
   ENRICH_MONTHLY_BUDGET,
   ENRICH_WEEKLY_PACE_MAX,
   SOURCE_IDS,
@@ -15,7 +17,16 @@ import {
   dayOfMonthInZone,
   daysInMonthInZone,
 } from "../collector/lib/pace.js";
-import { normalizeSource, collectSnapshot } from "../collector/index.js";
+import {
+  normalizeSource,
+  collectSnapshot,
+  applyOverride,
+} from "../collector/index.js";
+import {
+  amsterdamClock,
+  nearAmsterdamSlot,
+  shouldRunCollect,
+} from "../scripts/amsterdam-gate.js";
 import * as enrich from "../collector/adapters/enrich-labs.js";
 import * as openai from "../collector/adapters/openai-buzz.js";
 import * as ollama from "../collector/adapters/ollama.js";
@@ -28,7 +39,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 describe("schema", () => {
   it("requires all five sources and unknown reasons", () => {
     const snap = {
-      version: "1.0.0",
+      version: "1.1.0",
       generatedAt: "2026-08-31T10:00:00.000Z",
       timezone: "Europe/Amsterdam",
       sources: SOURCE_IDS.map((id) =>
@@ -36,11 +47,12 @@ describe("schema", () => {
       ),
     };
     assert.equal(validateSnapshot(snap).ok, true);
+    assert.doesNotThrow(() => assertPublishableSnapshot(snap));
   });
 
   it("rejects unknown without reason", () => {
     const snap = {
-      version: "1.0.0",
+      version: "1.1.0",
       generatedAt: "2026-08-31T10:00:00.000Z",
       timezone: "Europe/Amsterdam",
       sources: SOURCE_IDS.map((id) => ({
@@ -55,6 +67,14 @@ describe("schema", () => {
     assert.throws(() =>
       assertHonestSource(
         emptySource({ id: "openai-buzz", status: "unknown", reason: "x", usage: 12 }),
+      ),
+    );
+  });
+
+  it("requires usage for estimated", () => {
+    assert.throws(() =>
+      assertHonestSource(
+        emptySource({ id: "cursor-agent", status: "estimated", reason: "guess" }),
       ),
     );
   });
@@ -104,29 +124,62 @@ describe("adapters", () => {
   });
 
   it("ollama reports unknown or measured without fake usage", async () => {
-    const r = await ollama.collect(async () => {
-      throw new Error("offline");
-    });
+    const r = await ollama.collect(
+      async () => {
+        throw new Error("offline");
+      },
+      { readLog: async () => "" },
+    );
     assert.equal(r.status, "unknown");
     assert.equal(r.usage, null);
     assert.match(r.reason, /unavailable|fabricated/i);
 
-    const ok = await ollama.collect(async () => ({
-      ok: true,
-      async json() {
-        return { models: [{ name: "x" }, { name: "y" }] };
+    const ok = await ollama.collect(
+      async () => ({
+        ok: true,
+        async json() {
+          return { models: [{ name: "x" }, { name: "y" }] };
+        },
+      }),
+      {
+        readLog: async () => {
+          throw new Error("no log");
+        },
       },
-    }));
+    );
     assert.equal(ok.status, "measured");
     assert.equal(ok.usage, null);
     assert.match(ok.reason, /2 model/);
+
+    const withLog = await ollama.collect(
+      async () => ({
+        ok: true,
+        async json() {
+          return { models: [{ name: "x" }] };
+        },
+      }),
+      {
+        readLog: async () =>
+          [
+            "time=2026-08-31T10:00:00.000+02:00 level=INFO source=server.go msg=start",
+            "slot print_timing: id  0 | task 0 | prompt eval time =    100.00 ms /    10 tokens (   10.00 ms per token,   100.00 tokens per second)",
+            "slot print_timing: id  0 | task 0 |        eval time =    200.00 ms /    20 tokens (   10.00 ms per token,   100.00 tokens per second)",
+            '[GIN] 2026/08/31 - 12:00:00 | 200 |         1.0s |       127.0.0.1 | POST     "/api/chat"',
+          ].join("\n"),
+      },
+    );
+    assert.equal(withLog.status, "measured");
+    assert.equal(withLog.usage, 30);
   });
 });
 
 describe("collector", () => {
   it("builds a valid honest snapshot", async () => {
-    const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"));
+    const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
+      overrides: [],
+    });
     assert.equal(validateSnapshot(snap).ok, true);
+    assert.equal(snap.version, "1.1.0");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -147,6 +200,101 @@ describe("collector", () => {
     assert.equal(src.budget.monthly, 200);
     assert.equal(src.pace.weeklyTarget, 50);
   });
+
+  it("applies schema-validated local overrides into aggregate only", async () => {
+    const check = validateLocalOverrides({
+      sources: [
+        {
+          id: "cursor-agent",
+          status: "estimated",
+          usage: 42,
+          reason: "manual UI read",
+          lastUpdate: "2026-08-31T08:00:00.000Z",
+        },
+      ],
+    });
+    assert.equal(check.ok, true);
+
+    const bad = validateLocalOverrides({
+      sources: [{ id: "cursor-agent", status: "unknown", usage: 1 }],
+    });
+    assert.equal(bad.ok, false);
+
+    const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
+      overrides: [
+        {
+          id: "cursor-agent",
+          status: "estimated",
+          usage: 42,
+          limit: 100,
+          reason: "manual UI read",
+          lastUpdate: "2026-08-31T08:00:00.000Z",
+        },
+      ],
+    });
+    const cursor = snap.sources.find((s) => s.id === "cursor-agent");
+    assert.equal(cursor.status, "estimated");
+    assert.equal(cursor.usage, 42);
+    assert.equal(cursor.limit, 100);
+    assert.match(cursor.reason, /manual UI read/);
+    assert.ok(cursor.pace.daily != null);
+  });
+
+  it("applyOverride preserves honesty", () => {
+    const base = normalizeSource({
+      id: "openai-buzz",
+      status: "unknown",
+      reason: "no data",
+      usage: null,
+    });
+    const merged = applyOverride(base, {
+      id: "openai-buzz",
+      status: "measured",
+      usage: 10,
+      lastUpdate: "2026-08-31T09:00:00.000Z",
+      reason: "local export",
+    });
+    assert.equal(merged.usage, 10);
+    assert.equal(merged.status, "measured");
+  });
+});
+
+describe("amsterdam gate", () => {
+  // CEST: 2026-08-31 07:00 UTC = 09:00 Amsterdam
+  const cestMorning = new Date("2026-08-31T07:00:00Z");
+  // CEST afternoon: 14:00 UTC = 16:00 Amsterdam
+  const cestAfternoon = new Date("2026-08-31T14:00:00Z");
+  // CET: 2026-01-15 08:00 UTC = 09:00 Amsterdam
+  const cetMorning = new Date("2026-01-15T08:00:00Z");
+  // CET afternoon: 15:00 UTC = 16:00 Amsterdam
+  const cetAfternoon = new Date("2026-01-15T15:00:00Z");
+  // Out of window: CEST 10:00 UTC = 12:00 Amsterdam
+  const outOfWindow = new Date("2026-08-31T10:00:00Z");
+
+  it("accepts CEST morning and afternoon UTC candidates", () => {
+    assert.equal(amsterdamClock(cestMorning).label, "09:00");
+    assert.equal(nearAmsterdamSlot(cestMorning), true);
+    assert.equal(shouldRunCollect("schedule", cestMorning), true);
+    assert.equal(amsterdamClock(cestAfternoon).label, "16:00");
+    assert.equal(shouldRunCollect("schedule", cestAfternoon), true);
+  });
+
+  it("accepts CET morning and afternoon UTC candidates", () => {
+    assert.equal(amsterdamClock(cetMorning).label, "09:00");
+    assert.equal(shouldRunCollect("schedule", cetMorning), true);
+    assert.equal(amsterdamClock(cetAfternoon).label, "16:00");
+    assert.equal(shouldRunCollect("schedule", cetAfternoon), true);
+  });
+
+  it("rejects scheduled runs outside the Amsterdam windows", () => {
+    assert.equal(amsterdamClock(outOfWindow).label, "12:00");
+    assert.equal(nearAmsterdamSlot(outOfWindow), false);
+    assert.equal(shouldRunCollect("schedule", outOfWindow), false);
+  });
+
+  it("allows workflow_dispatch even outside the window", () => {
+    assert.equal(shouldRunCollect("workflow_dispatch", outOfWindow), true);
+  });
 });
 
 describe("public seed", () => {
@@ -155,10 +303,27 @@ describe("public seed", () => {
     assert.doesNotMatch(raw, /sk-[a-zA-Z0-9]{10,}/);
     assert.doesNotMatch(raw, /@[\w.-]+\.(com|nl|ai)/i);
     assert.doesNotMatch(raw, /Bearer\s/i);
+    assert.doesNotMatch(raw, /password|api[_-]?key\s*[:=]/i);
     const snap = JSON.parse(raw);
     assert.equal(validateSnapshot(snap).ok, true);
+    assert.doesNotThrow(() => assertPublishableSnapshot(snap));
     for (const s of snap.sources) {
       if (s.status === "unknown") assert.equal(s.usage, null);
     }
+  });
+
+  it("site marks measured estimated and unavailable distinctly", async () => {
+    const html = await readFile(path.join(ROOT, "site", "index.html"), "utf8");
+    const css = await readFile(path.join(ROOT, "site", "styles.css"), "utf8");
+    const js = await readFile(path.join(ROOT, "site", "app.js"), "utf8");
+    assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/i);
+    assert.match(html, /measured/);
+    assert.match(html, /estimated/);
+    assert.match(html, /unavailable/);
+    assert.match(css, /badge-measured/);
+    assert.match(css, /badge-estimated/);
+    assert.match(css, /badge-unknown/);
+    assert.match(js, /STATUS_LABEL/);
+    assert.match(js, /unavailable/);
   });
 });

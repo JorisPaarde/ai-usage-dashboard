@@ -1,22 +1,25 @@
 {
-  "version": "1.0.0",
-  "generatedAt": "2026-08-31T10:00:00.000Z",
+  "version": "1.1.0",
+  "generatedAt": "2026-08-31T12:21:14.827Z",
   "timezone": "Europe/Amsterdam",
-  "scheduleNote": "Intended local windows: 09:00 and 16:00 Europe/Amsterdam. GitHub Actions cron is UTC-only; see docs/SCHEDULE.md for DST limits.",
+  "scheduleNote": "Intended local windows: 09:00 and 16:00 Europe/Amsterdam. GitHub Actions schedules CET+CEST UTC candidates; the Amsterdam gate selects the matching slot. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
   "sources": [
     {
       "id": "openai-buzz",
       "name": "OpenAI / Buzz",
-      "status": "unknown",
-      "reason": "Public-safe seed: no measured usage published. Run the local collector after wiring a read-only source.",
-      "usage": null,
-      "limit": null,
-      "unit": "requests",
-      "resetDate": null,
-      "lastUpdate": null,
+      "status": "measured",
+      "collectionMode": "manual",
+      "reason": "Signed-in usage screen inspected 2026-08-31: 2% remains in the current 5-hour Work/Codex window (98% used); the weekly window is 15% used. Chat conversations are excluded by the provider view.",
+      "usage": 98,
+      "limit": 100,
+      "unit": "% of current 5-hour Work/Codex limit",
+      "resetDate": "2026-09-14",
+      "lastUpdate": "2026-08-31T12:07:00.000Z",
+      "coverageStart": null,
+      "breakdown": null,
       "pace": {
-        "daily": null,
-        "monthly": null,
+        "daily": 3.2,
+        "monthly": 98,
         "weeklyTarget": null
       },
       "history": []
@@ -24,16 +27,19 @@
     {
       "id": "cursor-agent",
       "name": "Cursor Agent",
-      "status": "unknown",
-      "reason": "Public-safe seed: Cursor usage is account-private. Status Unknown until a safe export is connected.",
-      "usage": null,
-      "limit": null,
-      "unit": "tokens",
-      "resetDate": null,
-      "lastUpdate": null,
+      "status": "measured",
+      "collectionMode": "manual",
+      "reason": "Signed-in Cursor dashboard inspected 2026-08-31: USD 73.60 of the USD 75 fixed on-demand cap (98.1%). Included usage is 37.2%; weekly Grok Bot usage is 100%.",
+      "usage": 73.6,
+      "limit": 75,
+      "unit": "USD on-demand",
+      "resetDate": "2026-09-24",
+      "lastUpdate": "2026-08-31T12:07:00.000Z",
+      "coverageStart": null,
+      "breakdown": null,
       "pace": {
-        "daily": null,
-        "monthly": null,
+        "daily": 2.4,
+        "monthly": 73.6,
         "weeklyTarget": null
       },
       "history": []
@@ -41,16 +47,19 @@
     {
       "id": "claude-code",
       "name": "Claude Code",
-      "status": "unknown",
-      "reason": "Public-safe seed: Claude usage is account-private. Status Unknown until a safe export is connected.",
-      "usage": null,
-      "limit": null,
-      "unit": "credits",
-      "resetDate": null,
-      "lastUpdate": null,
+      "status": "measured",
+      "collectionMode": "manual",
+      "reason": "Signed-in Claude usage screen inspected 2026-08-31: EUR 10.23 of the EUR 50 monthly usage-credit limit (20.5%). Current session and weekly plan windows both showed 0% used.",
+      "usage": 10.23,
+      "limit": 50,
+      "unit": "EUR usage credits",
+      "resetDate": "2026-09-01",
+      "lastUpdate": "2026-08-31T12:07:00.000Z",
+      "coverageStart": null,
+      "breakdown": null,
       "pace": {
-        "daily": null,
-        "monthly": null,
+        "daily": 0.3,
+        "monthly": 10.2,
         "weeklyTarget": null
       },
       "history": []
@@ -58,40 +67,59 @@
     {
       "id": "ollama",
       "name": "Ollama",
-      "status": "unknown",
-      "reason": "Public-safe seed: local Ollama reachability is environment-specific. Run npm run collect on a machine with Ollama.",
-      "usage": null,
+      "status": "measured",
+      "collectionMode": "automatic",
+      "reason": "3884 tokens this month (2921 prompt + 963 output) across 15 generations. Log coverage starts 2026-08-28T10:43:29.198+02:00; the month may be partial after rotation. No vendor quota exists.",
+      "usage": 3884,
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": null,
+      "lastUpdate": "2026-08-31T12:21:14.871Z",
+      "coverageStart": "2026-08-28T10:43:29.198+02:00",
+      "breakdown": {
+        "promptTokens": 2921,
+        "outputTokens": 963,
+        "generations": 15
+      },
       "pace": {
-        "daily": null,
-        "monthly": null,
+        "daily": 125.3,
+        "monthly": 3884,
         "weeklyTarget": null
       },
-      "history": []
+      "history": [
+        {
+          "date": "2026-08-28",
+          "usage": 203
+        },
+        {
+          "date": "2026-08-31",
+          "usage": 3681
+        }
+      ]
     },
     {
       "id": "enrich-labs",
       "name": "Enrich Labs",
-      "status": "unknown",
-      "reason": "Public-safe seed: live credit balance is not published. Monthly budget 200 and weekly pace max 50 are public operating targets only.",
-      "usage": null,
+      "status": "measured",
+      "collectionMode": "manual",
+      "reason": "Signed-in Enrich Labs workspace inspected 2026-08-31: 200 of 200 Starter credits used (100%).",
+      "usage": 200,
       "limit": 200,
       "unit": "credits",
-      "resetDate": null,
-      "lastUpdate": null,
+      "resetDate": "2026-09-01",
+      "lastUpdate": "2026-08-31T12:07:00.000Z",
+      "coverageStart": null,
+      "breakdown": null,
       "pace": {
-        "daily": null,
-        "monthly": null,
+        "daily": 6.5,
+        "monthly": 200,
         "weeklyTarget": 50
       },
+      "history": [],
       "budget": {
         "monthly": 200,
         "weeklyPaceMax": 50
-      },
-      "history": []
+      }
     }
   ]
 }

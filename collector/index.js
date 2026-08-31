@@ -2,8 +2,10 @@
 /**
  * Local snapshot collector — isolated adapters, JSON output only.
  * Never fabricates usage for unavailable sources.
+ * Optional local overrides (gitignored) supply authenticated desktop/browser
+ * readings; the override file itself is never published to dist/.
  */
-import { mkdir, writeFile, readFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile, access } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,6 +19,8 @@ import {
   emptySource,
   validateSnapshot,
   assertHonestSource,
+  assertPublishableSnapshot,
+  validateLocalOverrides,
   ENRICH_MONTHLY_BUDGET,
   ENRICH_WEEKLY_PACE_MAX,
 } from "./lib/schema.js";
@@ -26,6 +30,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const OUT_DIR = path.join(ROOT, "data");
 const OUT_FILE = path.join(OUT_DIR, "latest.json");
+const OVERRIDES_FILE = path.join(OUT_DIR, "local-overrides.json");
 
 const ADAPTERS = {
   "openai-buzz": openaiBuzz,
@@ -34,6 +39,9 @@ const ADAPTERS = {
   ollama,
   "enrich-labs": enrichLabs,
 };
+
+const SECRET_RE =
+  /sk-[a-zA-Z0-9]{10,}|api[_-]?key\s*[:=]|Bearer\s+[A-Za-z0-9._-]+|-----BEGIN (?:RSA |EC )?PRIVATE KEY-----/i;
 
 /**
  * Merge adapter result into canonical source record.
@@ -63,33 +71,115 @@ export function normalizeSource(result) {
 }
 
 /**
- * Run all adapters and build a snapshot object.
+ * Apply a validated local override onto an adapter-normalized source.
+ * Only sanitized aggregate fields flow into the published snapshot.
+ * @param {object} base
+ * @param {object} override
  */
-export async function collectSnapshot(now = new Date()) {
+export function applyOverride(base, override) {
+  const merged = normalizeSource({
+    ...base,
+    ...override,
+    id: base.id,
+    name: override.name || base.name,
+    history: override.history ?? base.history,
+    budget: override.budget || base.budget,
+    collectionMode: override.collectionMode || base.collectionMode,
+    coverageStart: override.coverageStart ?? base.coverageStart,
+    breakdown: override.breakdown ?? base.breakdown,
+    pace: override.pace
+      ? {
+          daily: override.pace.daily ?? null,
+          monthly: override.pace.monthly ?? null,
+          weeklyTarget:
+            override.pace.weeklyTarget ?? base.pace?.weeklyTarget ?? null,
+        }
+      : {
+          daily: null,
+          monthly: null,
+          weeklyTarget: base.pace?.weeklyTarget ?? null,
+        },
+  });
+  if (!override.reason && (!merged.reason || merged.reason === base.reason)) {
+    merged.reason =
+      "Local override applied from data/local-overrides.json (credentials never published).";
+  }
+  assertHonestSource(merged);
+  return merged;
+}
+
+/**
+ * Load and validate gitignored local overrides. Missing file → empty list.
+ * @param {string} [filePath]
+ */
+export async function loadLocalOverrides(filePath = OVERRIDES_FILE) {
+  try {
+    await access(filePath);
+  } catch {
+    return [];
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(await readFile(filePath, "utf8"));
+  } catch (e) {
+    throw new Error(
+      `local-overrides.json is not valid JSON (fail closed): ${e instanceof Error ? e.message : e}`,
+    );
+  }
+  const check = validateLocalOverrides(parsed);
+  if (!check.ok) {
+    throw new Error(
+      `local-overrides.json failed schema/honesty checks (fail closed): ${check.errors.join("; ")}`,
+    );
+  }
+  if (SECRET_RE.test(JSON.stringify(parsed))) {
+    throw new Error(
+      "local-overrides.json looks like it contains secrets (fail closed); remove credentials before collecting.",
+    );
+  }
+  return parsed.sources;
+}
+
+/**
+ * Run all adapters and build a snapshot object.
+ * @param {Date} [now]
+ * @param {{ overrides?: object[] }} [opts]
+ */
+export async function collectSnapshot(now = new Date(), opts = {}) {
+  const overrideList =
+    opts.overrides !== undefined ? opts.overrides : await loadLocalOverrides();
+  const byId = new Map(overrideList.map((o) => [o.id, o]));
+
   const sources = [];
   for (const id of SOURCE_IDS) {
     const adapter = ADAPTERS[id];
     const result = await adapter.collect();
-    sources.push(normalizeSource(result));
+    let src = normalizeSource(result);
+    const ov = byId.get(id);
+    if (ov) {
+      src = applyOverride(src, ov);
+    }
+    sources.push(src);
   }
   const snapshot = {
-    version: "1.0.0",
+    version: "1.1.0",
     generatedAt: now.toISOString(),
     timezone: "Europe/Amsterdam",
     scheduleNote:
-      "Intended local windows: 09:00 and 16:00 Europe/Amsterdam. GitHub Actions cron is UTC-only; see docs/SCHEDULE.md for DST limits.",
+      "Intended local windows: 09:00 and 16:00 Europe/Amsterdam. GitHub Actions schedules CET+CEST UTC candidates; the Amsterdam gate selects the matching slot. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
     sources,
   };
-  const check = validateSnapshot(snapshot);
-  if (!check.ok) {
-    throw new Error(`Invalid snapshot: ${check.errors.join("; ")}`);
-  }
+  assertPublishableSnapshot(snapshot);
   return snapshot;
 }
 
 export async function writeSnapshot(snapshot, outFile = OUT_FILE) {
-  await mkdir(path.dirname(outFile), { recursive: true });
+  assertPublishableSnapshot(snapshot);
   const text = `${JSON.stringify(snapshot, null, 2)}\n`;
+  if (SECRET_RE.test(text)) {
+    throw new Error("Refusing to write snapshot that looks like it contains secrets");
+  }
+  await mkdir(path.dirname(outFile), { recursive: true });
   await writeFile(outFile, text, "utf8");
   return outFile;
 }
@@ -99,15 +189,6 @@ async function main() {
   const dest = await writeSnapshot(snapshot);
   // eslint-disable-next-line no-console
   console.log(`Wrote ${dest}`);
-  // Keep a copy readable by the site build without secrets.
-  try {
-    const published = JSON.parse(await readFile(dest, "utf8"));
-    if (JSON.stringify(published).match(/sk-[a-zA-Z0-9]|api[_-]?key|Bearer\s/i)) {
-      throw new Error("Refusing to write snapshot that looks like it contains secrets");
-    }
-  } catch (e) {
-    if (e.message?.includes("Refusing")) throw e;
-  }
 }
 
 const isMain =

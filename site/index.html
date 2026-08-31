@@ -6,24 +6,18 @@
     <title>AI Usage Dashboard</title>
     <meta
       name="description"
-      content="Calm multi-source AI usage overview. Public-safe metrics only."
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Manrope:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
+      content="Operational multi-source AI usage overview. Public-safe metrics only."
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="atmosphere" aria-hidden="true"></div>
     <header class="site-header">
       <p class="brand">AI Usage</p>
-      <h1>Quota at a glance</h1>
+      <h1>Quota scan</h1>
       <p class="lede">
-        OpenAI/Buzz, Cursor Agent, Claude Code, Ollama, and Enrich Labs —
-        measured when possible, Unknown when not.
+        OpenAI/Buzz, Cursor Agent, Claude Code, Ollama, Enrich Labs —
+        <strong>measured</strong>, <strong>estimated</strong>, or
+        <strong>unavailable</strong>.
       </p>
       <p class="meta-line" id="snapshot-meta">Loading snapshot…</p>
     </header>
@@ -32,8 +26,9 @@
 
     <footer class="site-footer">
       <p>
-        No credentials, emails, prompts, or customer data are stored in this
-        page. Schedule notes live in the repository at docs/SCHEDULE.md.
+        No credentials, emails, prompts, or customer data are stored on this
+        page. Hosted GitHub runners cannot read authenticated desktop or browser
+        usage — real numbers come from a local collector run. See docs/SCHEDULE.md.
       </p>
       <p id="build-meta"></p>
     </footer>

@@ -4,6 +4,12 @@ const STATUS_CLASS = {
   unknown: "badge-unknown",
 };
 
+const STATUS_LABEL = {
+  measured: "measured",
+  estimated: "estimated",
+  unknown: "unavailable",
+};
+
 function fmtNum(n) {
   if (n == null || Number.isNaN(n)) return "—";
   return new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1 }).format(n);
@@ -21,7 +27,14 @@ function fmtDate(isoOrDay) {
 }
 
 function usageLabel(src) {
-  if (src.usage == null && src.limit == null) return "Usage unknown";
+  if (src.status === "unknown" && src.usage == null) {
+    return "Unavailable";
+  }
+  if (src.usage == null && src.limit == null) return "No limit available";
+  if (src.usage != null && src.limit == null) {
+    const unit = src.unit ? ` ${src.unit}` : "";
+    return `${fmtNum(src.usage)}${unit} · no limit available`;
+  }
   const u = src.usage == null ? "—" : fmtNum(src.usage);
   const lim = src.limit == null ? "—" : fmtNum(src.limit);
   const unit = src.unit ? ` ${src.unit}` : "";
@@ -42,7 +55,7 @@ function sparkBars(history) {
   const bars = history
     .map((h) => {
       if (h.usage == null) {
-        return `<span class="empty" title="${h.date}: unknown"></span>`;
+        return `<span class="empty" title="${h.date}: unavailable"></span>`;
       }
       const hPct = Math.max(8, Math.round((h.usage / max) * 100));
       return `<span style="height:${hPct}%" title="${h.date}: ${h.usage}"></span>`;
@@ -59,23 +72,31 @@ function renderCard(src) {
     src.budget?.monthly != null
       ? `<p class="budget-note">Budget ${fmtNum(src.budget.monthly)}/mo · pace ≤ ${fmtNum(src.budget.weeklyPaceMax)}/wk</p>`
       : "";
+  const percentage = p == null ? "No percentage" : `${fmtNum(p)}%`;
+  const mode = src.collectionMode || "unavailable";
+  const breakdown = src.breakdown
+    ? `<p class="budget-note">Prompt ${fmtNum(src.breakdown.promptTokens)} · output ${fmtNum(src.breakdown.outputTokens)} · ${fmtNum(src.breakdown.generations)} generations</p>`
+    : "";
 
   return `
-    <article class="source-card" data-id="${src.id}">
+    <article class="source-card" data-id="${src.id}" data-status="${escapeHtml(status)}">
       <div class="card-top">
         <h2>${escapeHtml(src.name || src.id)}</h2>
-        <span class="badge ${STATUS_CLASS[status] || STATUS_CLASS.unknown}">${escapeHtml(status)}</span>
+        <span class="badge ${STATUS_CLASS[status] || STATUS_CLASS.unknown}">${escapeHtml(STATUS_LABEL[status] || STATUS_LABEL.unknown)}</span>
       </div>
       <p class="reason">${escapeHtml(src.reason || "")}</p>
       ${budget}
+      ${breakdown}
       <div class="usage-row">
         <span>Usage vs limit</span>
-        <strong>${escapeHtml(usageLabel(src))}</strong>
+        <strong>${escapeHtml(percentage)} · ${escapeHtml(usageLabel(src))}</strong>
       </div>
       <div class="bar ${p == null ? "is-unknown" : ""}" aria-hidden="true"><span style="width:${barWidth}%"></span></div>
       <dl class="facts">
         <div><dt>Reset</dt><dd>${escapeHtml(src.resetDate ? fmtDate(src.resetDate) : "—")}</dd></div>
         <div><dt>Last update</dt><dd>${escapeHtml(fmtDate(src.lastUpdate))}</dd></div>
+        <div><dt>Collection</dt><dd>${escapeHtml(mode)}</dd></div>
+        <div><dt>Coverage starts</dt><dd>${escapeHtml(fmtDate(src.coverageStart))}</dd></div>
         <div><dt>Daily pace</dt><dd>${escapeHtml(fmtNum(src.pace?.daily))}</dd></div>
         <div><dt>Monthly pace</dt><dd>${escapeHtml(fmtNum(src.pace?.monthly))}</dd></div>
         <div><dt>Weekly target</dt><dd>${escapeHtml(fmtNum(src.pace?.weeklyTarget))}</dd></div>
@@ -120,19 +141,9 @@ async function main() {
     }
 
     const sources = Array.isArray(snapshot.sources) ? snapshot.sources : [];
-    root.innerHTML = sources.map(renderCard).join("") ||
+    root.innerHTML =
+      sources.map(renderCard).join("") ||
       `<p class="error-banner">No sources in snapshot.</p>`;
-
-    // Trigger bar animation after paint
-    requestAnimationFrame(() => {
-      root.querySelectorAll(".bar > span").forEach((el) => {
-        const w = el.style.width;
-        el.style.width = "0";
-        requestAnimationFrame(() => {
-          el.style.width = w;
-        });
-      });
-    });
   } catch (err) {
     meta.textContent = "Could not load snapshot.";
     root.innerHTML = `<p class="error-banner">${escapeHtml(err.message || "Load failed")}</p>`;

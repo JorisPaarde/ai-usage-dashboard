@@ -27,6 +27,7 @@ export async function collect() {
       },
       // Public policy constants only — not fabricated usage history.
       history: [],
+      collectionMode: "unavailable",
     },
   );
 }

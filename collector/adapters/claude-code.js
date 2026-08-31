@@ -8,5 +8,6 @@ export async function collect() {
   return unknown(
     "claude-code",
     "Claude Code usage is not available without account credentials. Collector leaves status Unknown.",
+    { collectionMode: "unavailable" },
   );
 }
