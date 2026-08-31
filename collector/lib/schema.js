@@ -16,8 +16,9 @@ export const SOURCE_META = {
   },
   "cursor-agent": {
     name: "Cursor Agent",
-    unit: "tokens",
-    usageUrl: "https://cursor.com/dashboard?tab=usage",
+    unit: "mixed (see components)",
+    // Ground truth is the Spending page (Joris 2026-08-31), not Usage tab.
+    usageUrl: "https://cursor.com/dashboard/spending",
   },
   "claude-code": {
     name: "Claude Code",

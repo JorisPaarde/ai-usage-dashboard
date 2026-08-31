@@ -12,7 +12,7 @@ A run is only worth scheduling if it re-measures something. Per source:
 | OpenAI / Buzz | `account/rateLimits/read` on the local `codex app-server`, falling back to `~/.codex/sessions/**` | Yes — live from the account |
 | Claude Code | token counters in `~/.claude/projects/**/*.jsonl` | Yes (tokens). Plan/credit percentages: **no**, see below |
 | Ollama | timing counters in the local `ollama.log` | Yes |
-| Cursor | none — no local meter exists | No, manual only |
+| Cursor | none — no local meter; ground truth is `/dashboard/spending` | No, manual age-stamped seed only |
 | Enrich Labs | none — no local meter exists | No, manual only |
 
 All routes read **numeric counters only**. Prompts, responses, credit balances,

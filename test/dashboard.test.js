@@ -431,7 +431,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.3.0");
+    assert.equal(snap.version, "1.3.1");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -598,7 +598,7 @@ describe("collector", () => {
     assert.match(merged.reason, /Local automatic measurement alongside it/);
   });
 
-  it("accepts Cursor component rows and https usageUrl", async () => {
+  it("accepts Cursor spending-page component rows and https usageUrl", async () => {
     const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
       overrides: [
         {
@@ -606,24 +606,10 @@ describe("collector", () => {
           status: "measured",
           usage: null,
           limit: null,
-          reason: "component split test",
+          reason: "spending-page component split test",
           lastUpdate: "2026-08-31T08:00:00.000Z",
-          usageUrl: "https://cursor.com/dashboard?tab=usage",
+          usageUrl: "https://cursor.com/dashboard/spending",
           components: [
-            {
-              id: "grok-bot",
-              label: "Grok Bot (weekly)",
-              usage: 100,
-              limit: 100,
-              unit: "%",
-            },
-            {
-              id: "included",
-              label: "Included Cursor plan",
-              usage: 37.2,
-              limit: 100,
-              unit: "%",
-            },
             {
               id: "on-demand",
               label: "On-demand spend",
@@ -631,16 +617,38 @@ describe("collector", () => {
               limit: 75,
               unit: "USD",
             },
+            {
+              id: "included",
+              label: "Included usage",
+              usage: 179200000,
+              limit: null,
+              unit: "tokens",
+            },
+            {
+              id: "grok-bot",
+              label: "Grok Bot (weekly)",
+              usage: null,
+              limit: null,
+              unit: "not on spending page",
+            },
           ],
         },
       ],
     });
     const cursor = snap.sources.find((s) => s.id === "cursor-agent");
     assert.equal(cursor.components.length, 3);
-    assert.equal(cursor.usageUrl, "https://cursor.com/dashboard?tab=usage");
-    assert.equal(cursor.components[0].usage, 100);
-    assert.equal(cursor.components[1].usage, 37.2);
-    assert.equal(cursor.components[2].limit, 75);
+    assert.equal(cursor.usageUrl, "https://cursor.com/dashboard/spending");
+    assert.equal(cursor.components[0].limit, 75);
+    assert.equal(cursor.components[1].usage, 179200000);
+    assert.equal(cursor.components[2].usage, null);
+  });
+
+  it("defaults Cursor usageUrl to the spending page", async () => {
+    const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
+      overrides: [],
+    });
+    const cursor = snap.sources.find((s) => s.id === "cursor-agent");
+    assert.equal(cursor.usageUrl, "https://cursor.com/dashboard/spending");
   });
 
   it("rejects http usageUrl and malformed components", () => {

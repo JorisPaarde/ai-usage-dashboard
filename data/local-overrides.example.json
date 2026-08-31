@@ -3,29 +3,15 @@
     {
       "id": "cursor-agent",
       "status": "measured",
+      "collectionMode": "manual",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
-      "reason": "Manual reading from Cursor usage UI (no credentials stored). Components: Grok Bot weekly, included plan, on-demand.",
+      "reason": "Manual reading from https://cursor.com/dashboard/spending (no credentials stored). Components mirror that page: on-demand USD vs cap, included usage (limit only when the page shows one), Grok Bot only when the page shows it.",
       "lastUpdate": "2026-08-31T08:00:00.000Z",
       "resetDate": "2026-09-24",
-      "usageUrl": "https://cursor.com/dashboard?tab=usage",
+      "usageUrl": "https://cursor.com/dashboard/spending",
       "components": [
-        {
-          "id": "grok-bot",
-          "label": "Grok Bot (weekly)",
-          "usage": 100,
-          "limit": 100,
-          "unit": "% of weekly Grok Bot allowance"
-        },
-        {
-          "id": "included",
-          "label": "Included Cursor plan",
-          "usage": 37.2,
-          "limit": 100,
-          "unit": "% of included plan usage",
-          "resetDate": "2026-09-24"
-        },
         {
           "id": "on-demand",
           "label": "On-demand spend",
@@ -33,6 +19,22 @@
           "limit": 75,
           "unit": "USD",
           "resetDate": "2026-09-24"
+        },
+        {
+          "id": "included",
+          "label": "Included usage",
+          "usage": 179200000,
+          "limit": null,
+          "unit": "tokens — no plan limit shown on spending page",
+          "resetDate": null
+        },
+        {
+          "id": "grok-bot",
+          "label": "Grok Bot (weekly)",
+          "usage": null,
+          "limit": null,
+          "unit": "leave empty unless spending page shows this meter",
+          "resetDate": null
         }
       ]
     }
