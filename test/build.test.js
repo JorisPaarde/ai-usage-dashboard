@@ -50,8 +50,8 @@ describe("build", () => {
     const meta = JSON.parse(
       await readFile(path.join(DIST, "data", "build-meta.json"), "utf8"),
     );
-    assert.equal(JSON.parse(latest).version, "1.3.4");
-    assert.equal(meta.version, "1.3.4");
+    assert.equal(JSON.parse(latest).version, "1.3.5");
+    assert.equal(meta.version, "1.3.5");
     // The built site must not ship a local percentage while the metric is held.
     assert.ok(JSON.parse(latest).routing);
     assert.equal(JSON.parse(latest).routing.today.percent, null);

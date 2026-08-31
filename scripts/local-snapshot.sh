@@ -23,6 +23,15 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
+# data/latest.json is this job's output. A prior collect that failed check
+# leaves it dirty; refusing forever then freezes live generatedAt. Discard
+# that path first. Any other dirty tracked file still means "agent worktree
+# — do not schedule".
+if ! git diff --quiet -- data/latest.json || ! git diff --cached --quiet -- data/latest.json; then
+  echo "Discarding leftover data/latest.json from a prior run."
+  git restore --source=HEAD --staged --worktree -- data/latest.json
+fi
+
 if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "Working tree has tracked changes; refusing scheduled update."
   exit 1
@@ -31,7 +40,11 @@ fi
 git fetch origin main
 git merge --ff-only origin/main
 npm run collect
-npm run check
+if ! npm run check; then
+  echo "check failed; restoring data/latest.json so the next interval can retry." >&2
+  git restore --source=HEAD --staged --worktree -- data/latest.json
+  exit 1
+fi
 git add data/latest.json
 
 if git diff --cached --quiet; then

@@ -52,4 +52,4 @@ keys, account exports, or `data/local-overrides.json`.
 
 ## Version
 
-`1.3.4`
+`1.3.5`

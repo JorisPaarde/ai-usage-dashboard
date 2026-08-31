@@ -64,8 +64,10 @@ appear when you run the collector on a machine that can see them, usually via
 `data/local-overrides.json` (gitignored; see README).
 
 Run the LaunchAgent from a checkout dedicated to the scheduler. It refuses to
-run against a dirty tree, so pointing it at a checkout an agent is editing
-means the 15-minute run silently does nothing.
+run against a dirty tree (other than a leftover `data/latest.json` from a prior
+failed collect/check, which it discards so the schedule cannot lock itself
+out). Pointing it at a checkout an agent is editing still means the 15-minute
+run does nothing.
 
 Primary local schedule (macOS LaunchAgent):
 
