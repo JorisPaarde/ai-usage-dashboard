@@ -1,6 +1,6 @@
 {
-  "version": "1.2.0",
-  "generatedAt": "2026-08-31T12:56:14.713Z",
+  "version": "1.2.1",
+  "generatedAt": "2026-08-31T12:57:45.926Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Intended local windows: 09:00 and 16:00 Europe/Amsterdam. GitHub Actions schedules CET+CEST UTC candidates; the Amsterdam gate selects the matching slot. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
   "sources": [
@@ -87,7 +87,7 @@
       "coverageStart": null,
       "breakdown": null,
       "components": null,
-      "usageUrl": "https://claude.ai/settings/usage",
+      "usageUrl": "https://claude.ai/new#settings/usage",
       "pace": {
         "daily": 0.3,
         "monthly": 10.2,
@@ -105,7 +105,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-08-31T12:56:14.755Z",
+      "lastUpdate": "2026-08-31T12:57:45.966Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 2921,

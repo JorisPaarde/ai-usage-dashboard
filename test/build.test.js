@@ -50,8 +50,8 @@ describe("build", () => {
     const meta = JSON.parse(
       await readFile(path.join(DIST, "data", "build-meta.json"), "utf8"),
     );
-    assert.equal(JSON.parse(latest).version, "1.2.0");
-    assert.equal(meta.version, "1.2.0");
+    assert.equal(JSON.parse(latest).version, "1.2.1");
+    assert.equal(meta.version, "1.2.1");
     await assert.rejects(() =>
       access(path.join(DIST, "data", "local-overrides.json")),
     );

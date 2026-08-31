@@ -22,7 +22,7 @@ export const SOURCE_META = {
   "claude-code": {
     name: "Claude Code",
     unit: "credits",
-    usageUrl: "https://claude.ai/settings/usage",
+    usageUrl: "https://claude.ai/new#settings/usage",
   },
   ollama: {
     name: "Ollama",

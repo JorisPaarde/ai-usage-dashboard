@@ -179,7 +179,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.2.0");
+    assert.equal(snap.version, "1.2.1");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -396,6 +396,8 @@ describe("public seed", () => {
     assert.equal(cursor.components.length, 3);
     assert.equal(cursor.usage, null);
     assert.match(cursor.usageUrl, /^https:\/\/cursor\.com\//);
+    const claude = snap.sources.find((s) => s.id === "claude-code");
+    assert.equal(claude.usageUrl, "https://claude.ai/new#settings/usage");
     assert.match(
       await readFile(path.join(ROOT, "site", "app.js"), "utf8"),
       /source-link/,
