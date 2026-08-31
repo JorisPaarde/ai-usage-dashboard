@@ -84,10 +84,12 @@ export function parseOllamaLog(text, now = new Date()) {
  * timing counters in the local server log; prompts and raw log lines never
  * leave this adapter.
  */
-export async function collect(
+export async function collect({
   fetchImpl = fetch,
-  { logPath = process.env.OLLAMA_LOG_PATH || DEFAULT_LOG, readLog = readFile } = {},
-) {
+  logPath = process.env.OLLAMA_LOG_PATH || DEFAULT_LOG,
+  readLog = readFile,
+  now: nowOverride,
+} = {}) {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 1500);
@@ -100,7 +102,7 @@ export async function collect(
     }
     const body = await res.json();
     const models = Array.isArray(body?.models) ? body.models.length : 0;
-    const now = new Date();
+    const now = nowOverride || new Date();
     let totals = null;
     try {
       totals = parseOllamaLog(await readLog(logPath, "utf8"), now);

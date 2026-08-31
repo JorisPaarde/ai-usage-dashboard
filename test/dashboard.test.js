@@ -30,6 +30,7 @@ import {
 import * as enrich from "../collector/adapters/enrich-labs.js";
 import * as openai from "../collector/adapters/openai-buzz.js";
 import * as ollama from "../collector/adapters/ollama.js";
+import * as claudeCode from "../collector/adapters/claude-code.js";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -106,11 +107,133 @@ describe("pace", () => {
 });
 
 describe("adapters", () => {
-  it("openai stays unknown without inventing usage", async () => {
-    const r = await openai.collect();
+  it("openai stays unknown when no Codex session log is readable", async () => {
+    const r = await openai.collect({
+      listFiles: async () => {
+        throw new Error("ENOENT");
+      },
+    });
     assert.equal(r.status, "unknown");
     assert.equal(r.usage, null);
     assert.ok(r.reason.length > 0);
+
+    const empty = await openai.collect({ listFiles: async () => [] });
+    assert.equal(empty.status, "unknown");
+    assert.equal(empty.usage, null);
+  });
+
+  it("openai reads provider rate-limit percentages from the session log", async () => {
+    const line = JSON.stringify({
+      timestamp: "2026-08-31T10:34:53.019Z",
+      type: "event_msg",
+      payload: {
+        type: "token_count",
+        rate_limits: {
+          primary: { used_percent: 100, window_minutes: 300, resets_at: 1788176638 },
+          secondary: { used_percent: 16, window_minutes: 10080, resets_at: 1788763438 },
+          credits: { balance: "903.2037830000" },
+          plan_type: "plus",
+        },
+      },
+    });
+    const r = await openai.collect({
+      listFiles: async () => ["rollout-a.jsonl"],
+      readSession: async () => `${line}\n`,
+      now: new Date("2026-08-31T11:34:53.019Z"),
+    });
+    assert.equal(r.status, "measured");
+    assert.equal(r.collectionMode, "automatic");
+    assert.equal(r.usage, 100);
+    assert.equal(r.limit, 100);
+    assert.equal(r.unit, "% of 5-hour Codex limit");
+    assert.match(r.reason, /weekly window is 16% used/);
+    assert.equal(r.lastUpdate, "2026-08-31T10:34:53.019Z");
+    // Credit balance and plan tier are account details and must not leak.
+    assert.doesNotMatch(JSON.stringify(r), /903\.2|plus/);
+  });
+
+  it("openai refuses to publish a percentage whose window already reset", async () => {
+    const resetsAt = Math.floor(Date.parse("2026-08-31T11:43:58Z") / 1000);
+    const line = JSON.stringify({
+      timestamp: "2026-08-31T10:34:53.019Z",
+      type: "event_msg",
+      payload: {
+        type: "token_count",
+        rate_limits: {
+          primary: { used_percent: 100, window_minutes: 300, resets_at: resetsAt },
+        },
+      },
+    });
+    const r = await openai.collect({
+      listFiles: async () => ["rollout-a.jsonl"],
+      readSession: async () => `${line}\n`,
+      now: new Date("2026-08-31T12:59:00.000Z"),
+    });
+    assert.equal(r.status, "unknown");
+    assert.equal(r.usage, null);
+    assert.match(r.reason, /has not run since|no reading yet/);
+  });
+
+  it("openai keeps the newest reading across session files", async () => {
+    const event = (ts, pct) =>
+      `${JSON.stringify({
+        timestamp: ts,
+        type: "event_msg",
+        payload: {
+          type: "token_count",
+          rate_limits: { primary: { used_percent: pct, window_minutes: 300 } },
+        },
+      })}\n`;
+    const r = await openai.collect({
+      listFiles: async () => ["old.jsonl", "new.jsonl"],
+      readSession: async (file) =>
+        file === "old.jsonl"
+          ? event("2026-08-31T08:00:00.000Z", 12)
+          : event("2026-08-31T09:00:00.000Z", 44),
+      now: new Date("2026-08-31T09:30:00.000Z"),
+    });
+    assert.equal(r.usage, 44);
+  });
+
+  it("claude-code measures transcript tokens and de-duplicates streamed messages", async () => {
+    const msg = (id, ts, out) =>
+      `${JSON.stringify({
+        type: "assistant",
+        timestamp: ts,
+        message: {
+          id,
+          usage: {
+            input_tokens: 2,
+            cache_creation_input_tokens: 100,
+            cache_read_input_tokens: 900,
+            output_tokens: out,
+          },
+        },
+      })}\n`;
+    const r = await claudeCode.collect({
+      listFiles: async () => ["a.jsonl"],
+      readTranscript: async () =>
+        // Same id twice (streaming), then a second message, then a prior month.
+        msg("msg_1", "2026-08-31T10:00:00.000Z", 50) +
+        msg("msg_1", "2026-08-31T10:00:02.000Z", 50) +
+        msg("msg_2", "2026-08-31T11:00:00.000Z", 25) +
+        msg("msg_old", "2026-07-30T11:00:00.000Z", 999),
+      now: new Date("2026-08-31T12:00:00.000Z"),
+    });
+    assert.equal(r.status, "measured");
+    assert.equal(r.collectionMode, "automatic");
+    assert.equal(r.breakdown.generations, 2);
+    assert.equal(r.breakdown.promptTokens, 2004);
+    assert.equal(r.breakdown.outputTokens, 75);
+    assert.equal(r.usage, 2079);
+    assert.equal(r.limit, null);
+    assert.equal(r.lastUpdate, "2026-08-31T11:00:00.000Z");
+  });
+
+  it("claude-code stays unknown without transcripts", async () => {
+    const r = await claudeCode.collect({ listFiles: async () => [] });
+    assert.equal(r.status, "unknown");
+    assert.equal(r.usage, null);
   });
 
   it("enrich exposes public budget constants only", async () => {
@@ -124,50 +247,46 @@ describe("adapters", () => {
   });
 
   it("ollama reports unknown or measured without fake usage", async () => {
-    const r = await ollama.collect(
-      async () => {
+    const r = await ollama.collect({
+      fetchImpl: async () => {
         throw new Error("offline");
       },
-      { readLog: async () => "" },
-    );
+      readLog: async () => "",
+    });
     assert.equal(r.status, "unknown");
     assert.equal(r.usage, null);
     assert.match(r.reason, /unavailable|fabricated/i);
 
-    const ok = await ollama.collect(
-      async () => ({
+    const ok = await ollama.collect({
+      fetchImpl: async () => ({
         ok: true,
         async json() {
           return { models: [{ name: "x" }, { name: "y" }] };
         },
       }),
-      {
-        readLog: async () => {
-          throw new Error("no log");
-        },
+      readLog: async () => {
+        throw new Error("no log");
       },
-    );
+    });
     assert.equal(ok.status, "measured");
     assert.equal(ok.usage, null);
     assert.match(ok.reason, /2 model/);
 
-    const withLog = await ollama.collect(
-      async () => ({
+    const withLog = await ollama.collect({
+      fetchImpl: async () => ({
         ok: true,
         async json() {
           return { models: [{ name: "x" }] };
         },
       }),
-      {
-        readLog: async () =>
+      readLog: async () =>
           [
             "time=2026-08-31T10:00:00.000+02:00 level=INFO source=server.go msg=start",
             "slot print_timing: id  0 | task 0 | prompt eval time =    100.00 ms /    10 tokens (   10.00 ms per token,   100.00 tokens per second)",
             "slot print_timing: id  0 | task 0 |        eval time =    200.00 ms /    20 tokens (   10.00 ms per token,   100.00 tokens per second)",
             '[GIN] 2026/08/31 - 12:00:00 | 200 |         1.0s |       127.0.0.1 | POST     "/api/chat"',
           ].join("\n"),
-      },
-    );
+    });
     assert.equal(withLog.status, "measured");
     assert.equal(withLog.usage, 30);
   });
@@ -238,6 +357,112 @@ describe("collector", () => {
     assert.equal(cursor.limit, 100);
     assert.match(cursor.reason, /manual UI read/);
     assert.ok(cursor.pace.daily != null);
+  });
+
+  it("stamps every manual override with how old the reading is", () => {
+    const base = normalizeSource({
+      id: "enrich-labs",
+      status: "unknown",
+      reason: "no public API",
+      usage: null,
+    });
+    const fresh = applyOverride(
+      base,
+      {
+        id: "enrich-labs",
+        status: "measured",
+        usage: 200,
+        limit: 200,
+        reason: "read from the workspace",
+        lastUpdate: "2026-08-31T10:00:00.000Z",
+      },
+      new Date("2026-08-31T12:00:00.000Z"),
+    );
+    assert.match(fresh.reason, /Manual reading 2 hour\(s\) old/);
+    assert.doesNotMatch(fresh.reason, /STALE/);
+
+    const stale = applyOverride(
+      base,
+      {
+        id: "enrich-labs",
+        status: "measured",
+        usage: 200,
+        limit: 200,
+        reason: "read from the workspace",
+        lastUpdate: "2026-08-30T10:00:00.000Z",
+      },
+      new Date("2026-08-31T12:00:00.000Z"),
+    );
+    assert.match(stale.reason, /^STALE: |\bSTALE: /);
+    assert.equal(stale.usage, 200);
+  });
+
+  it("refuses to let a manual override overwrite an automatic measurement", () => {
+    const base = normalizeSource({
+      id: "openai-buzz",
+      status: "measured",
+      collectionMode: "automatic",
+      reason: "read from the Codex session log",
+      usage: 100,
+      limit: 100,
+      unit: "% of 5-hour Codex limit",
+      lastUpdate: "2026-08-31T10:34:53.019Z",
+    });
+    const merged = applyOverride(
+      base,
+      {
+        id: "openai-buzz",
+        status: "measured",
+        usage: 98,
+        limit: 100,
+        reason: "typed from the billing screen",
+        lastUpdate: "2026-08-31T09:00:00.000Z",
+      },
+      new Date("2026-08-31T12:00:00.000Z"),
+    );
+    assert.equal(merged.usage, 100);
+    assert.equal(merged.collectionMode, "automatic");
+    assert.doesNotMatch(merged.reason, /typed from the billing screen/);
+    assert.match(merged.reason, /manual override was ignored/i);
+  });
+
+  it("lets a declared supplement carry a metric the collector cannot measure", () => {
+    const base = normalizeSource({
+      id: "claude-code",
+      status: "measured",
+      collectionMode: "automatic",
+      reason: "2079 tokens this month from local transcripts.",
+      usage: 2079,
+      limit: null,
+      unit: "tokens",
+      lastUpdate: "2026-08-31T11:00:00.000Z",
+      breakdown: { promptTokens: 2004, outputTokens: 75, generations: 2 },
+      history: [{ date: "2026-08-31", usage: 2079 }],
+    });
+    const merged = applyOverride(
+      base,
+      {
+        id: "claude-code",
+        supplements: true,
+        status: "measured",
+        collectionMode: "manual",
+        usage: 10.23,
+        limit: 50,
+        unit: "EUR usage credits",
+        reason: "Read from the Claude usage settings page.",
+        lastUpdate: "2026-08-31T10:00:00.000Z",
+      },
+      new Date("2026-08-31T12:00:00.000Z"),
+    );
+    // Ground-truth metric becomes the headline …
+    assert.equal(merged.usage, 10.23);
+    assert.equal(merged.limit, 50);
+    assert.equal(merged.collectionMode, "manual");
+    assert.match(merged.reason, /Manual reading 2 hour\(s\) old/);
+    // … while the automatic local measurement survives as supporting detail.
+    assert.equal(merged.breakdown.generations, 2);
+    assert.equal(merged.history.length, 1);
+    assert.match(merged.reason, /Local automatic measurement alongside it/);
   });
 
   it("applyOverride preserves honesty", () => {

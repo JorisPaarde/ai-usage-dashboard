@@ -12,6 +12,13 @@ trap 'rmdir "$LOCK"' EXIT INT TERM
 
 cd "$ROOT"
 
+echo "=== local snapshot run $(date -u +%Y-%m-%dT%H:%M:%SZ) in $ROOT ==="
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "node not on PATH ($PATH); reinstall the launch agent." >&2
+  exit 1
+fi
+
 if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "Working tree has tracked changes; refusing scheduled update."
   exit 1

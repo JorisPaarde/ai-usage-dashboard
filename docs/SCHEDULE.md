@@ -2,12 +2,61 @@
 
 Intended windows: **09:00** and **16:00** `Europe/Amsterdam`.
 
+## What each scheduled run actually measures
+
+A run is only worth scheduling if it re-measures something. Per source:
+
+| Source | Route | Re-measured each run? |
+| --- | --- | --- |
+| OpenAI / Buzz | `rate_limits.used_percent` written by the Codex CLI into `~/.codex/sessions/**` | Yes — but the figure only advances when Codex is used |
+| Claude Code | token counters in `~/.claude/projects/**/*.jsonl` | Yes (tokens). Plan/credit percentages: **no**, see below |
+| Ollama | timing counters in the local `ollama.log` | Yes |
+| Cursor | none — no local meter exists | No, manual only |
+| Enrich Labs | none — no local meter exists | No, manual only |
+
+Both log-derived routes read **numeric counters only**. Prompts, responses,
+credit balances, plan tiers, and account identifiers are never parsed into the
+snapshot, and the publish step fails closed on secret- or email-looking values.
+
+Override the search paths with `CODEX_SESSIONS_DIR`, `CLAUDE_PROJECTS_DIR`, and
+`OLLAMA_LOG_PATH`.
+
+### Percentages expire with their window
+
+A rate-limit percentage only describes the window it was recorded in. When the
+recorded `resets_at` has passed and the provider has written nothing since, the
+OpenAI source reports **unavailable with the reason**, rather than republishing
+a spent number against an allowance the provider has already reset.
+
+### What a local meter cannot reach
+
+`claude.ai/settings/usage` and `chatgpt.com/#settings/Usage` are the human
+ground truth for plan/session/weekly percentages. Those values are served by
+authenticated account APIs and are **not** cached to disk by either CLI —
+verified by scanning `~/.claude.json`, `~/.claude/**`, and the transcripts for
+rate-limit state. Matching them exactly needs authenticated collection, which is
+an escalation, not a config change.
+
+Until that decision is made, such values live in `data/local-overrides.json` as
+hand-entered readings. Every scheduled run stamps them with **how old** they
+are, and marks them `STALE:` past 12 hours, so a fresh `generatedAt` can never
+make an old hand-typed number look re-measured.
+
+An override never overwrites a source the collector measures directly. If it
+carries a genuinely different metric (Claude's EUR credits vs. locally counted
+tokens) it must say `"supplements": true`; the automatic reading is then kept
+alongside it as supporting detail.
+
 ## Local / self-hosted collectors (preferred for real usage)
 
 GitHub-hosted runners **cannot** inspect authenticated desktop or browser apps
 (Cursor, Claude Code, Enrich Labs, OpenAI account pages). Those figures only
 appear when you run the collector on a machine that can see them, usually via
 `data/local-overrides.json` (gitignored; see README).
+
+Run the LaunchAgent from a checkout dedicated to the scheduler. It refuses to
+run against a dirty tree, so pointing it at a checkout an agent is editing
+means the 09:00/16:00 run silently does nothing.
 
 Prefer a host that understands `Europe/Amsterdam`:
 

@@ -11,6 +11,16 @@
   </array>
   <key>WorkingDirectory</key>
   <string>__REPO__</string>
+  <!--
+    launchd starts jobs with a minimal PATH that excludes Homebrew and version
+    managers, so `node`/`npm` would not resolve. install-launch-agent.sh fills
+    this in from the PATH that actually has a working Node.
+  -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__PATH__</string>
+  </dict>
   <key>StartCalendarInterval</key>
   <array>
     <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>

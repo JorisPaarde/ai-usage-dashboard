@@ -70,13 +70,69 @@ export function normalizeSource(result) {
   return src;
 }
 
+/** A hand-entered reading older than this is called out as stale on the page. */
+export const MANUAL_STALE_HOURS = 12;
+
+/** True when the adapter itself produced a real reading this run. */
+export function isAutomaticMeasurement(source) {
+  return source?.status === "measured" && source?.collectionMode === "automatic";
+}
+
+/**
+ * Describe how old a hand-entered reading is at collect time. A scheduled run
+ * re-publishes manual values without re-measuring them, so the age must be
+ * visible rather than hidden behind a fresh `generatedAt`.
+ * @param {string|null|undefined} lastUpdate
+ * @param {Date} now
+ */
+export function manualFreshnessNote(lastUpdate, now = new Date()) {
+  if (!lastUpdate) {
+    return "Manual reading with no recorded timestamp; this run did not re-measure it.";
+  }
+  const observed = new Date(lastUpdate);
+  if (Number.isNaN(observed.getTime())) {
+    return "Manual reading with an unreadable timestamp; this run did not re-measure it.";
+  }
+  const hours = Math.max(0, (now.getTime() - observed.getTime()) / 3600000);
+  const age =
+    hours < 1
+      ? `${Math.round(hours * 60)} minute(s)`
+      : `${Math.round(hours)} hour(s)`;
+  const prefix = hours >= MANUAL_STALE_HOURS ? "STALE: " : "";
+  return `${prefix}Manual reading ${age} old at this collect; no local meter exists for this source, so this run did not re-measure it.`;
+}
+
 /**
  * Apply a validated local override onto an adapter-normalized source.
  * Only sanitized aggregate fields flow into the published snapshot.
+ *
+ * A manual override never silently replaces a real automatic reading of the
+ * same thing — that is how a scheduled run ends up republishing hand-typed
+ * numbers as if it had measured them. An override that carries a *different*
+ * metric than the collector can measure must say so with `supplements: true`;
+ * it then becomes the headline figure while the automatic reading is kept as
+ * supporting detail.
  * @param {object} base
  * @param {object} override
+ * @param {Date} [now]
  */
-export function applyOverride(base, override) {
+export function applyOverride(base, override, now = new Date()) {
+  if (isAutomaticMeasurement(base) && !override.supplements) {
+    const kept = normalizeSource({
+      ...base,
+      name: override.name || base.name,
+      budget: override.budget || base.budget,
+    });
+    kept.reason = `${kept.reason} A manual override was ignored: the collector measures this source directly.`;
+    assertHonestSource(kept);
+    return kept;
+  }
+
+  const supplementNote =
+    isAutomaticMeasurement(base) && override.supplements
+      ? ` Local automatic measurement alongside it: ${base.reason}`
+      : "";
+
   const merged = normalizeSource({
     ...base,
     ...override,
@@ -104,6 +160,8 @@ export function applyOverride(base, override) {
     merged.reason =
       "Local override applied from data/local-overrides.json (credentials never published).";
   }
+  merged.reason =
+    `${merged.reason} ${manualFreshnessNote(merged.lastUpdate, now)}${supplementNote}`.trim();
   assertHonestSource(merged);
   return merged;
 }
@@ -153,11 +211,11 @@ export async function collectSnapshot(now = new Date(), opts = {}) {
   const sources = [];
   for (const id of SOURCE_IDS) {
     const adapter = ADAPTERS[id];
-    const result = await adapter.collect();
+    const result = await adapter.collect({ now });
     let src = normalizeSource(result);
     const ov = byId.get(id);
     if (ov) {
-      src = applyOverride(src, ov);
+      src = applyOverride(src, ov, now);
     }
     sources.push(src);
   }
