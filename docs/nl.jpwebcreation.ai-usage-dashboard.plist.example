@@ -21,11 +21,10 @@
     <key>PATH</key>
     <string>__PATH__</string>
   </dict>
-  <key>StartCalendarInterval</key>
-  <array>
-    <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
-    <dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
-  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StartInterval</key>
+  <integer>900</integer>
   <key>StandardOutPath</key>
   <string>__HOME__/Library/Logs/AIUsageDashboard/stdout.log</string>
   <key>StandardErrorPath</key>

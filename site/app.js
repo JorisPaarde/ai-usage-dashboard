@@ -193,3 +193,6 @@ async function main() {
 }
 
 main();
+
+// Keep an open dashboard current between the 15-minute local collector runs.
+setInterval(main, 5 * 60 * 1000);

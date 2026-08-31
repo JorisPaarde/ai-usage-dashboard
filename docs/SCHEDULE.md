@@ -1,6 +1,7 @@
 # Collection schedule (Europe/Amsterdam)
 
-Intended windows: **09:00** and **16:00** `Europe/Amsterdam`.
+The local collector runs every **15 minutes**. The dashboard refreshes its
+snapshot every **5 minutes** while it is open.
 
 ## What each scheduled run actually measures
 
@@ -64,15 +65,23 @@ appear when you run the collector on a machine that can see them, usually via
 
 Run the LaunchAgent from a checkout dedicated to the scheduler. It refuses to
 run against a dirty tree, so pointing it at a checkout an agent is editing
-means the 09:00/16:00 run silently does nothing.
+means the 15-minute run silently does nothing.
 
-Prefer a host that understands `Europe/Amsterdam`:
+Primary local schedule (macOS LaunchAgent):
+
+```sh
+./scripts/install-launch-agent.sh
+# StartInterval 900s → collect every 15 minutes while the machine is awake
+```
+
+Optional cron equivalent on a host that understands `Europe/Amsterdam`:
 
 ```cron
 CRON_TZ=Europe/Amsterdam
-0 9 * * *  cd /path/to/ai-usage-dashboard && npm run collect && npm run build
-0 16 * * * cd /path/to/ai-usage-dashboard && npm run collect && npm run build
+*/15 * * * * cd /path/to/ai-usage-dashboard-scheduler && ./scripts/local-snapshot.sh
 ```
+
+GitHub Actions still keep the **09:00** / **16:00** Amsterdam checkpoints below.
 
 ## GitHub Actions cron limits
 
