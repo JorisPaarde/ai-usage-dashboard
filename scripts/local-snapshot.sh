@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 
+# launchd starts with a minimal PATH and does not inherit Homebrew's Node path.
+PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+export PATH
+
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 LOCK="$ROOT/.local-snapshot.lock"
 

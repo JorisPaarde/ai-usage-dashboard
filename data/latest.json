@@ -1,6 +1,6 @@
 {
   "version": "1.2.1",
-  "generatedAt": "2026-08-31T13:15:31.407Z",
+  "generatedAt": "2026-08-31T13:16:11.681Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Intended local windows: 09:00 and 16:00 Europe/Amsterdam. GitHub Actions schedules CET+CEST UTC candidates; the Amsterdam gate selects the matching slot. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
   "sources": [
@@ -9,19 +9,19 @@
       "name": "OpenAI / Buzz",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Codex account: 19% of the 5-hour limit used. The weekly window is 3% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
-      "usage": 19,
+      "reason": "Live from the signed-in Codex account: 24% of the 5-hour limit used. The weekly window is 4% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
+      "usage": 24,
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
       "resetDate": "2026-08-31T18:09:51.000Z",
-      "lastUpdate": "2026-08-31T13:15:31.407Z",
+      "lastUpdate": "2026-08-31T13:16:11.681Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
       "usageUrl": "https://chatgpt.com/#settings/Usage",
       "pace": {
-        "daily": 0.6,
-        "monthly": 19,
+        "daily": 0.8,
+        "monthly": 24,
         "weeklyTarget": null
       },
       "history": []
@@ -78,7 +78,7 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "manual",
-      "reason": "Read from the Claude usage settings page (claude.ai/settings/usage) on 2026-08-31: EUR 10.23 of the EUR 50 monthly usage-credit limit (20.5%). Session and weekly plan windows both showed 0% used. Claude Code does not persist those plan percentages locally, so they cannot be re-measured by the scheduled run. Manual reading 1 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it. Local automatic measurement alongside it: 19774618 tokens this month (19612117 prompt/cache + 162501 output) across 208 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-08-31T11:15:06.208Z. Anthropic's plan and usage-credit percentages need account access and are not published here.",
+      "reason": "Read from the Claude usage settings page (claude.ai/settings/usage) on 2026-08-31: EUR 10.23 of the EUR 50 monthly usage-credit limit (20.5%). Session and weekly plan windows both showed 0% used. Claude Code does not persist those plan percentages locally, so they cannot be re-measured by the scheduled run. Manual reading 1 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it. Local automatic measurement alongside it: 21012702 tokens this month (20847695 prompt/cache + 165007 output) across 214 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-08-31T11:15:06.208Z. Anthropic's plan and usage-credit percentages need account access and are not published here.",
       "usage": 10.23,
       "limit": 50,
       "unit": "EUR usage credits",
@@ -86,9 +86,9 @@
       "lastUpdate": "2026-08-31T12:07:00.000Z",
       "coverageStart": "2026-08-31T11:15:06.208Z",
       "breakdown": {
-        "promptTokens": 19612117,
-        "outputTokens": 162501,
-        "generations": 208
+        "promptTokens": 20847695,
+        "outputTokens": 165007,
+        "generations": 214
       },
       "components": null,
       "usageUrl": "https://claude.ai/new#settings/usage",
@@ -100,7 +100,7 @@
       "history": [
         {
           "date": "2026-08-31",
-          "usage": 19774618
+          "usage": 21012702
         }
       ]
     },
@@ -114,7 +114,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-08-31T13:15:31.407Z",
+      "lastUpdate": "2026-08-31T13:16:11.681Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 2921,
