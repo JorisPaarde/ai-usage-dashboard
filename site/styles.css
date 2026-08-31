@@ -206,6 +206,55 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.capacity-callout {
+  margin: 0.05rem 0 0.15rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--measured) 28%, transparent);
+  background: var(--measured-bg);
+  border-radius: var(--radius);
+}
+
+.capacity-callout[data-tone="moderate"] {
+  border-color: color-mix(in srgb, var(--estimated) 30%, transparent);
+  background: var(--estimated-bg);
+}
+
+.capacity-callout[data-tone="tight"] {
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+  background: var(--warn-bg);
+}
+
+.capacity-headline {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.capacity-detail {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.component-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.component-group-title {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
 .component-list {
   list-style: none;
   margin: 0.15rem 0 0;
@@ -226,6 +275,14 @@ body {
 .component-row:first-child {
   border-top: 0;
   padding-top: 0;
+}
+
+.bar.is-capacity > span {
+  background: var(--measured);
+}
+
+.bar.is-capped-hot > span {
+  background: var(--warn);
 }
 
 .component-label {

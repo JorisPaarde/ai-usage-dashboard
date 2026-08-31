@@ -105,6 +105,15 @@ export function validateComponents(raw, sourceId) {
     if (c.resetDate != null && typeof c.resetDate !== "string") {
       errors.push(`${sourceId}: component.resetDate must be string or null`);
     }
+    if (
+      c.role != null &&
+      c.role !== "capacity" &&
+      c.role !== "capped"
+    ) {
+      errors.push(
+        `${sourceId}: component.role must be "capacity", "capped", or omitted`,
+      );
+    }
   }
   return errors;
 }

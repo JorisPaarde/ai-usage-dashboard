@@ -431,7 +431,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.3.1");
+    assert.equal(snap.version, "1.3.2");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -598,7 +598,7 @@ describe("collector", () => {
     assert.match(merged.reason, /Local automatic measurement alongside it/);
   });
 
-  it("accepts Cursor spending-page component rows and https usageUrl", async () => {
+  it("accepts Cursor spending-page capacity vs capped component roles", async () => {
     const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
       overrides: [
         {
@@ -606,41 +606,79 @@ describe("collector", () => {
           status: "measured",
           usage: null,
           limit: null,
-          reason: "spending-page component split test",
+          reason: "spending-page capacity/capped split test",
           lastUpdate: "2026-08-31T08:00:00.000Z",
           usageUrl: "https://cursor.com/dashboard/spending",
           components: [
             {
+              id: "included-cursor-models",
+              label: "Included Cursor Models",
+              role: "capacity",
+              usage: 14,
+              limit: 100,
+              unit: "% of included allowance",
+            },
+            {
+              id: "other-models",
+              label: "Other Models",
+              role: "capacity",
+              usage: 24,
+              limit: 100,
+              unit: "% of included allowance",
+            },
+            {
               id: "on-demand",
               label: "On-demand spend",
+              role: "capped",
               usage: 73.6,
               limit: 75,
               unit: "USD",
             },
             {
-              id: "included",
-              label: "Included usage",
-              usage: 179200000,
-              limit: null,
-              unit: "tokens",
-            },
-            {
               id: "grok-bot",
               label: "Grok Bot (weekly)",
-              usage: null,
-              limit: null,
-              unit: "not on spending page",
+              role: "capped",
+              usage: 100,
+              limit: 100,
+              unit: "% of weekly allowance",
             },
           ],
         },
       ],
     });
     const cursor = snap.sources.find((s) => s.id === "cursor-agent");
-    assert.equal(cursor.components.length, 3);
+    assert.equal(cursor.components.length, 4);
     assert.equal(cursor.usageUrl, "https://cursor.com/dashboard/spending");
-    assert.equal(cursor.components[0].limit, 75);
-    assert.equal(cursor.components[1].usage, 179200000);
-    assert.equal(cursor.components[2].usage, null);
+    assert.equal(cursor.usage, null);
+    assert.equal(cursor.components[0].role, "capacity");
+    assert.equal(cursor.components[0].usage, 14);
+    assert.equal(cursor.components[2].role, "capped");
+    assert.equal(cursor.components[2].limit, 75);
+  });
+
+  it("rejects unknown component roles", () => {
+    assert.equal(
+      validateLocalOverrides({
+        sources: [
+          {
+            id: "cursor-agent",
+            status: "measured",
+            usage: null,
+            lastUpdate: "2026-08-31T08:00:00.000Z",
+            components: [
+              {
+                id: "x",
+                label: "X",
+                role: "maxed",
+                usage: 1,
+                limit: 1,
+              },
+            ],
+          },
+        ],
+      }).ok,
+      false,
+    );
   });
 
   it("defaults Cursor usageUrl to the spending page", async () => {
@@ -767,6 +805,19 @@ describe("public seed", () => {
     }
     assert.equal(cursor.usage, null);
     assert.match(cursor.usageUrl, /^https:\/\/cursor\.com\//);
+    const capacity = cursor.components.filter((c) => c.role === "capacity");
+    const capped = cursor.components.filter((c) => c.role === "capped");
+    assert.ok(capacity.length >= 2);
+    assert.ok(capped.length >= 2);
+    assert.ok(capacity.every((c) => typeof c.usage === "number" && c.usage < 50));
+    assert.match(
+      await readFile(path.join(ROOT, "site", "app.js"), "utf8"),
+      /capacity-callout/,
+    );
+    assert.match(
+      await readFile(path.join(ROOT, "site", "app.js"), "utf8"),
+      /Plan capacity ample/,
+    );
     const claude = snap.sources.find((s) => s.id === "claude-code");
     assert.equal(claude.usageUrl, "https://claude.ai/new#settings/usage");
     assert.match(
