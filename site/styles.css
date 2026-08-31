@@ -127,6 +127,56 @@ body {
   font-weight: 700;
 }
 
+.source-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.source-link:hover,
+.source-link:focus-visible {
+  color: var(--accent);
+}
+
+.component-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.component-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.component-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.86rem;
+}
+
+.component-label {
+  font-weight: 600;
+}
+
+.component-head strong {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+}
+
+.component-reset {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
 .badge {
   flex-shrink: 0;
   font-size: 0.7rem;

@@ -118,10 +118,13 @@ export function manualFreshnessNote(lastUpdate, now = new Date()) {
  */
 export function applyOverride(base, override, now = new Date()) {
   if (isAutomaticMeasurement(base) && !override.supplements) {
+    // Presentation-only fields still merge; only the measurement is protected.
     const kept = normalizeSource({
       ...base,
       name: override.name || base.name,
       budget: override.budget || base.budget,
+      usageUrl:
+        override.usageUrl !== undefined ? override.usageUrl : base.usageUrl,
     });
     kept.reason = `${kept.reason} A manual override was ignored: the collector measures this source directly.`;
     assertHonestSource(kept);
@@ -143,6 +146,9 @@ export function applyOverride(base, override, now = new Date()) {
     collectionMode: override.collectionMode || base.collectionMode,
     coverageStart: override.coverageStart ?? base.coverageStart,
     breakdown: override.breakdown ?? base.breakdown,
+    components: override.components ?? base.components,
+    usageUrl:
+      override.usageUrl !== undefined ? override.usageUrl : base.usageUrl,
     pace: override.pace
       ? {
           daily: override.pace.daily ?? null,
@@ -220,7 +226,7 @@ export async function collectSnapshot(now = new Date(), opts = {}) {
     sources.push(src);
   }
   const snapshot = {
-    version: "1.1.0",
+    version: "1.2.1",
     generatedAt: now.toISOString(),
     timezone: "Europe/Amsterdam",
     scheduleNote:

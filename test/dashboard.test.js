@@ -298,7 +298,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.1.0");
+    assert.equal(snap.version, "1.2.1");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -465,6 +465,87 @@ describe("collector", () => {
     assert.match(merged.reason, /Local automatic measurement alongside it/);
   });
 
+  it("accepts Cursor component rows and https usageUrl", async () => {
+    const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
+      overrides: [
+        {
+          id: "cursor-agent",
+          status: "measured",
+          usage: null,
+          limit: null,
+          reason: "component split test",
+          lastUpdate: "2026-08-31T08:00:00.000Z",
+          usageUrl: "https://cursor.com/dashboard?tab=usage",
+          components: [
+            {
+              id: "grok-bot",
+              label: "Grok Bot (weekly)",
+              usage: 100,
+              limit: 100,
+              unit: "%",
+            },
+            {
+              id: "included",
+              label: "Included Cursor plan",
+              usage: 37.2,
+              limit: 100,
+              unit: "%",
+            },
+            {
+              id: "on-demand",
+              label: "On-demand spend",
+              usage: 73.6,
+              limit: 75,
+              unit: "USD",
+            },
+          ],
+        },
+      ],
+    });
+    const cursor = snap.sources.find((s) => s.id === "cursor-agent");
+    assert.equal(cursor.components.length, 3);
+    assert.equal(cursor.usageUrl, "https://cursor.com/dashboard?tab=usage");
+    assert.equal(cursor.components[0].usage, 100);
+    assert.equal(cursor.components[1].usage, 37.2);
+    assert.equal(cursor.components[2].limit, 75);
+  });
+
+  it("rejects http usageUrl and malformed components", () => {
+    assert.equal(
+      validateLocalOverrides({
+        sources: [
+          {
+            id: "openai-buzz",
+            status: "measured",
+            usage: 1,
+            lastUpdate: "2026-08-31T08:00:00.000Z",
+            usageUrl: "http://example.com",
+          },
+        ],
+      }).ok,
+      false,
+    );
+    assert.equal(
+      validateSnapshot({
+        version: "1.2.0",
+        generatedAt: "2026-08-31T10:00:00.000Z",
+        timezone: "Europe/Amsterdam",
+        sources: SOURCE_IDS.map((id) =>
+          emptySource({
+            id,
+            status: "unknown",
+            reason: "n/a",
+            components:
+              id === "cursor-agent"
+                ? [{ id: "x", label: "X", usage: "bad", limit: 1 }]
+                : null,
+          }),
+        ),
+      }).ok,
+      false,
+    );
+  });
+
   it("applyOverride preserves honesty", () => {
     const base = normalizeSource({
       id: "openai-buzz",
@@ -535,6 +616,17 @@ describe("public seed", () => {
     for (const s of snap.sources) {
       if (s.status === "unknown") assert.equal(s.usage, null);
     }
+    const cursor = snap.sources.find((s) => s.id === "cursor-agent");
+    assert.ok(Array.isArray(cursor.components));
+    assert.equal(cursor.components.length, 3);
+    assert.equal(cursor.usage, null);
+    assert.match(cursor.usageUrl, /^https:\/\/cursor\.com\//);
+    const claude = snap.sources.find((s) => s.id === "claude-code");
+    assert.equal(claude.usageUrl, "https://claude.ai/new#settings/usage");
+    assert.match(
+      await readFile(path.join(ROOT, "site", "app.js"), "utf8"),
+      /source-link/,
+    );
   });
 
   it("site marks measured estimated and unavailable distinctly", async () => {

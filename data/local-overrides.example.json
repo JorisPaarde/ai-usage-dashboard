@@ -2,16 +2,38 @@
   "sources": [
     {
       "id": "cursor-agent",
-      "status": "estimated",
-      "usage": 1200000,
-      "limit": 2000000,
-      "unit": "tokens",
-      "reason": "Manual reading from Cursor usage UI (no credentials stored).",
+      "status": "measured",
+      "usage": null,
+      "limit": null,
+      "unit": "mixed (see components)",
+      "reason": "Manual reading from Cursor usage UI (no credentials stored). Components: Grok Bot weekly, included plan, on-demand.",
       "lastUpdate": "2026-08-31T08:00:00.000Z",
-      "resetDate": "2026-09-01",
-      "history": [
-        { "date": "2026-08-30", "usage": 1100000 },
-        { "date": "2026-08-31", "usage": 1200000 }
+      "resetDate": "2026-09-24",
+      "usageUrl": "https://cursor.com/dashboard?tab=usage",
+      "components": [
+        {
+          "id": "grok-bot",
+          "label": "Grok Bot (weekly)",
+          "usage": 100,
+          "limit": 100,
+          "unit": "% of weekly Grok Bot allowance"
+        },
+        {
+          "id": "included",
+          "label": "Included Cursor plan",
+          "usage": 37.2,
+          "limit": 100,
+          "unit": "% of included plan usage",
+          "resetDate": "2026-09-24"
+        },
+        {
+          "id": "on-demand",
+          "label": "On-demand spend",
+          "usage": 73.6,
+          "limit": 75,
+          "unit": "USD",
+          "resetDate": "2026-09-24"
+        }
       ]
     }
   ]
