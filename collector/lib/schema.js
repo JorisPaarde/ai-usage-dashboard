@@ -9,11 +9,32 @@ export const SOURCE_IDS = [
 ];
 
 export const SOURCE_META = {
-  "openai-buzz": { name: "OpenAI / Buzz", unit: "requests" },
-  "cursor-agent": { name: "Cursor Agent", unit: "tokens" },
-  "claude-code": { name: "Claude Code", unit: "credits" },
-  ollama: { name: "Ollama", unit: "tokens" },
-  "enrich-labs": { name: "Enrich Labs", unit: "credits" },
+  "openai-buzz": {
+    name: "OpenAI / Buzz",
+    unit: "requests",
+    usageUrl: "https://chatgpt.com/#settings/Usage",
+  },
+  "cursor-agent": {
+    name: "Cursor Agent",
+    unit: "tokens",
+    usageUrl: "https://cursor.com/dashboard?tab=usage",
+  },
+  "claude-code": {
+    name: "Claude Code",
+    unit: "credits",
+    usageUrl: "https://claude.ai/settings/usage",
+  },
+  ollama: {
+    name: "Ollama",
+    unit: "tokens",
+    // Local-only; no vendor cloud usage page.
+    usageUrl: null,
+  },
+  "enrich-labs": {
+    name: "Enrich Labs",
+    unit: "credits",
+    usageUrl: "https://www.enrichlabs.ai/login",
+  },
 };
 
 /** Public Enrich Starter budget and pace policy (list pricing / operating target). */
@@ -27,9 +48,69 @@ export const COLLECTION_MODES = new Set(["automatic", "manual", "unavailable"]);
  * @param {object} partial
  * @returns {object}
  */
+/**
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+export function isHttpsUsageUrl(value) {
+  if (value == null) return true;
+  if (typeof value !== "string") return false;
+  try {
+    const u = new URL(value);
+    return u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * @param {unknown} raw
+ * @param {string} sourceId
+ * @returns {string[]}
+ */
+export function validateComponents(raw, sourceId) {
+  const errors = [];
+  if (raw == null) return errors;
+  if (!Array.isArray(raw)) {
+    errors.push(`${sourceId}: components must be an array or null`);
+    return errors;
+  }
+  const ids = new Set();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") {
+      errors.push(`${sourceId}: each component must be an object`);
+      continue;
+    }
+    const c = /** @type {Record<string, unknown>} */ (item);
+    if (typeof c.id !== "string" || !c.id) {
+      errors.push(`${sourceId}: component.id must be a non-empty string`);
+    } else if (ids.has(c.id)) {
+      errors.push(`${sourceId}: duplicate component id: ${c.id}`);
+    } else {
+      ids.add(c.id);
+    }
+    if (typeof c.label !== "string" || !c.label) {
+      errors.push(`${sourceId}: component.label must be a non-empty string`);
+    }
+    if (c.usage != null && typeof c.usage !== "number") {
+      errors.push(`${sourceId}: component.usage must be number or null`);
+    }
+    if (c.limit != null && typeof c.limit !== "number") {
+      errors.push(`${sourceId}: component.limit must be number or null`);
+    }
+    if (c.unit != null && typeof c.unit !== "string") {
+      errors.push(`${sourceId}: component.unit must be string or null`);
+    }
+    if (c.resetDate != null && typeof c.resetDate !== "string") {
+      errors.push(`${sourceId}: component.resetDate must be string or null`);
+    }
+  }
+  return errors;
+}
+
 export function emptySource(partial = {}) {
   const id = partial.id;
-  const meta = SOURCE_META[id] || { name: id, unit: null };
+  const meta = SOURCE_META[id] || { name: id, unit: null, usageUrl: null };
   return {
     id,
     name: partial.name || meta.name,
@@ -45,6 +126,9 @@ export function emptySource(partial = {}) {
     lastUpdate: partial.lastUpdate ?? null,
     coverageStart: partial.coverageStart ?? null,
     breakdown: partial.breakdown ?? null,
+    components: Array.isArray(partial.components) ? partial.components : null,
+    usageUrl:
+      partial.usageUrl !== undefined ? partial.usageUrl : (meta.usageUrl ?? null),
     pace: {
       daily: partial.pace?.daily ?? null,
       monthly: partial.pace?.monthly ?? null,
@@ -106,6 +190,10 @@ export function validateSnapshot(snapshot) {
     }
     if (src.breakdown != null && typeof src.breakdown !== "object") {
       errors.push(`${src.id}: breakdown must be object or null`);
+    }
+    errors.push(...validateComponents(src.components, /** @type {string} */ (src.id)));
+    if (!isHttpsUsageUrl(src.usageUrl)) {
+      errors.push(`${src.id}: usageUrl must be https URL or null`);
     }
     if (!Array.isArray(src.history)) {
       errors.push(`${src.id}: history must be an array`);
@@ -216,6 +304,10 @@ export function validateLocalOverrides(overrides) {
     }
     if (src.reason != null && typeof src.reason !== "string") {
       errors.push(`${src.id}: reason must be a string`);
+    }
+    errors.push(...validateComponents(src.components, /** @type {string} */ (src.id)));
+    if (src.usageUrl !== undefined && !isHttpsUsageUrl(src.usageUrl)) {
+      errors.push(`${src.id}: usageUrl must be https URL or null`);
     }
     if (src.history != null) {
       if (!Array.isArray(src.history)) {

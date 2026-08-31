@@ -87,6 +87,9 @@ export function applyOverride(base, override) {
     collectionMode: override.collectionMode || base.collectionMode,
     coverageStart: override.coverageStart ?? base.coverageStart,
     breakdown: override.breakdown ?? base.breakdown,
+    components: override.components ?? base.components,
+    usageUrl:
+      override.usageUrl !== undefined ? override.usageUrl : base.usageUrl,
     pace: override.pace
       ? {
           daily: override.pace.daily ?? null,
@@ -162,7 +165,7 @@ export async function collectSnapshot(now = new Date(), opts = {}) {
     sources.push(src);
   }
   const snapshot = {
-    version: "1.1.0",
+    version: "1.2.0",
     generatedAt: now.toISOString(),
     timezone: "Europe/Amsterdam",
     scheduleNote:

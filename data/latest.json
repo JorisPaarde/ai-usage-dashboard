@@ -1,6 +1,6 @@
 {
-  "version": "1.1.0",
-  "generatedAt": "2026-08-31T12:21:14.827Z",
+  "version": "1.2.0",
+  "generatedAt": "2026-08-31T12:56:14.713Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Intended local windows: 09:00 and 16:00 Europe/Amsterdam. GitHub Actions schedules CET+CEST UTC candidates; the Amsterdam gate selects the matching slot. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
   "sources": [
@@ -17,6 +17,8 @@
       "lastUpdate": "2026-08-31T12:07:00.000Z",
       "coverageStart": null,
       "breakdown": null,
+      "components": null,
+      "usageUrl": "https://chatgpt.com/#settings/Usage",
       "pace": {
         "daily": 3.2,
         "monthly": 98,
@@ -29,17 +31,44 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "manual",
-      "reason": "Signed-in Cursor dashboard inspected 2026-08-31: USD 73.60 of the USD 75 fixed on-demand cap (98.1%). Included usage is 37.2%; weekly Grok Bot usage is 100%.",
-      "usage": 73.6,
-      "limit": 75,
-      "unit": "USD on-demand",
+      "reason": "Signed-in Cursor dashboard inspected 2026-08-31 (RESEARCH/AI_SUBSCRIPTION_INVENTORY_2026_08_31.md + spend-control note). Three separate meters: weekly Grok Bot 100% used; included plan usage 37.2% (874.7M tokens in cycle 2026-08-24–2026-09-24); on-demand USD 73.60 of USD 75 fixed cap (98.1%). Shown as component rows, not one aggregate.",
+      "usage": null,
+      "limit": null,
+      "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
       "lastUpdate": "2026-08-31T12:07:00.000Z",
       "coverageStart": null,
       "breakdown": null,
+      "components": [
+        {
+          "id": "grok-bot",
+          "label": "Grok Bot (weekly)",
+          "usage": 100,
+          "limit": 100,
+          "unit": "% of weekly Grok Bot allowance",
+          "resetDate": null
+        },
+        {
+          "id": "included",
+          "label": "Included Cursor plan",
+          "usage": 37.2,
+          "limit": 100,
+          "unit": "% of included plan usage",
+          "resetDate": "2026-09-24"
+        },
+        {
+          "id": "on-demand",
+          "label": "On-demand spend",
+          "usage": 73.6,
+          "limit": 75,
+          "unit": "USD",
+          "resetDate": "2026-09-24"
+        }
+      ],
+      "usageUrl": "https://cursor.com/dashboard?tab=usage",
       "pace": {
-        "daily": 2.4,
-        "monthly": 73.6,
+        "daily": null,
+        "monthly": null,
         "weeklyTarget": null
       },
       "history": []
@@ -57,6 +86,8 @@
       "lastUpdate": "2026-08-31T12:07:00.000Z",
       "coverageStart": null,
       "breakdown": null,
+      "components": null,
+      "usageUrl": "https://claude.ai/settings/usage",
       "pace": {
         "daily": 0.3,
         "monthly": 10.2,
@@ -74,13 +105,15 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-08-31T12:21:14.871Z",
+      "lastUpdate": "2026-08-31T12:56:14.755Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 2921,
         "outputTokens": 963,
         "generations": 15
       },
+      "components": null,
+      "usageUrl": null,
       "pace": {
         "daily": 125.3,
         "monthly": 3884,
@@ -110,6 +143,8 @@
       "lastUpdate": "2026-08-31T12:07:00.000Z",
       "coverageStart": null,
       "breakdown": null,
+      "components": null,
+      "usageUrl": "https://www.enrichlabs.ai/login",
       "pace": {
         "daily": 6.5,
         "monthly": 200,
