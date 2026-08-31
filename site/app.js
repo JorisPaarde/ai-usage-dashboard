@@ -336,6 +336,24 @@ function renderRoutingCard(routing) {
     </article>`;
   }
 
+  // No percentage in either window ⇒ unavailable-with-reason, never a "measured"
+  // badge over em dashes. `reason` is required by validateRouting in that case.
+  const measured = routing.today?.percent != null || routing.rolling7d?.percent != null;
+  if (!measured) {
+    return `
+    <article class="source-card routing-card" data-id="local-share" data-status="unknown">
+      <div class="card-top">
+        <h2>Local share</h2>
+        <span class="badge ${STATUS_CLASS.unknown}">${STATUS_LABEL.unknown}</span>
+      </div>
+      <div class="primary-metric">
+        <p class="primary-value is-empty">—</p>
+        <p class="primary-sub">${escapeHtml(routing.reason ?? "No verified routing data")}</p>
+      </div>
+      <p class="budget-note">Share of delegated tasks that went to LocalAI guy.</p>
+    </article>`;
+  }
+
   const skipped =
     typeof routing.skipped === "number" && routing.skipped > 0
       ? `<p class="budget-note">${fmtNum(routing.skipped)} malformed log line(s) skipped</p>`

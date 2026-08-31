@@ -184,6 +184,14 @@ export function validateRoutingBucket(raw, label) {
 /**
  * Top-level routing metric — not a sixth SOURCE_IDS entry.
  * Entire object is null when the routing log is missing/unreadable.
+ *
+ * A percentage may only be published when `runtimeEvidence` names the proof that
+ * the work actually ran on the local runtime. An agent's configured model label
+ * is not that proof: on 2026-08-31 the agent labelled `qwen2.5-coder:14b` was
+ * measured running `gpt-5.5` on OpenAI, which made the published 6/12 = 50%
+ * wrong in both numerator and denominator. When no percentage is published,
+ * `reason` must say why, so the card is unavailable-with-reason and never a
+ * fake zero.
  * @param {unknown} raw
  * @returns {string[]}
  */
@@ -200,6 +208,26 @@ export function validateRouting(raw) {
   }
   if (typeof r.skipped !== "number" || !Number.isFinite(r.skipped) || r.skipped < 0) {
     errors.push("routing.skipped must be a non-negative number");
+  }
+
+  const claimsPercent = [r.today, r.rolling7d].some(
+    (b) => b != null && typeof b === "object" && /** @type {any} */ (b).percent != null,
+  );
+  const hasEvidence = typeof r.runtimeEvidence === "string" && r.runtimeEvidence.trim() !== "";
+  if (r.runtimeEvidence != null && typeof r.runtimeEvidence !== "string") {
+    errors.push("routing.runtimeEvidence must be string or null");
+  }
+  if (claimsPercent && !hasEvidence) {
+    errors.push(
+      "routing.runtimeEvidence is required to publish a local percentage — " +
+        "an agent's configured model label is not runtime evidence",
+    );
+  }
+  if (!claimsPercent && !(typeof r.reason === "string" && r.reason.trim() !== "")) {
+    errors.push("routing.reason is required when no local percentage is published");
+  }
+  if (r.reason != null && typeof r.reason !== "string") {
+    errors.push("routing.reason must be string or null");
   }
   return errors;
 }

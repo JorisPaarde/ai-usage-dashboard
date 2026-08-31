@@ -73,6 +73,7 @@ describe("schema", () => {
           rolling7d: { local: 6, total: 12, percent: 50 },
           lastEntry: "2026-08-31T14:08:00.000Z",
           skipped: 0,
+          runtimeEvidence: "ollama.log /api/generate per included task",
         },
       }).ok,
       true,
@@ -85,6 +86,7 @@ describe("schema", () => {
           rolling7d: { local: 0, total: 0, percent: null },
           lastEntry: null,
           skipped: 0,
+          reason: "awaiting provider fix",
         },
       }).ok,
       true,
@@ -113,6 +115,55 @@ describe("schema", () => {
       }).ok,
       false,
     );
+  });
+
+  it("refuses to publish a local percentage without runtime evidence", () => {
+    const base = {
+      version: "1.3.4",
+      generatedAt: "2026-08-31T14:16:00.000Z",
+      timezone: "Europe/Amsterdam",
+      sources: SOURCE_IDS.map((id) =>
+        emptySource({ id, status: "unknown", reason: "n/a" }),
+      ),
+    };
+
+    // Exactly the shape that shipped 6/12 = 50%: counts derived from each
+    // agent's configured model label, with nothing proving the work ran locally.
+    const labelOnly = {
+      today: { local: 6, total: 12, percent: 50 },
+      rolling7d: { local: 6, total: 12, percent: 50 },
+      lastEntry: "2026-08-31T14:08:00.000Z",
+      skipped: 0,
+    };
+    const rejected = validateSnapshot({ ...base, routing: labelOnly });
+    assert.equal(rejected.ok, false);
+    assert.match(rejected.errors.join("\n"), /runtimeEvidence is required/);
+
+    // An empty string is not evidence either.
+    assert.equal(
+      validateSnapshot({ ...base, routing: { ...labelOnly, runtimeEvidence: "   " } }).ok,
+      false,
+    );
+
+    // Naming the measured runtime proof unblocks publication.
+    assert.equal(
+      validateSnapshot({
+        ...base,
+        routing: { ...labelOnly, runtimeEvidence: "ollama.log /api/generate per included task" },
+      }).ok,
+      true,
+    );
+
+    // Withholding the percentage is only honest if it says why.
+    const silent = {
+      today: { local: 0, total: 0, percent: null },
+      rolling7d: { local: 0, total: 0, percent: null },
+      lastEntry: null,
+      skipped: 0,
+    };
+    const noReason = validateSnapshot({ ...base, routing: silent });
+    assert.equal(noReason.ok, false);
+    assert.match(noReason.errors.join("\n"), /reason is required/);
   });
 
   it("rejects unknown without reason", () => {
@@ -491,7 +542,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.3.3");
+    assert.equal(snap.version, "1.3.4");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -878,10 +929,14 @@ describe("public seed", () => {
       await readFile(path.join(ROOT, "site", "app.js"), "utf8"),
       /Plan capacity ample/,
     );
+    // Held at unavailable-with-reason until a routing log renormalised against
+    // measured runtimes exists. The previous 6/12 = 50% counted an agent that
+    // was measured running gpt-5.5 on OpenAI as local.
     assert.ok(snap.routing);
-    assert.equal(snap.routing.today.local, 6);
-    assert.equal(snap.routing.today.total, 12);
-    assert.equal(snap.routing.today.percent, 50);
+    assert.equal(snap.routing.today.percent, null);
+    assert.equal(snap.routing.rolling7d.percent, null);
+    assert.equal(snap.routing.runtimeEvidence, null);
+    assert.match(snap.routing.reason, /not runtime evidence/);
     assert.match(
       await readFile(path.join(ROOT, "site", "app.js"), "utf8"),
       /renderRoutingCard/,

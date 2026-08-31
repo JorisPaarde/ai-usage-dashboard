@@ -50,10 +50,13 @@ describe("build", () => {
     const meta = JSON.parse(
       await readFile(path.join(DIST, "data", "build-meta.json"), "utf8"),
     );
-    assert.equal(JSON.parse(latest).version, "1.3.3");
-    assert.equal(meta.version, "1.3.3");
+    assert.equal(JSON.parse(latest).version, "1.3.4");
+    assert.equal(meta.version, "1.3.4");
+    // The built site must not ship a local percentage while the metric is held.
     assert.ok(JSON.parse(latest).routing);
-    assert.equal(JSON.parse(latest).routing.today.percent, 50);
+    assert.equal(JSON.parse(latest).routing.today.percent, null);
+    assert.equal(JSON.parse(latest).routing.runtimeEvidence, null);
+    assert.match(JSON.parse(latest).routing.reason, /not runtime evidence/);
     const appJs = await readFile(path.join(DIST, "app.js"), "utf8");
     assert.match(appJs, /renderRoutingCard/);
     assert.match(appJs, /Local share/);

@@ -33,6 +33,24 @@ const OUT_DIR = path.join(ROOT, "data");
 const OUT_FILE = path.join(OUT_DIR, "latest.json");
 
 /**
+ * The local-share metric is on hold. The routing log's `local` flag was set from
+ * each agent's configured model label, and on 2026-08-31 the agent labelled
+ * `qwen2.5-coder:14b` was measured running `gpt-5.5` on OpenAI — so the
+ * published 6/12 = 50% was wrong in both numerator and denominator. Publishing
+ * no percentage is correct until the provider fix lands and the log is
+ * renormalised against runtime evidence.
+ */
+const ROUTING_HOLD = Object.freeze({
+  today: Object.freeze({ local: 0, total: 0, percent: null }),
+  rolling7d: Object.freeze({ local: 0, total: 0, percent: null }),
+  lastEntry: null,
+  skipped: 0,
+  runtimeEvidence: null,
+  reason:
+    "Unproven: the agent's model label was not runtime evidence. Awaiting the provider fix and a routing log renormalised against measured runtimes.",
+});
+
+/**
  * Overrides are gitignored, so every checkout keeps its own copy and they drift
  * apart. A collect run from a checkout holding an older copy then republishes
  * those older readings into the tracked snapshot — the seed silently regresses
@@ -265,13 +283,15 @@ export async function collectSnapshot(now = new Date(), opts = {}) {
     sources.push(src);
   }
   const snapshot = {
-    version: "1.3.3",
+    version: "1.3.4",
     generatedAt: now.toISOString(),
     timezone: "Europe/Amsterdam",
     scheduleNote:
       "Local LaunchAgent collects every 15 minutes (LLM-free). Open dashboards soft-refresh every 5 minutes. GitHub Actions still gate CET+CEST UTC candidates to 09:00 and 16:00 Europe/Amsterdam. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
-    // Fizz Claude Backup owns populating this from routing-log.jsonl.
-    routing: null,
+    // Fizz Claude Backup owns populating this from routing-log.jsonl. Held at
+    // unavailable-with-reason: the routing log still carries legacy `local:true`
+    // rows whose "local" claim came from an agent label, not from runtime proof.
+    routing: ROUTING_HOLD,
     sources,
   };
   assertPublishableSnapshot(snapshot);
