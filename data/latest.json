@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-08-31T10:00:00.000Z",
+  "generatedAt": "2026-08-31T12:17:00.000Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Intended local windows: 09:00 and 16:00 Europe/Amsterdam. GitHub Actions cron is UTC-only; see docs/SCHEDULE.md for DST limits.",
   "sources": [
@@ -58,13 +58,13 @@
     {
       "id": "ollama",
       "name": "Ollama",
-      "status": "unknown",
-      "reason": "Public-safe seed: local Ollama reachability is environment-specific. Run npm run collect on a machine with Ollama.",
-      "usage": null,
+      "status": "measured",
+      "reason": "Measured from local Ollama timing logs. 3,884 prompt and output tokens across 15 generations; coverage starts 28 Aug 2026 10:43 CEST, so this is a partial monthly history.",
+      "usage": 3884,
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": null,
+      "lastUpdate": "2026-08-31T12:12:00.000Z",
       "pace": {
         "daily": null,
         "monthly": null,
