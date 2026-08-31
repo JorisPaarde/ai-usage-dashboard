@@ -1,6 +1,6 @@
 {
   "version": "1.3.5",
-  "generatedAt": "2026-08-31T18:57:20.103Z",
+  "generatedAt": "2026-08-31T18:58:38.340Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects every 15 minutes (LLM-free). Open dashboards soft-refresh every 5 minutes. GitHub Actions still gate CET+CEST UTC candidates to 09:00 and 16:00 Europe/Amsterdam. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
   "routing": {
@@ -25,19 +25,19 @@
       "name": "OpenAI / Buzz",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Codex account: 72% of the 5-hour limit used. The weekly window is 27% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
-      "usage": 72,
+      "reason": "Live from the signed-in Codex account: 75% of the 5-hour limit used. The weekly window is 27% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
+      "usage": 75,
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
       "resetDate": "2026-08-31T23:18:27.000Z",
-      "lastUpdate": "2026-08-31T18:57:20.103Z",
+      "lastUpdate": "2026-08-31T18:58:38.340Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
       "usageUrl": "https://chatgpt.com/#settings/Usage",
       "pace": {
-        "daily": 2.3,
-        "monthly": 72,
+        "daily": 2.4,
+        "monthly": 75,
         "weeklyTarget": null
       },
       "history": []
@@ -167,7 +167,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-08-31T18:57:20.103Z",
+      "lastUpdate": "2026-08-31T18:58:38.340Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 4152,
