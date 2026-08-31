@@ -1,0 +1,97 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-08-31T10:00:00.000Z",
+  "timezone": "Europe/Amsterdam",
+  "scheduleNote": "Intended local windows: 09:00 and 16:00 Europe/Amsterdam. GitHub Actions cron is UTC-only; see docs/SCHEDULE.md for DST limits.",
+  "sources": [
+    {
+      "id": "openai-buzz",
+      "name": "OpenAI / Buzz",
+      "status": "unknown",
+      "reason": "Public-safe seed: no measured usage published. Run the local collector after wiring a read-only source.",
+      "usage": null,
+      "limit": null,
+      "unit": "requests",
+      "resetDate": null,
+      "lastUpdate": null,
+      "pace": {
+        "daily": null,
+        "monthly": null,
+        "weeklyTarget": null
+      },
+      "history": []
+    },
+    {
+      "id": "cursor-agent",
+      "name": "Cursor Agent",
+      "status": "unknown",
+      "reason": "Public-safe seed: Cursor usage is account-private. Status Unknown until a safe export is connected.",
+      "usage": null,
+      "limit": null,
+      "unit": "tokens",
+      "resetDate": null,
+      "lastUpdate": null,
+      "pace": {
+        "daily": null,
+        "monthly": null,
+        "weeklyTarget": null
+      },
+      "history": []
+    },
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "status": "unknown",
+      "reason": "Public-safe seed: Claude usage is account-private. Status Unknown until a safe export is connected.",
+      "usage": null,
+      "limit": null,
+      "unit": "credits",
+      "resetDate": null,
+      "lastUpdate": null,
+      "pace": {
+        "daily": null,
+        "monthly": null,
+        "weeklyTarget": null
+      },
+      "history": []
+    },
+    {
+      "id": "ollama",
+      "name": "Ollama",
+      "status": "unknown",
+      "reason": "Public-safe seed: local Ollama reachability is environment-specific. Run npm run collect on a machine with Ollama.",
+      "usage": null,
+      "limit": null,
+      "unit": "tokens",
+      "resetDate": null,
+      "lastUpdate": null,
+      "pace": {
+        "daily": null,
+        "monthly": null,
+        "weeklyTarget": null
+      },
+      "history": []
+    },
+    {
+      "id": "enrich-labs",
+      "name": "Enrich Labs",
+      "status": "unknown",
+      "reason": "Public-safe seed: live credit balance is not published. Monthly budget 200 and weekly pace max 50 are public operating targets only.",
+      "usage": null,
+      "limit": 200,
+      "unit": "credits",
+      "resetDate": null,
+      "lastUpdate": null,
+      "pace": {
+        "daily": null,
+        "monthly": null,
+        "weeklyTarget": 50
+      },
+      "budget": {
+        "monthly": 200,
+        "weeklyPaceMax": 50
+      },
+      "history": []
+    }
+  ]
+}

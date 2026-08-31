@@ -1,0 +1,49 @@
+name: Collect usage snapshots
+
+# Intended Amsterdam windows: 09:00 and 16:00 Europe/Amsterdam.
+# GitHub cron is UTC-only and does not follow DST. See docs/SCHEDULE.md.
+#
+# Approximate CEST (UTC+2) mapping used below:
+#   09:00 Amsterdam ≈ 07:00 UTC
+#   16:00 Amsterdam ≈ 14:00 UTC
+# In CET (UTC+1) those local times are 08:00 / 15:00 UTC — the Amsterdam gate
+# below skips runs that land far from 09:00 or 16:00 local.
+
+on:
+  schedule:
+    - cron: "0 7 * * *"
+    - cron: "0 14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Amsterdam time gate
+        id: gate
+        run: node scripts/amsterdam-gate.js
+
+      - name: Collect snapshot
+        if: steps.gate.outputs.run == 'true'
+        run: npm run collect
+
+      - name: Commit public-safe snapshot
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/latest.json
+          if git diff --staged --quiet; then
+            echo "No snapshot changes."
+          else
+            git commit -m "chore: refresh usage snapshot"
+            git push
+          fi
