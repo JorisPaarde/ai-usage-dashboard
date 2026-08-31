@@ -150,6 +150,61 @@ export function emptySource(partial = {}) {
 }
 
 /**
+ * Local-share bucket: percent is null when total is 0 (no tasks ≠ 0% local).
+ * @param {unknown} raw
+ * @param {string} label
+ * @returns {string[]}
+ */
+export function validateRoutingBucket(raw, label) {
+  const errors = [];
+  if (!raw || typeof raw !== "object") {
+    return [`${label}: must be an object`];
+  }
+  const b = /** @type {Record<string, unknown>} */ (raw);
+  for (const key of ["local", "total"]) {
+    if (typeof b[key] !== "number" || !Number.isFinite(b[key]) || b[key] < 0) {
+      errors.push(`${label}.${key} must be a non-negative number`);
+    }
+  }
+  if (typeof b.local === "number" && typeof b.total === "number" && b.local > b.total) {
+    errors.push(`${label}: local cannot exceed total`);
+  }
+  if (b.percent != null) {
+    if (typeof b.percent !== "number" || !Number.isFinite(b.percent)) {
+      errors.push(`${label}.percent must be number or null`);
+    } else if (b.total === 0) {
+      errors.push(`${label}.percent must be null when total is 0`);
+    }
+  } else if (b.total !== 0 && b.total != null) {
+    errors.push(`${label}.percent must be a number when total > 0`);
+  }
+  return errors;
+}
+
+/**
+ * Top-level routing metric — not a sixth SOURCE_IDS entry.
+ * Entire object is null when the routing log is missing/unreadable.
+ * @param {unknown} raw
+ * @returns {string[]}
+ */
+export function validateRouting(raw) {
+  if (raw == null) return [];
+  if (typeof raw !== "object") return ["routing must be an object or null"];
+  const r = /** @type {Record<string, unknown>} */ (raw);
+  const errors = [
+    ...validateRoutingBucket(r.today, "routing.today"),
+    ...validateRoutingBucket(r.rolling7d, "routing.rolling7d"),
+  ];
+  if (r.lastEntry != null && typeof r.lastEntry !== "string") {
+    errors.push("routing.lastEntry must be string or null");
+  }
+  if (typeof r.skipped !== "number" || !Number.isFinite(r.skipped) || r.skipped < 0) {
+    errors.push("routing.skipped must be a non-negative number");
+  }
+  return errors;
+}
+
+/**
  * Validate a snapshot; returns { ok, errors }.
  * @param {unknown} snapshot
  */
@@ -163,6 +218,9 @@ export function validateSnapshot(snapshot) {
   if (typeof s.generatedAt !== "string") errors.push("generatedAt must be a string");
   if (s.timezone !== "Europe/Amsterdam") {
     errors.push('timezone must be "Europe/Amsterdam"');
+  }
+  if ("routing" in s) {
+    errors.push(...validateRouting(s.routing));
   }
   if (!Array.isArray(s.sources)) {
     errors.push("sources must be an array");

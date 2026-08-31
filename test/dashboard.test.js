@@ -55,6 +55,66 @@ describe("schema", () => {
     assert.doesNotThrow(() => assertPublishableSnapshot(snap));
   });
 
+  it("accepts top-level routing local-share metric (not a sixth source)", () => {
+    const base = {
+      version: "1.3.3",
+      generatedAt: "2026-08-31T14:16:00.000Z",
+      timezone: "Europe/Amsterdam",
+      sources: SOURCE_IDS.map((id) =>
+        emptySource({ id, status: "unknown", reason: "n/a" }),
+      ),
+    };
+    assert.equal(validateSnapshot({ ...base, routing: null }).ok, true);
+    assert.equal(
+      validateSnapshot({
+        ...base,
+        routing: {
+          today: { local: 6, total: 12, percent: 50 },
+          rolling7d: { local: 6, total: 12, percent: 50 },
+          lastEntry: "2026-08-31T14:08:00.000Z",
+          skipped: 0,
+        },
+      }).ok,
+      true,
+    );
+    assert.equal(
+      validateSnapshot({
+        ...base,
+        routing: {
+          today: { local: 0, total: 0, percent: null },
+          rolling7d: { local: 0, total: 0, percent: null },
+          lastEntry: null,
+          skipped: 0,
+        },
+      }).ok,
+      true,
+    );
+    assert.equal(
+      validateSnapshot({
+        ...base,
+        routing: {
+          today: { local: 0, total: 0, percent: 0 },
+          rolling7d: { local: 0, total: 0, percent: null },
+          lastEntry: null,
+          skipped: 0,
+        },
+      }).ok,
+      false,
+    );
+    assert.equal(
+      validateSnapshot({
+        ...base,
+        routing: {
+          today: { local: 2, total: 1, percent: 200 },
+          rolling7d: { local: 0, total: 0, percent: null },
+          lastEntry: null,
+          skipped: 0,
+        },
+      }).ok,
+      false,
+    );
+  });
+
   it("rejects unknown without reason", () => {
     const snap = {
       version: "1.1.0",
@@ -431,7 +491,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.3.2");
+    assert.equal(snap.version, "1.3.3");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -817,6 +877,14 @@ describe("public seed", () => {
     assert.match(
       await readFile(path.join(ROOT, "site", "app.js"), "utf8"),
       /Plan capacity ample/,
+    );
+    assert.ok(snap.routing);
+    assert.equal(snap.routing.today.local, 6);
+    assert.equal(snap.routing.today.total, 12);
+    assert.equal(snap.routing.today.percent, 50);
+    assert.match(
+      await readFile(path.join(ROOT, "site", "app.js"), "utf8"),
+      /renderRoutingCard/,
     );
     const claude = snap.sources.find((s) => s.id === "claude-code");
     assert.equal(claude.usageUrl, "https://claude.ai/new#settings/usage");

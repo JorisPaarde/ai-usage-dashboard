@@ -50,8 +50,13 @@ describe("build", () => {
     const meta = JSON.parse(
       await readFile(path.join(DIST, "data", "build-meta.json"), "utf8"),
     );
-    assert.equal(JSON.parse(latest).version, "1.3.2");
-    assert.equal(meta.version, "1.3.2");
+    assert.equal(JSON.parse(latest).version, "1.3.3");
+    assert.equal(meta.version, "1.3.3");
+    assert.ok(JSON.parse(latest).routing);
+    assert.equal(JSON.parse(latest).routing.today.percent, 50);
+    const appJs = await readFile(path.join(DIST, "app.js"), "utf8");
+    assert.match(appJs, /renderRoutingCard/);
+    assert.match(appJs, /Local share/);
     await assert.rejects(() =>
       access(path.join(DIST, "data", "local-overrides.json")),
     );

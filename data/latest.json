@@ -1,8 +1,14 @@
 {
-  "version": "1.3.2",
+  "version": "1.3.3",
   "generatedAt": "2026-08-31T14:16:00.593Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects every 15 minutes (LLM-free). Open dashboards soft-refresh every 5 minutes. GitHub Actions still gate CET+CEST UTC candidates to 09:00 and 16:00 Europe/Amsterdam. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
+  "routing": {
+    "today": { "local": 6, "total": 12, "percent": 50 },
+    "rolling7d": { "local": 6, "total": 12, "percent": 50 },
+    "lastEntry": "2026-08-31T14:08:00.000Z",
+    "skipped": 0
+  },
   "sources": [
     {
       "id": "openai-buzz",

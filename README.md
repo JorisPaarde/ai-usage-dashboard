@@ -27,7 +27,9 @@ enters `dist/`.
 Each source is distinctly **measured**, **estimated**, or **unavailable**
 (schema status `unknown`), with usage vs limit, reset date, last update, pace,
 and compact daily history. Enrich monthly budget is **200** credits (public
-Starter operating target; weekly pace max **50**).
+Starter operating target; weekly pace max **50**). A separate top-level
+**Local share** card shows today’s and rolling 7-day share of delegated tasks
+that went to LocalAI guy (`routing` on the snapshot — not a sixth provider source).
 
 ## Collector
 
@@ -50,4 +52,4 @@ keys, account exports, or `data/local-overrides.json`.
 
 ## Version
 
-`1.3.2`
+`1.3.3`

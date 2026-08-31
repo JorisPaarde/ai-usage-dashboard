@@ -112,6 +112,7 @@ body {
 .source-card:nth-child(3) { animation-delay: 0.12s; }
 .source-card:nth-child(4) { animation-delay: 0.17s; }
 .source-card:nth-child(5) { animation-delay: 0.22s; }
+.source-card:nth-child(6) { animation-delay: 0.27s; }
 
 @keyframes card-in {
   to {
@@ -283,6 +284,15 @@ body {
 
 .bar.is-capped-hot > span {
   background: var(--warn);
+}
+
+.routing-card .component-list {
+  margin-top: 0.35rem;
+}
+
+.routing-card .component-row:first-child {
+  border-top: 0;
+  padding-top: 0;
 }
 
 .component-label {

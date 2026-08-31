@@ -274,6 +274,93 @@ function renderCard(src) {
   `;
 }
 
+function routingBucketMetric(bucket) {
+  if (!bucket || typeof bucket !== "object") {
+    return { value: "—", empty: true, sub: "no data", bar: null, count: "—" };
+  }
+  const local = bucket.local;
+  const total = bucket.total;
+  const percent = bucket.percent;
+  const count =
+    typeof local === "number" && typeof total === "number"
+      ? `${fmtNum(local)} / ${fmtNum(total)} tasks`
+      : "—";
+  if (total === 0 || percent == null) {
+    return {
+      value: "—",
+      empty: true,
+      sub: total === 0 ? "0 tasks · not 0% local" : count,
+      bar: null,
+      count,
+    };
+  }
+  return {
+    value: `${fmtNum(percent)}%`,
+    empty: false,
+    sub: count,
+    bar: Math.min(100, percent),
+    count,
+  };
+}
+
+function renderRoutingRow(label, bucket) {
+  const metric = routingBucketMetric(bucket);
+  return `
+    <li class="component-row" data-role="routing">
+      <span class="component-label">${escapeHtml(label)}</span>
+      <div class="component-metric">
+        <p class="primary-value${metric.empty ? " is-empty" : ""}">${escapeHtml(metric.value)}</p>
+        <p class="primary-sub">${escapeHtml(metric.sub)}</p>
+      </div>
+      ${renderBar(metric.bar, metric.empty ? "" : "is-capacity")}
+    </li>`;
+}
+
+/**
+ * Top-level local-share card. Null routing ⇒ unavailable with reason
+ * (missing/unreadable log), never fake zeros.
+ */
+function renderRoutingCard(routing) {
+  if (routing == null) {
+    return `
+    <article class="source-card routing-card" data-id="local-share" data-status="unknown">
+      <div class="card-top">
+        <h2>Local share</h2>
+        <span class="badge ${STATUS_CLASS.unknown}">${STATUS_LABEL.unknown}</span>
+      </div>
+      <div class="primary-metric">
+        <p class="primary-value is-empty">—</p>
+        <p class="primary-sub">Routing log missing or unreadable</p>
+      </div>
+      <p class="budget-note">Share of delegated tasks that went to LocalAI guy.</p>
+    </article>`;
+  }
+
+  const skipped =
+    typeof routing.skipped === "number" && routing.skipped > 0
+      ? `<p class="budget-note">${fmtNum(routing.skipped)} malformed log line(s) skipped</p>`
+      : "";
+
+  return `
+    <article class="source-card routing-card" data-id="local-share" data-status="measured">
+      <div class="card-top">
+        <h2>Local share</h2>
+        <span class="badge ${STATUS_CLASS.measured}">${STATUS_LABEL.measured}</span>
+      </div>
+      <p class="budget-note">Share of delegated tasks that went to LocalAI guy.</p>
+      <ul class="component-list" aria-label="Local share windows">
+        ${renderRoutingRow("Today", routing.today)}
+        ${renderRoutingRow("Rolling 7 days", routing.rolling7d)}
+      </ul>
+      ${skipped}
+      <dl class="facts">
+        <div><dt>Last entry</dt><dd>${escapeHtml(fmtDate(routing.lastEntry))}</dd></div>
+        <div><dt>Today</dt><dd>${escapeHtml(routingBucketMetric(routing.today).count)}</dd></div>
+        <div><dt>7-day</dt><dd>${escapeHtml(routingBucketMetric(routing.rolling7d).count)}</dd></div>
+      </dl>
+    </article>`;
+}
+
 function escapeHtml(s) {
   return String(s)
     .replaceAll("&", "&amp;")
@@ -305,8 +392,11 @@ async function main() {
     }
 
     const sources = Array.isArray(snapshot.sources) ? snapshot.sources : [];
+    const routingCard = renderRoutingCard(
+      "routing" in snapshot ? snapshot.routing : null,
+    );
     root.innerHTML =
-      sources.map(renderCard).join("") ||
+      sources.map(renderCard).join("") + routingCard ||
       `<p class="error-banner">No sources in snapshot.</p>`;
   } catch (err) {
     meta.textContent = "Could not load snapshot.";
