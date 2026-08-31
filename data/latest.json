@@ -1,6 +1,6 @@
 {
   "version": "1.3.0",
-  "generatedAt": "2026-08-31T13:40:54.287Z",
+  "generatedAt": "2026-08-31T13:41:23.650Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects every 15 minutes (LLM-free). Open dashboards soft-refresh every 5 minutes. GitHub Actions still gate CET+CEST UTC candidates to 09:00 and 16:00 Europe/Amsterdam. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
   "sources": [
@@ -14,7 +14,7 @@
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
       "resetDate": "2026-08-31T18:09:51.000Z",
-      "lastUpdate": "2026-08-31T13:40:54.287Z",
+      "lastUpdate": "2026-08-31T13:41:23.650Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -78,7 +78,7 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "manual",
-      "reason": "Seed read from the signed-in Claude usage page at 2026-08-31T13:17:59Z: session window 76% used, weekly All models 5% used, usage credits EUR 21.98 of EUR 50 (44%). Claude Code does not persist these plan percentages locally, so a scheduled run cannot re-measure them. Manual reading 23 minute(s) old at this collect; no local meter exists for this source, so this run did not re-measure it. Local automatic measurement alongside it: 36145738 tokens this month (35914904 prompt/cache + 230834 output) across 296 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-08-31T11:15:06.208Z. Anthropic's plan and usage-credit percentages need account access and are not published here.",
+      "reason": "Seed read from the signed-in Claude usage page at 2026-08-31T13:17:59Z: session window 76% used, weekly All models 5% used, usage credits EUR 21.98 of EUR 50 (44%). Claude Code does not persist these plan percentages locally, so a scheduled run cannot re-measure them. Manual reading 23 minute(s) old at this collect; no local meter exists for this source, so this run did not re-measure it. Local automatic measurement alongside it: 37100874 tokens this month (36866929 prompt/cache + 233945 output) across 300 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-08-31T11:15:06.208Z. Anthropic's plan and usage-credit percentages need account access and are not published here.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
@@ -86,9 +86,9 @@
       "lastUpdate": "2026-08-31T13:17:59.000Z",
       "coverageStart": "2026-08-31T11:15:06.208Z",
       "breakdown": {
-        "promptTokens": 35914904,
-        "outputTokens": 230834,
-        "generations": 296
+        "promptTokens": 36866929,
+        "outputTokens": 233945,
+        "generations": 300
       },
       "components": [
         {
@@ -125,7 +125,7 @@
       "history": [
         {
           "date": "2026-08-31",
-          "usage": 36145738
+          "usage": 37100874
         }
       ]
     },
@@ -139,7 +139,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-08-31T13:40:54.287Z",
+      "lastUpdate": "2026-08-31T13:41:23.650Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 2051,
