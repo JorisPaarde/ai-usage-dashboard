@@ -8,15 +8,23 @@ A run is only worth scheduling if it re-measures something. Per source:
 
 | Source | Route | Re-measured each run? |
 | --- | --- | --- |
-| OpenAI / Buzz | `rate_limits.used_percent` written by the Codex CLI into `~/.codex/sessions/**` | Yes — but the figure only advances when Codex is used |
+| OpenAI / Buzz | `account/rateLimits/read` on the local `codex app-server`, falling back to `~/.codex/sessions/**` | Yes — live from the account |
 | Claude Code | token counters in `~/.claude/projects/**/*.jsonl` | Yes (tokens). Plan/credit percentages: **no**, see below |
 | Ollama | timing counters in the local `ollama.log` | Yes |
 | Cursor | none — no local meter exists | No, manual only |
 | Enrich Labs | none — no local meter exists | No, manual only |
 
-Both log-derived routes read **numeric counters only**. Prompts, responses,
-credit balances, plan tiers, and account identifiers are never parsed into the
+All routes read **numeric counters only**. Prompts, responses, credit balances,
+plan tiers, and account/installation identifiers are never parsed into the
 snapshot, and the publish step fails closed on secret- or email-looking values.
+
+### The live OpenAI read costs nothing
+
+`codex app-server` is a local JSON-RPC process that reuses the existing login.
+`account/rateLimits/read` is read-only, starts no model, and consumes no
+tokens — safe to call on a 15-minute schedule. It returns the same percentages
+the provider shows, so it tracks a mid-window reset that the session log cannot
+see. The log remains the fallback when the app-server is unavailable.
 
 Override the search paths with `CODEX_SESSIONS_DIR`, `CLAUDE_PROJECTS_DIR`, and
 `OLLAMA_LOG_PATH`.

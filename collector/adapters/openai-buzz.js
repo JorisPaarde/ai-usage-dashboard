@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { readdir, readFile, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -8,6 +9,121 @@ const DEFAULT_SESSIONS_DIR = path.join(os.homedir(), ".codex", "sessions");
 
 /** Only scan the newest rollout files; older ones cannot hold a fresher reading. */
 const MAX_FILES_SCANNED = 12;
+
+/** The session log only advances when Codex runs, so ask the account directly. */
+const APP_SERVER_TIMEOUT_MS = 20000;
+
+/**
+ * Normalize one `rate_limits`-shaped payload. The live app-server uses
+ * camelCase and the session log uses snake_case; everything else matches.
+ *
+ * Deliberately narrow: `credits.balance`, `planType`, and the installation and
+ * host identifiers that travel in the same response are account details and
+ * must never reach the published snapshot.
+ * @param {object} limits
+ * @param {string} observedAt
+ */
+function normalizeLimits(limits, observedAt) {
+  const primary = limits?.primary;
+  const usedPercent = primary?.usedPercent ?? primary?.used_percent;
+  if (typeof usedPercent !== "number") return null;
+
+  const window = (bucket) => {
+    const minutes = bucket?.windowDurationMins ?? bucket?.window_minutes;
+    const resets = bucket?.resetsAt ?? bucket?.resets_at;
+    return {
+      usedPercent: bucket?.usedPercent ?? bucket?.used_percent,
+      windowMinutes: typeof minutes === "number" ? minutes : null,
+      resetsAt: typeof resets === "number" ? resets : null,
+    };
+  };
+
+  const secondary = limits.secondary;
+  const secondaryPercent = secondary?.usedPercent ?? secondary?.used_percent;
+  return {
+    observedAt,
+    primary: window(primary),
+    secondary: typeof secondaryPercent === "number" ? window(secondary) : null,
+  };
+}
+
+/**
+ * Ask the signed-in Codex account for its current rate-limit state.
+ *
+ * `codex app-server` is a local JSON-RPC process that reuses the existing
+ * login. `account/rateLimits/read` is read-only, runs no model, and therefore
+ * costs no tokens — it is safe on a 15-minute schedule.
+ *
+ * @param {{ spawnImpl?: Function, timeoutMs?: number, now?: Date }} [opts]
+ * @returns {Promise<object|null>} normalized reading, or null if unavailable
+ */
+export function queryLiveRateLimits({
+  spawnImpl = spawn,
+  timeoutMs = APP_SERVER_TIMEOUT_MS,
+  now = new Date(),
+} = {}) {
+  return new Promise((resolve) => {
+    let child;
+    try {
+      child = spawnImpl("codex", ["app-server"], {
+        stdio: ["pipe", "pipe", "ignore"],
+      });
+    } catch {
+      resolve(null);
+      return;
+    }
+
+    let settled = false;
+    let buffer = "";
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        child.kill();
+      } catch {
+        /* already gone */
+      }
+      resolve(value);
+    };
+
+    const timer = setTimeout(() => finish(null), timeoutMs);
+    child.on("error", () => finish(null));
+    child.on("close", () => finish(null));
+
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      buffer += chunk;
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        let message;
+        try {
+          message = JSON.parse(line);
+        } catch {
+          continue;
+        }
+        if (message.id !== 2) continue;
+        const limits = message.result?.rateLimits;
+        finish(limits ? normalizeLimits(limits, now.toISOString()) : null);
+        return;
+      }
+    });
+
+    child.stdin.write(
+      `${JSON.stringify({
+        id: 1,
+        method: "initialize",
+        params: {
+          clientInfo: { name: "ai-usage-dashboard", version: "1.0.0" },
+        },
+      })}\n${JSON.stringify({ method: "initialized", params: {} })}\n${JSON.stringify(
+        { id: 2, method: "account/rateLimits/read", params: {} },
+      )}\n`,
+    );
+  });
+}
 
 /**
  * The Codex CLI records the server's own rate-limit state next to each
@@ -30,35 +146,12 @@ export function parseRateLimits(text) {
     } catch {
       continue;
     }
-    const limits = event?.payload?.rate_limits;
-    const primary = limits?.primary;
-    if (typeof primary?.used_percent !== "number") continue;
     const observedAt = event.timestamp;
     if (typeof observedAt !== "string") continue;
     if (newest && observedAt <= newest.observedAt) continue;
 
-    const secondary = limits.secondary;
-    newest = {
-      observedAt,
-      primary: {
-        usedPercent: primary.used_percent,
-        windowMinutes:
-          typeof primary.window_minutes === "number" ? primary.window_minutes : null,
-        resetsAt: typeof primary.resets_at === "number" ? primary.resets_at : null,
-      },
-      secondary:
-        typeof secondary?.used_percent === "number"
-          ? {
-              usedPercent: secondary.used_percent,
-              windowMinutes:
-                typeof secondary.window_minutes === "number"
-                  ? secondary.window_minutes
-                  : null,
-              resetsAt:
-                typeof secondary.resets_at === "number" ? secondary.resets_at : null,
-            }
-          : null,
-    };
+    const reading = normalizeLimits(event?.payload?.rate_limits, observedAt);
+    if (reading) newest = reading;
   }
   return newest;
 }
@@ -105,16 +198,50 @@ async function newestRolloutFiles(dir, limit = MAX_FILES_SCANNED) {
 }
 
 /**
- * OpenAI / Buzz (Codex) — percentages come from the provider's own rate-limit
- * payload written to the local Codex session log. No credentials, no network
- * call, and no prompt text.
+ * OpenAI / Buzz (Codex).
+ *
+ * Preferred route: ask the signed-in account for its live rate-limit state via
+ * the local `codex app-server`. Read-only, no model call, no token cost.
+ *
+ * Fallback: the last state Codex wrote to its own session log. That figure
+ * only advances when Codex runs, so it is treated as expired once its window's
+ * reset time has passed.
  */
 export async function collect({
   sessionsDir = process.env.CODEX_SESSIONS_DIR || DEFAULT_SESSIONS_DIR,
   listFiles = newestRolloutFiles,
   readSession = readFile,
+  queryLive = queryLiveRateLimits,
   now = new Date(),
 } = {}) {
+  const live = await queryLive({ now });
+  if (live) {
+    const liveWindow = windowLabel(live.primary.windowMinutes);
+    const liveSecondary = live.secondary
+      ? ` The ${windowLabel(live.secondary.windowMinutes)} window is ${live.secondary.usedPercent}% used.`
+      : "";
+    return {
+      id: "openai-buzz",
+      status: "measured",
+      collectionMode: "automatic",
+      reason:
+        `Live from the signed-in Codex account: ${live.primary.usedPercent}% of the ` +
+        `${liveWindow} limit used.${liveSecondary} Read read-only via the local codex app-server ` +
+        "(no model call, no token cost); this is the same figure the provider shows.",
+      usage: live.primary.usedPercent,
+      limit: 100,
+      unit: `% of ${liveWindow} Codex limit`,
+      resetDate: live.primary.resetsAt
+        ? new Date(live.primary.resetsAt * 1000).toISOString()
+        : null,
+      lastUpdate: live.observedAt,
+      coverageStart: null,
+      breakdown: null,
+      pace: { daily: null, monthly: null, weeklyTarget: null },
+      history: [],
+    };
+  }
+
   let files;
   try {
     files = await listFiles(sessionsDir);
@@ -185,9 +312,9 @@ export async function collect({
     status: "measured",
     collectionMode: "automatic",
     reason:
-      `Provider rate-limit state read from the local Codex session log: ` +
+      `Live account read unavailable, so this is the last state Codex wrote to its own session log: ` +
       `${newest.primary.usedPercent}% of the ${primaryWindow} limit used.${secondaryNote} ` +
-      `Reported by the provider ${ageMinutes} minute(s) before this collect; it only advances when Codex is used.`,
+      `Recorded ${ageMinutes} minute(s) before this collect; it only advances when Codex is used.`,
     usage: newest.primary.usedPercent,
     limit: 100,
     unit: `% of ${primaryWindow} Codex limit`,

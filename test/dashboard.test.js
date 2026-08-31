@@ -31,6 +31,7 @@ import * as enrich from "../collector/adapters/enrich-labs.js";
 import * as openai from "../collector/adapters/openai-buzz.js";
 import * as ollama from "../collector/adapters/ollama.js";
 import * as claudeCode from "../collector/adapters/claude-code.js";
+import { EventEmitter } from "node:events";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -107,8 +108,81 @@ describe("pace", () => {
 });
 
 describe("adapters", () => {
+  it("openai prefers the live account read over the session log", async () => {
+    const r = await openai.collect({
+      queryLive: async () => ({
+        observedAt: "2026-08-31T13:13:25.000Z",
+        primary: { usedPercent: 15, windowMinutes: 300, resetsAt: 1788199791 },
+        secondary: { usedPercent: 2, windowMinutes: 10080, resetsAt: 1788786591 },
+      }),
+      // A stale log saying 100% must not win over the live 15%.
+      listFiles: async () => ["rollout-a.jsonl"],
+      readSession: async () =>
+        `${JSON.stringify({
+          timestamp: "2026-08-31T12:22:30.586Z",
+          type: "event_msg",
+          payload: {
+            type: "token_count",
+            rate_limits: {
+              primary: { used_percent: 100, window_minutes: 300 },
+            },
+          },
+        })}\n`,
+      now: new Date("2026-08-31T13:13:25.000Z"),
+    });
+    assert.equal(r.status, "measured");
+    assert.equal(r.collectionMode, "automatic");
+    assert.equal(r.usage, 15);
+    assert.match(r.reason, /Live from the signed-in Codex account/);
+    assert.match(r.reason, /weekly window is 2% used/);
+    assert.equal(r.resetDate, new Date(1788199791 * 1000).toISOString());
+  });
+
+  it("openai parses the live camelCase payload and drops account details", async () => {
+    const { queryLiveRateLimits } = openai;
+    const response = JSON.stringify({
+      id: 2,
+      result: {
+        rateLimits: {
+          limitId: "codex",
+          primary: { usedPercent: 15, windowDurationMins: 300, resetsAt: 1788199791 },
+          secondary: { usedPercent: 2, windowDurationMins: 10080, resetsAt: 1788786591 },
+          credits: { hasCredits: false, unlimited: false, balance: "903.20" },
+          planType: "plus",
+        },
+      },
+    });
+    const fakeSpawn = () => {
+      const child = new EventEmitter();
+      const stdout = new EventEmitter();
+      stdout.setEncoding = () => {};
+      child.stdout = stdout;
+      child.stdin = { write: () => setImmediate(() => stdout.emit("data", `${response}\n`)) };
+      child.kill = () => {};
+      return child;
+    };
+    const reading = await queryLiveRateLimits({
+      spawnImpl: fakeSpawn,
+      now: new Date("2026-08-31T13:13:25.000Z"),
+    });
+    assert.equal(reading.primary.usedPercent, 15);
+    assert.equal(reading.primary.windowMinutes, 300);
+    assert.equal(reading.secondary.usedPercent, 2);
+    // Balance and plan tier are account details, not usage.
+    assert.doesNotMatch(JSON.stringify(reading), /903\.20|plus|codex/);
+  });
+
+  it("openai falls back to the log when the live read fails", async () => {
+    const failingSpawn = () => {
+      throw new Error("codex not installed");
+    };
+    const reading = await openai.queryLiveRateLimits({ spawnImpl: failingSpawn });
+    assert.equal(reading, null);
+  });
+
   it("openai stays unknown when no Codex session log is readable", async () => {
     const r = await openai.collect({
+      queryLive: async () => null,
       listFiles: async () => {
         throw new Error("ENOENT");
       },
@@ -117,7 +191,10 @@ describe("adapters", () => {
     assert.equal(r.usage, null);
     assert.ok(r.reason.length > 0);
 
-    const empty = await openai.collect({ listFiles: async () => [] });
+    const empty = await openai.collect({
+      queryLive: async () => null,
+      listFiles: async () => [],
+    });
     assert.equal(empty.status, "unknown");
     assert.equal(empty.usage, null);
   });
@@ -137,6 +214,7 @@ describe("adapters", () => {
       },
     });
     const r = await openai.collect({
+      queryLive: async () => null,
       listFiles: async () => ["rollout-a.jsonl"],
       readSession: async () => `${line}\n`,
       now: new Date("2026-08-31T11:34:53.019Z"),
@@ -165,6 +243,7 @@ describe("adapters", () => {
       },
     });
     const r = await openai.collect({
+      queryLive: async () => null,
       listFiles: async () => ["rollout-a.jsonl"],
       readSession: async () => `${line}\n`,
       now: new Date("2026-08-31T12:59:00.000Z"),
@@ -185,6 +264,7 @@ describe("adapters", () => {
         },
       })}\n`;
     const r = await openai.collect({
+      queryLive: async () => null,
       listFiles: async () => ["old.jsonl", "new.jsonl"],
       readSession: async (file) =>
         file === "old.jsonl"
