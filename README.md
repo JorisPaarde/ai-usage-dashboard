@@ -38,9 +38,10 @@ collect fail closed on dishonest records or secret-looking payloads.
 
 ## Schedule
 
-Target windows: **09:00** and **16:00** `Europe/Amsterdam`. Actions schedules
-CET and CEST UTC candidates; the Amsterdam gate selects the matching slot —
-details in [`docs/SCHEDULE.md`](docs/SCHEDULE.md).
+Local LaunchAgent collects every **15 minutes** (LLM-free). Open dashboards
+soft-refresh every **5 minutes**. GitHub Actions still gate CET/CEST UTC
+candidates to **09:00** and **16:00** `Europe/Amsterdam` — details in
+[`docs/SCHEDULE.md`](docs/SCHEDULE.md).
 
 ## Privacy
 
@@ -49,4 +50,4 @@ keys, account exports, or `data/local-overrides.json`.
 
 ## Version
 
-`1.2.1`
+`1.2.2`

@@ -1,27 +1,27 @@
 {
-  "version": "1.2.1",
-  "generatedAt": "2026-08-31T13:11:55.375Z",
+  "version": "1.2.2",
+  "generatedAt": "2026-08-31T13:16:01.979Z",
   "timezone": "Europe/Amsterdam",
-  "scheduleNote": "Intended local windows: 09:00 and 16:00 Europe/Amsterdam. GitHub Actions schedules CET+CEST UTC candidates; the Amsterdam gate selects the matching slot. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
+  "scheduleNote": "Local LaunchAgent collects every 15 minutes (LLM-free). Open dashboards soft-refresh every 5 minutes. GitHub Actions still gate CET+CEST UTC candidates to 09:00 and 16:00 Europe/Amsterdam. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
   "sources": [
     {
       "id": "openai-buzz",
       "name": "OpenAI / Buzz",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Provider rate-limit state read from the local Codex session log: 12% of the 5-hour limit used. The weekly window is 2% used. Reported by the provider 0 minute(s) before this collect; it only advances when Codex is used. A manual override was ignored: the collector measures this source directly.",
-      "usage": 12,
+      "reason": "Provider rate-limit state read from the local Codex session log: 23% of the 5-hour limit used. The weekly window is 4% used. Reported by the provider 0 minute(s) before this collect; it only advances when Codex is used. A manual override was ignored: the collector measures this source directly.",
+      "usage": 23,
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
       "resetDate": "2026-08-31T18:09:51.000Z",
-      "lastUpdate": "2026-08-31T13:11:54.336Z",
+      "lastUpdate": "2026-08-31T13:16:00.871Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
       "usageUrl": "https://chatgpt.com/#settings/Usage",
       "pace": {
-        "daily": 0.4,
-        "monthly": 12,
+        "daily": 0.7,
+        "monthly": 23,
         "weeklyTarget": null
       },
       "history": []
@@ -78,29 +78,29 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "12942474 tokens this month (12812189 prompt/cache + 130285 output) across 161 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-08-31T11:15:06.208Z. Anthropic's plan and usage-credit percentages need account access and are not published here. A manual override was ignored: the collector measures this source directly.",
-      "usage": 12942474,
+      "reason": "20597315 tokens this month (20433283 prompt/cache + 164032 output) across 212 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-08-31T11:15:06.208Z. Anthropic's plan and usage-credit percentages need account access and are not published here. A manual override was ignored: the collector measures this source directly.",
+      "usage": 20597315,
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-08-31T13:11:52.880Z",
+      "lastUpdate": "2026-08-31T13:15:57.207Z",
       "coverageStart": "2026-08-31T11:15:06.208Z",
       "breakdown": {
-        "promptTokens": 12812189,
-        "outputTokens": 130285,
-        "generations": 161
+        "promptTokens": 20433283,
+        "outputTokens": 164032,
+        "generations": 212
       },
       "components": null,
       "usageUrl": "https://claude.ai/new#settings/usage",
       "pace": {
-        "daily": 417499.2,
-        "monthly": 12942474,
+        "daily": 664429.5,
+        "monthly": 20597315,
         "weeklyTarget": null
       },
       "history": [
         {
           "date": "2026-08-31",
-          "usage": 12942474
+          "usage": 20597315
         }
       ]
     },
@@ -114,7 +114,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-08-31T13:11:55.375Z",
+      "lastUpdate": "2026-08-31T13:16:01.979Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 2921,

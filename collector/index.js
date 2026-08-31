@@ -226,11 +226,11 @@ export async function collectSnapshot(now = new Date(), opts = {}) {
     sources.push(src);
   }
   const snapshot = {
-    version: "1.2.1",
+    version: "1.2.2",
     generatedAt: now.toISOString(),
     timezone: "Europe/Amsterdam",
     scheduleNote:
-      "Intended local windows: 09:00 and 16:00 Europe/Amsterdam. GitHub Actions schedules CET+CEST UTC candidates; the Amsterdam gate selects the matching slot. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
+      "Local LaunchAgent collects every 15 minutes (LLM-free). Open dashboards soft-refresh every 5 minutes. GitHub Actions still gate CET+CEST UTC candidates to 09:00 and 16:00 Europe/Amsterdam. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
     sources,
   };
   assertPublishableSnapshot(snapshot);

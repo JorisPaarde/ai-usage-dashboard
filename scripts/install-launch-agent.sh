@@ -24,7 +24,7 @@ sed "s|__REPO__|$ROOT|g; s|__HOME__|$HOME|g; s|__PATH__|$AGENT_PATH|g" \
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST"
 launchctl enable "gui/$(id -u)/$LABEL"
-echo "Installed $PLIST (09:00 and 16:00 local time)."
+echo "Installed $PLIST (every 15 minutes)."
 echo "Repo:  $ROOT"
 echo "PATH:  $AGENT_PATH"
 echo "Logs:  $LOG_DIR"
