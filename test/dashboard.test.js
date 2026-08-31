@@ -759,7 +759,12 @@ describe("public seed", () => {
     }
     const cursor = snap.sources.find((s) => s.id === "cursor-agent");
     assert.ok(Array.isArray(cursor.components));
-    assert.equal(cursor.components.length, 3);
+    // Shape, not a count: the number of meters is whatever the provider shows.
+    assert.ok(cursor.components.length > 0);
+    for (const c of cursor.components) {
+      assert.ok(typeof c.label === "string" && c.label.length > 0);
+      assert.ok(c.usage === null || typeof c.usage === "number");
+    }
     assert.equal(cursor.usage, null);
     assert.match(cursor.usageUrl, /^https:\/\/cursor\.com\//);
     const claude = snap.sources.find((s) => s.id === "claude-code");
