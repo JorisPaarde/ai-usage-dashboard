@@ -21,6 +21,9 @@ import {
   normalizeSource,
   collectSnapshot,
   applyOverride,
+  resolveOverridesPath,
+  loadLocalOverrides,
+  SHARED_OVERRIDES_FILE,
 } from "../collector/index.js";
 import {
   amsterdamClock,
@@ -32,7 +35,7 @@ import * as openai from "../collector/adapters/openai-buzz.js";
 import * as ollama from "../collector/adapters/ollama.js";
 import * as claudeCode from "../collector/adapters/claude-code.js";
 import { EventEmitter } from "node:events";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -369,6 +372,56 @@ describe("adapters", () => {
     });
     assert.equal(withLog.status, "measured");
     assert.equal(withLog.usage, 30);
+  });
+});
+
+describe("overrides path", () => {
+  it("prefers the shared machine-wide file over the per-checkout copy", async () => {
+    delete process.env.AI_USAGE_OVERRIDES_PATH;
+    const shared = await resolveOverridesPath(async (p) => p === SHARED_OVERRIDES_FILE);
+    assert.equal(shared, SHARED_OVERRIDES_FILE);
+
+    // Without the shared file, fall back to the in-repo copy.
+    const repo = await resolveOverridesPath(async () => false);
+    assert.match(repo, /data\/local-overrides\.json$/);
+  });
+
+  it("honours an explicit AI_USAGE_OVERRIDES_PATH", async () => {
+    process.env.AI_USAGE_OVERRIDES_PATH = "/tmp/explicit-overrides.json";
+    try {
+      assert.equal(
+        await resolveOverridesPath(async () => true),
+        "/tmp/explicit-overrides.json",
+      );
+    } finally {
+      delete process.env.AI_USAGE_OVERRIDES_PATH;
+    }
+  });
+
+  it("reads the resolved file, not the default one", async () => {
+    const file = path.join(ROOT, "test", "fixture-overrides.json");
+    await writeFile(
+      file,
+      JSON.stringify({
+        sources: [
+          {
+            id: "enrich-labs",
+            status: "measured",
+            usage: 7,
+            limit: 200,
+            reason: "fixture",
+            lastUpdate: "2026-08-31T10:00:00.000Z",
+          },
+        ],
+      }),
+    );
+    try {
+      const sources = await loadLocalOverrides(file);
+      assert.equal(sources.length, 1);
+      assert.equal(sources[0].usage, 7);
+    } finally {
+      await rm(file, { force: true });
+    }
   });
 });
 

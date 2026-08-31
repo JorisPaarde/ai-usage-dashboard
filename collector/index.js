@@ -6,6 +6,7 @@
  * readings; the override file itself is never published to dist/.
  */
 import { mkdir, writeFile, readFile, access } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -30,7 +31,44 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const OUT_DIR = path.join(ROOT, "data");
 const OUT_FILE = path.join(OUT_DIR, "latest.json");
-const OVERRIDES_FILE = path.join(OUT_DIR, "local-overrides.json");
+
+/**
+ * Overrides are gitignored, so every checkout keeps its own copy and they drift
+ * apart. A collect run from a checkout holding an older copy then republishes
+ * those older readings into the tracked snapshot — the seed silently regresses
+ * even though nobody edited it.
+ *
+ * Prefer one shared file per machine so all checkouts, and the scheduler, read
+ * the same seed. The in-repo path stays last for backwards compatibility.
+ */
+export const SHARED_OVERRIDES_FILE = path.join(
+  os.homedir(),
+  ".config",
+  "ai-usage-dashboard",
+  "local-overrides.json",
+);
+const REPO_OVERRIDES_FILE = path.join(OUT_DIR, "local-overrides.json");
+
+/**
+ * First existing candidate wins; the shared file beats the per-checkout one.
+ * @param {(p: string) => Promise<boolean>} [exists]
+ */
+export async function resolveOverridesPath(exists = fileExists) {
+  if (process.env.AI_USAGE_OVERRIDES_PATH) {
+    return process.env.AI_USAGE_OVERRIDES_PATH;
+  }
+  if (await exists(SHARED_OVERRIDES_FILE)) return SHARED_OVERRIDES_FILE;
+  return REPO_OVERRIDES_FILE;
+}
+
+async function fileExists(p) {
+  try {
+    await access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const ADAPTERS = {
   "openai-buzz": openaiBuzz,
@@ -176,15 +214,16 @@ export function applyOverride(base, override, now = new Date()) {
  * Load and validate gitignored local overrides. Missing file → empty list.
  * @param {string} [filePath]
  */
-export async function loadLocalOverrides(filePath = OVERRIDES_FILE) {
+export async function loadLocalOverrides(filePath) {
+  const resolved = filePath || (await resolveOverridesPath());
   try {
-    await access(filePath);
+    await access(resolved);
   } catch {
     return [];
   }
   let parsed;
   try {
-    parsed = JSON.parse(await readFile(filePath, "utf8"));
+    parsed = JSON.parse(await readFile(resolved, "utf8"));
   } catch (e) {
     throw new Error(
       `local-overrides.json is not valid JSON (fail closed): ${e instanceof Error ? e.message : e}`,

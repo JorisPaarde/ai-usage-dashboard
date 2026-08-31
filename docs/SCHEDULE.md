@@ -102,6 +102,30 @@ Expect GitHub cron drift of several minutes and occasional missed runs under
 load. For exact Amsterdam times and real desktop/browser numbers, use a local
 collector host.
 
+## Where the seed lives
+
+`data/local-overrides.json` is gitignored, so every checkout keeps its own copy
+and they drift apart. A collect run from a checkout holding an older copy
+republishes those older readings into the tracked snapshot — the seed regresses
+even though nobody edited it. This has happened once already.
+
+The collector therefore resolves the overrides file in this order:
+
+1. `$AI_USAGE_OVERRIDES_PATH`
+2. `~/.config/ai-usage-dashboard/local-overrides.json` — **the canonical seed**
+3. `<repo>/data/local-overrides.json` — legacy per-checkout copy
+
+Edit the shared file. Every checkout and the scheduler then read the same seed.
+
+## Local models: write time only
+
+Local-first routing applies when *authoring* — summarising, drafting, mapping a
+provider's field names to ours. It never applies at *run* time inside the
+measurement or publish chain. That chain stays deterministic and LLM-free:
+schema validation and `assertPublishableSnapshot` are the honesty guarantee of
+this dashboard, and a model in that path would make it nondeterministic. Where
+routing preference and the LLM-free rule conflict, LLM-free wins.
+
 ## Privacy
 
 Collectors must never write credentials, emails, prompts, customer data, or API
