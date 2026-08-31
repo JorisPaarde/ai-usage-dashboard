@@ -1,11 +1,19 @@
 {
   "version": "1.3.5",
-  "generatedAt": "2026-08-31T14:16:00.593Z",
+  "generatedAt": "2026-08-31T18:57:11.607Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects every 15 minutes (LLM-free). Open dashboards soft-refresh every 5 minutes. GitHub Actions still gate CET+CEST UTC candidates to 09:00 and 16:00 Europe/Amsterdam. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
   "routing": {
-    "today": { "local": 0, "total": 0, "percent": null },
-    "rolling7d": { "local": 0, "total": 0, "percent": null },
+    "today": {
+      "local": 0,
+      "total": 0,
+      "percent": null
+    },
+    "rolling7d": {
+      "local": 0,
+      "total": 0,
+      "percent": null
+    },
     "lastEntry": null,
     "skipped": 0,
     "runtimeEvidence": null,
@@ -17,19 +25,19 @@
       "name": "OpenAI / Buzz",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Codex account: 69% of the 5-hour limit used. The weekly window is 11% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
-      "usage": 69,
+      "reason": "Live from the signed-in Codex account: 72% of the 5-hour limit used. The weekly window is 27% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
+      "usage": 72,
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
-      "resetDate": "2026-08-31T18:09:51.000Z",
-      "lastUpdate": "2026-08-31T14:16:00.593Z",
+      "resetDate": "2026-08-31T23:18:27.000Z",
+      "lastUpdate": "2026-08-31T18:57:11.607Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
       "usageUrl": "https://chatgpt.com/#settings/Usage",
       "pace": {
-        "daily": 2.2,
-        "monthly": 69,
+        "daily": 2.3,
+        "monthly": 72,
         "weeklyTarget": null
       },
       "history": []
@@ -39,7 +47,7 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "manual",
-      "reason": "Seed read from the signed-in Cursor spending page (cursor.com/dashboard/spending) at 2026-08-31T13:59:14Z (cross-checked LocalAI guy 14:09:19Z). Plan Pro+, cycle reset 2026-09-24. Plan capacity remains ample: Included Cursor Models 14%, Other Models 24%. Separate caps are near/at limit and must not be read as plan exhaustion: On-demand USD 73.60/75 (98.1%), Grok Bot weekly 100%. No local meter exists for Cursor. Manual reading 7 minute(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
+      "reason": "Seed read from the signed-in Cursor spending page (cursor.com/dashboard/spending) at 2026-08-31T13:59:14Z (cross-checked LocalAI guy 14:09:19Z). Plan Pro+, cycle reset 2026-09-24. Plan capacity remains ample: Included Cursor Models 14%, Other Models 24%. Separate caps are near/at limit and must not be read as plan exhaustion: On-demand USD 73.60/75 (98.1%), Grok Bot weekly 100%. No local meter exists for Cursor. Manual reading 5 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
@@ -98,7 +106,7 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "manual",
-      "reason": "Seed read from the signed-in Claude usage page at 2026-08-31T14:09:19Z: session window 100% used (resets 16:11Z), weekly all-models 6%, usage credits EUR 45.37 of EUR 50 (91%, resets 2026-09-01). Claude Code does not persist these plan percentages locally, so a scheduled run cannot re-measure them. Manual reading 7 minute(s) old at this collect; no local meter exists for this source, so this run did not re-measure it. Local automatic measurement alongside it: 65562184 tokens this month (65210338 prompt/cache + 351846 output) across 418 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-08-31T11:15:06.208Z. Anthropic's plan and usage-credit percentages need account access and are not published here.",
+      "reason": "Seed read from the signed-in Claude usage page at 2026-08-31T14:09:19Z: session window 100% used (resets 16:11Z), weekly all-models 6%, usage credits EUR 45.37 of EUR 50 (91%, resets 2026-09-01). Claude Code does not persist these plan percentages locally, so a scheduled run cannot re-measure them. Manual reading 5 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it. Local automatic measurement alongside it: 88099500 tokens this month (87647714 prompt/cache + 451786 output) across 575 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-08-31T11:15:06.208Z. Anthropic's plan and usage-credit percentages need account access and are not published here.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
@@ -106,9 +114,9 @@
       "lastUpdate": "2026-08-31T14:09:19.000Z",
       "coverageStart": "2026-08-31T11:15:06.208Z",
       "breakdown": {
-        "promptTokens": 65210338,
-        "outputTokens": 351846,
-        "generations": 418
+        "promptTokens": 87647714,
+        "outputTokens": 451786,
+        "generations": 575
       },
       "components": [
         {
@@ -145,7 +153,7 @@
       "history": [
         {
           "date": "2026-08-31",
-          "usage": 65562184
+          "usage": 88099500
         }
       ]
     },
@@ -159,7 +167,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-08-31T14:16:00.593Z",
+      "lastUpdate": "2026-08-31T18:57:11.607Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 4152,
@@ -189,7 +197,7 @@
       "name": "Enrich Labs",
       "status": "measured",
       "collectionMode": "manual",
-      "reason": "Seed read from the signed-in Enrich Labs workspace at 2026-08-31T13:17:59Z: 200 of 200 Starter credits used (100%), from 134 chat/task executions and 65 social posts. Manual reading 58 minute(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
+      "reason": "Seed read from the signed-in Enrich Labs workspace at 2026-08-31T13:17:59Z: 200 of 200 Starter credits used (100%), from 134 chat/task executions and 65 social posts. Manual reading 6 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
       "usage": 200,
       "limit": 200,
       "unit": "credits",
