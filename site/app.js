@@ -46,6 +46,33 @@ function pct(src) {
   return Math.min(100, Math.round((src.usage / src.limit) * 1000) / 10);
 }
 
+function primaryDisplay(src) {
+  const p = pct(src);
+  if (p != null) {
+    return {
+      value: `${fmtNum(p)}%`,
+      empty: false,
+      sub: usageLabel(src),
+      bar: p,
+    };
+  }
+  if (src.usage != null) {
+    const unit = src.unit ? ` ${src.unit}` : "";
+    return {
+      value: fmtNum(src.usage),
+      empty: false,
+      sub: src.limit == null ? `${unit.trim()} · no limit` : usageLabel(src),
+      bar: null,
+    };
+  }
+  return {
+    value: "—",
+    empty: true,
+    sub: usageLabel(src),
+    bar: null,
+  };
+}
+
 function sparkBars(history) {
   if (!history?.length) {
     return '<div class="spark" aria-hidden="true"><span class="empty"></span><span class="empty"></span><span class="empty"></span></div>';
@@ -72,23 +99,39 @@ function renderTitle(src) {
   return `<h2>${name}</h2>`;
 }
 
+function renderBar(barWidth) {
+  if (barWidth == null) {
+    return `<div class="bar is-unknown" aria-hidden="true"><span></span></div>`;
+  }
+  return `<div class="bar" aria-hidden="true"><span style="--bar-width:${barWidth}%"></span></div>`;
+}
+
+function renderPrimary(metric) {
+  const emptyClass = metric.empty ? " is-empty" : "";
+  return `
+    <div class="primary-metric">
+      <p class="primary-value${emptyClass}">${escapeHtml(metric.value)}</p>
+      ${renderBar(metric.bar)}
+      <p class="primary-sub">${escapeHtml(metric.sub)}</p>
+    </div>`;
+}
+
 function renderComponents(components) {
   if (!Array.isArray(components) || components.length === 0) return "";
   const rows = components
     .map((c) => {
-      const p = pct(c);
-      const barWidth = p == null ? 0 : p;
-      const percentage = p == null ? "No percentage" : `${fmtNum(p)}%`;
+      const metric = primaryDisplay(c);
       const reset = c.resetDate
         ? `<span class="component-reset">Reset ${escapeHtml(fmtDate(c.resetDate))}</span>`
         : "";
       return `
         <li class="component-row">
-          <div class="component-head">
-            <span class="component-label">${escapeHtml(c.label || c.id)}</span>
-            <strong>${escapeHtml(percentage)} · ${escapeHtml(usageLabel(c))}</strong>
+          <span class="component-label">${escapeHtml(c.label || c.id)}</span>
+          <div class="component-metric">
+            <p class="primary-value${metric.empty ? " is-empty" : ""}">${escapeHtml(metric.value)}</p>
+            <p class="primary-sub">${escapeHtml(metric.sub)}</p>
           </div>
-          <div class="bar ${p == null ? "is-unknown" : ""}" aria-hidden="true"><span style="width:${barWidth}%"></span></div>
+          ${renderBar(metric.bar)}
           ${reset}
         </li>`;
     })
@@ -99,29 +142,29 @@ function renderComponents(components) {
     </ul>`;
 }
 
+function renderReason(reason) {
+  const text = (reason || "").trim();
+  if (!text) return "";
+  return `
+    <details class="reason">
+      <summary>Details</summary>
+      <p class="reason-body">${escapeHtml(text)}</p>
+    </details>`;
+}
+
 function renderCard(src) {
   const status = src.status || "unknown";
   const hasComponents =
     Array.isArray(src.components) && src.components.length > 0;
-  const p = pct(src);
-  const barWidth = p == null ? 0 : p;
   const budget =
     src.budget?.monthly != null
       ? `<p class="budget-note">Budget ${fmtNum(src.budget.monthly)}/mo · pace ≤ ${fmtNum(src.budget.weeklyPaceMax)}/wk</p>`
       : "";
-  const percentage = p == null ? "No percentage" : `${fmtNum(p)}%`;
   const mode = src.collectionMode || "unavailable";
   const tokenBreakdown = src.breakdown
-      ? `<p class="budget-note">Prompt ${fmtNum(src.breakdown.promptTokens)} · output ${fmtNum(src.breakdown.outputTokens)} · ${fmtNum(src.breakdown.generations)} generations</p>`
-      : "";
-  const aggregateRow = hasComponents
-    ? ""
-    : `
-      <div class="usage-row">
-        <span>Usage vs limit</span>
-        <strong>${escapeHtml(percentage)} · ${escapeHtml(usageLabel(src))}</strong>
-      </div>
-      <div class="bar ${p == null ? "is-unknown" : ""}" aria-hidden="true"><span style="width:${barWidth}%"></span></div>`;
+    ? `<p class="budget-note">Prompt ${fmtNum(src.breakdown.promptTokens)} · output ${fmtNum(src.breakdown.outputTokens)} · ${fmtNum(src.breakdown.generations)} generations</p>`
+    : "";
+  const aggregate = hasComponents ? "" : renderPrimary(primaryDisplay(src));
 
   return `
     <article class="source-card" data-id="${src.id}" data-status="${escapeHtml(status)}">
@@ -129,11 +172,11 @@ function renderCard(src) {
         ${renderTitle(src)}
         <span class="badge ${STATUS_CLASS[status] || STATUS_CLASS.unknown}">${escapeHtml(STATUS_LABEL[status] || STATUS_LABEL.unknown)}</span>
       </div>
-      <p class="reason">${escapeHtml(src.reason || "")}</p>
+      ${aggregate}
+      ${renderComponents(src.components)}
       ${budget}
       ${tokenBreakdown}
-      ${renderComponents(src.components)}
-      ${aggregateRow}
+      ${renderReason(src.reason)}
       <dl class="facts">
         <div><dt>Reset</dt><dd>${escapeHtml(src.resetDate ? fmtDate(src.resetDate) : "—")}</dd></div>
         <div><dt>Last update</dt><dd>${escapeHtml(fmtDate(src.lastUpdate))}</dd></div>
