@@ -283,7 +283,7 @@ export async function collectSnapshot(now = new Date(), opts = {}) {
     sources.push(src);
   }
   const snapshot = {
-    version: "1.3.5",
+    version: "1.3.6",
     generatedAt: now.toISOString(),
     timezone: "Europe/Amsterdam",
     scheduleNote:

@@ -480,6 +480,8 @@ describe("adapters", () => {
             "slot print_timing: id  0 | task 0 |        eval time =    200.00 ms /    20 tokens (   10.00 ms per token,   100.00 tokens per second)",
             '[GIN] 2026/08/31 - 12:00:00 | 200 |         1.0s |       127.0.0.1 | POST     "/api/chat"',
           ].join("\n"),
+      // Pin collect time to the fixture month — parser scopes to Amsterdam month.
+      now: new Date("2026-08-31T10:00:00.000Z"),
     });
     assert.equal(withLog.status, "measured");
     assert.equal(withLog.usage, 30);
@@ -542,7 +544,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.3.5");
+    assert.equal(snap.version, "1.3.6");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
