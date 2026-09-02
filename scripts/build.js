@@ -20,6 +20,43 @@ const OVERRIDES = path.join(ROOT, "data", "local-overrides.json");
 const SECRET_RE =
   /sk-[a-zA-Z0-9]{10,}|api[_-]?key\s*[:=]|Bearer\s+[A-Za-z0-9._-]+|-----BEGIN (?:RSA |EC )?PRIVATE KEY-----|@[\w.-]+\.(com|nl|ai)\b/i;
 
+/** Match site/dashboard.js Amsterdam stamp (nl-NL, 24h). */
+function fmtAmsterdamDateTime(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  return new Intl.DateTimeFormat("nl-NL", {
+    timeZone: "Europe/Amsterdam",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
+}
+
+function prepareIndexHtml(html, { version, generatedAt, timezone }) {
+  const tz = timezone || "Europe/Amsterdam";
+  const stamp = fmtAmsterdamDateTime(generatedAt);
+  const label = `Laatst bijgewerkt: ${stamp} ${tz}`;
+  // Path-versioned script avoids query-string strippers and stale ./app.js caches.
+  const scriptSrc = `./d/${version}.js`;
+  return html
+    .replace(
+      /href="\.\/styles\.css(?:\?v=[^"]*)?"/,
+      `href="./styles.css?v=${version}"`,
+    )
+    .replace(
+      /src="\.\/(?:app|dashboard)\.js(?:\?v=[^"]*)?"/,
+      `src="${scriptSrc}"`,
+    )
+    .replace(
+      /(<p class="last-updated" id="snapshot-meta")([^>]*)>([^<]*)</,
+      `$1 data-generated-at="${generatedAt || ""}"$2>${label}<`,
+    );
+}
+
 async function build() {
   let raw;
   try {
@@ -62,20 +99,21 @@ async function build() {
   );
 
   const pkg = JSON.parse(await readFile(path.join(ROOT, "package.json"), "utf8"));
-  // GitHub Pages / Fastly cache app.js+css (~10m). Bust via versioned query
-  // so a label fix is visible without waiting for CDN TTL.
+  const dashboardJs = await readFile(path.join(DIST, "dashboard.js"));
+  await mkdir(path.join(DIST, "d"), { recursive: true });
+  await writeFile(path.join(DIST, "d", `${pkg.version}.js`), dashboardJs);
+
   const indexPath = path.join(DIST, "index.html");
   let indexHtml = await readFile(indexPath, "utf8");
-  indexHtml = indexHtml
-    .replace(
-      /href="\.\/styles\.css(?:\?v=[^"]*)?"/,
-      `href="./styles.css?v=${pkg.version}"`,
-    )
-    .replace(
-      /src="\.\/app\.js(?:\?v=[^"]*)?"/,
-      `src="./app.js?v=${pkg.version}"`,
-    );
+  indexHtml = prepareIndexHtml(indexHtml, {
+    version: pkg.version,
+    generatedAt: snapshot.generatedAt,
+    timezone: snapshot.timezone,
+  });
   await writeFile(indexPath, indexHtml);
+  // Cold path: never previously cached under this filename (browser+CDN).
+  await writeFile(path.join(DIST, "go.html"), indexHtml);
+
   await writeFile(
     path.join(DIST, "data", "build-meta.json"),
     `${JSON.stringify({ version: pkg.version, builtAt: new Date().toISOString() }, null, 2)}\n`,

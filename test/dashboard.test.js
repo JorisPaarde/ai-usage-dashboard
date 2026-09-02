@@ -760,7 +760,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.3.10");
+    assert.equal(snap.version, "1.3.11");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -1144,11 +1144,11 @@ describe("public seed", () => {
     assert.ok(capped.length >= 2);
     assert.ok(capacity.every((c) => typeof c.usage === "number" && c.usage < 50));
     assert.match(
-      await readFile(path.join(ROOT, "site", "app.js"), "utf8"),
+      await readFile(path.join(ROOT, "site", "dashboard.js"), "utf8"),
       /capacity-callout/,
     );
     assert.match(
-      await readFile(path.join(ROOT, "site", "app.js"), "utf8"),
+      await readFile(path.join(ROOT, "site", "dashboard.js"), "utf8"),
       /Plan capacity ample/,
     );
     // Held at unavailable-with-reason until a routing log renormalised against
@@ -1160,13 +1160,13 @@ describe("public seed", () => {
     assert.equal(snap.routing.runtimeEvidence, null);
     assert.match(snap.routing.reason, /not runtime evidence/);
     assert.match(
-      await readFile(path.join(ROOT, "site", "app.js"), "utf8"),
+      await readFile(path.join(ROOT, "site", "dashboard.js"), "utf8"),
       /renderRoutingCard/,
     );
     const claude = snap.sources.find((s) => s.id === "claude-code");
     assert.equal(claude.usageUrl, "https://claude.ai/new#settings/usage");
     assert.match(
-      await readFile(path.join(ROOT, "site", "app.js"), "utf8"),
+      await readFile(path.join(ROOT, "site", "dashboard.js"), "utf8"),
       /source-link/,
     );
   });
@@ -1174,14 +1174,15 @@ describe("public seed", () => {
   it("site marks measured estimated and unavailable distinctly", async () => {
     const html = await readFile(path.join(ROOT, "site", "index.html"), "utf8");
     const css = await readFile(path.join(ROOT, "site", "styles.css"), "utf8");
-    const js = await readFile(path.join(ROOT, "site", "app.js"), "utf8");
+    const js = await readFile(path.join(ROOT, "site", "dashboard.js"), "utf8");
     assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/i);
     assert.match(html, /measured/);
     assert.match(html, /estimated/);
     assert.match(html, /unavailable/);
     assert.match(html, /last-updated/);
-    assert.match(html, /app\.js\?v=1\.3\.10/);
-    assert.match(html, /styles\.css\?v=1\.3\.10/);
+    assert.match(html, /dashboard\.js\?v=1\.3\.11/);
+    assert.match(html, /styles\.css\?v=1\.3\.11/);
+    assert.match(html, /Laatst bijgewerkt:/);
     assert.doesNotMatch(js, /meta\.textContent = `Snapshot /);
     assert.match(css, /badge-measured/);
     assert.match(css, /badge-estimated/);
