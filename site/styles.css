@@ -100,9 +100,39 @@ body {
   gap: 0.15rem;
 }
 
+.source-freshness.is-live {
+  border-left-color: var(--measured);
+  background: var(--measured-bg);
+}
+
 .source-freshness.is-stale {
   border-left-color: var(--warn);
   background: var(--warn-bg);
+}
+
+.badge-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.badge-live {
+  color: var(--measured);
+  background: var(--measured-bg);
+  border-color: color-mix(in srgb, var(--measured) 28%, transparent);
+}
+
+.badge-manual {
+  color: var(--estimated);
+  background: var(--estimated-bg);
+  border-color: color-mix(in srgb, var(--estimated) 28%, transparent);
+}
+
+.badge-na {
+  color: var(--unavailable);
+  background: var(--unavailable-bg);
+  border-color: color-mix(in srgb, var(--unavailable) 28%, transparent);
 }
 
 .source-freshness-main {

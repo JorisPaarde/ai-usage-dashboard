@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 
+# Steady-state collect+publish: deterministic Node only.
+# No LLM, cloud agent, Grok Bot, or browser-bot belongs in this loop.
+# See PLAN.md and docs/SCHEDULE.md.
+
 # launchd starts with a minimal PATH and does not inherit Homebrew's Node path.
 PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export PATH

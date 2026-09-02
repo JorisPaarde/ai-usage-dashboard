@@ -1,8 +1,8 @@
 {
-  "version": "1.3.11",
+  "version": "1.4.1",
   "generatedAt": "2026-09-02T21:27:35.785Z",
   "timezone": "Europe/Amsterdam",
-  "scheduleNote": "Local LaunchAgent collects every 15 minutes (LLM-free). Open dashboards soft-refresh every 5 minutes. GitHub Actions still gate CET+CEST UTC candidates to 09:00 and 16:00 Europe/Amsterdam. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
+  "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Open dashboards soft-refresh every 5 minutes. GitHub Actions only rebuild Pages from committed data/latest.json \u2014 hosted runners cannot measure authenticated desktop usage.",
   "routing": {
     "today": {
       "local": 0,
@@ -194,7 +194,7 @@
     },
     {
       "id": "enrich-labs",
-      "name": "Enrich Labs",
+      "name": "Enrich Labs / Helena",
       "status": "measured",
       "collectionMode": "manual",
       "reason": "Read from the signed-in Enrich Labs workspace at 2026-09-02T09:34:17.833Z: 27 of 200 credits used (14%), 173 remaining, resets 2026-10-01. Breakdown: 15 social posts and 12 chat/task executions; all other categories 0. Manual reading 12 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",

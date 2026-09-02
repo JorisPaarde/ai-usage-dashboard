@@ -1,6 +1,10 @@
 # AI Usage Dashboard
 
-Operational static dashboard for **OpenAI/Buzz**, **Cursor Agent**, **Claude Code**, **Ollama**, and **Enrich Labs**. Vanilla HTML/CSS/JS front end; Node standard-library collector. No npm dependencies.
+Operational static dashboard for **OpenAI/Buzz**, **Cursor Agent**, **Claude Code**,
+**Ollama**, and **Enrich Labs / Helena**. Vanilla HTML/CSS/JS front end; Node
+standard-library collector. No npm dependencies.
+
+See [`PLAN.md`](PLAN.md) for the unattended-collect roadmap and backlog issues.
 
 ## Quick start
 
@@ -10,43 +14,49 @@ npm run build
 npm run collect   # local adapters (+ optional overrides) → data/latest.json
 ```
 
-Serve `dist/` as static files. For GitHub Pages, push to `main`/`master` — see `.github/workflows/pages.yml`.
+Serve `dist/` as static files. For GitHub Pages, push to `main`/`master` — see
+`.github/workflows/pages.yml`.
+
+## Steady-state loop (no human, no AI agent)
+
+1. Install once on the Mac that is signed in to the tools:
+   `./scripts/install-launch-agent.sh`
+2. Every **15 minutes** the LaunchAgent runs `scripts/local-snapshot.sh`:
+   collect → check → commit `data/latest.json` → push `main`.
+3. GitHub Pages rebuilds from that commit. Hosted runners **never** measure
+   authenticated desktop usage.
+
+Cursor cloud agents may plan and implement changes. They must **not** sit in
+the scheduled collect/publish path.
 
 ## Why the page shows “unavailable”
 
 Most vendors do not expose public usage meters. The seed snapshot and
-GitHub-hosted collect keep those sources **unavailable** on purpose — never
-fabricated. To show numbers you read from an authenticated desktop or browser
-UI, copy `data/local-overrides.example.json` to `data/local-overrides.json`
-(gitignored), fill measured/estimated values, then `npm run collect`. Only the
-sanitized aggregate in `data/latest.json` is published; the override file never
-enters `dist/`.
+GitHub-hosted validate keep those sources **unavailable** on purpose — never
+fabricated. Claude plan % is read automatically from the local Claude.ai OAuth
+token when present; Enrich Labs / Helena still needs a verified meter
+([issue #10](https://github.com/JorisPaarde/ai-usage-dashboard/issues/10)).
+Until then, optional `data/local-overrides.json` (gitignored) can hold a
+hand reading. Only the sanitized aggregate in `data/latest.json` is published.
 
 ## What you see
 
-Each source is distinctly **measured**, **estimated**, or **unavailable**
-(schema status `unknown`), with usage vs limit, reset date, last update, pace,
-and compact daily history. Enrich monthly budget is **200** credits (public
-Starter operating target; weekly pace max **50**). A separate top-level
-**Local share** card shows today’s and rolling 7-day share of delegated tasks
-that went to LocalAI guy (`routing` on the snapshot — not a sixth provider source).
+Each source is distinctly **measured**, **estimated**, or **unavailable**,
+plus a **live / handmatig** collection badge. Usage vs limit, Amsterdam reset
+times, pace, and compact daily history. Enrich monthly budget is **200**
+credits (public Starter operating target; weekly pace max **50**). A separate
+**Local share** card stays unavailable until routing is runtime-proven.
 
 ## Collector
 
 Isolated adapters in `collector/adapters/`. Output: `data/latest.json`. No LLM
-calls. Cursor reads the signed-in IDE session token from its local state DB and
-calls `GetCurrentPeriodUsage` (plus optional `GetSandUsageStatus` for Grok Bot).
-Codex uses the local app-server; Claude/Ollama read local logs. Remaining
-sources stay unavailable until a public-safe export or local override is
-supplied. Build and collect fail closed on dishonest records or secret-looking
-payloads.
+calls. Cursor reads the signed-in IDE session token; Codex uses the local
+app-server; Claude uses OAuth usage + local transcripts; Ollama reads logs.
+Build and collect fail closed on dishonest records or secret-looking payloads.
 
 ## Schedule
 
-Local LaunchAgent collects every **15 minutes** (LLM-free). Open dashboards
-soft-refresh every **5 minutes**. GitHub Actions still gate CET/CEST UTC
-candidates to **09:00** and **16:00** `Europe/Amsterdam` — details in
-[`docs/SCHEDULE.md`](docs/SCHEDULE.md).
+Details in [`docs/SCHEDULE.md`](docs/SCHEDULE.md).
 
 ## Privacy
 
@@ -55,4 +65,4 @@ keys, account exports, or `data/local-overrides.json`.
 
 ## Version
 
-`1.3.11`
+`1.4.1`

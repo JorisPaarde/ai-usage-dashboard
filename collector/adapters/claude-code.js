@@ -6,9 +6,261 @@ import { unknown } from "../lib/adapter-result.js";
 import { dateKeyInZone } from "../lib/pace.js";
 
 const DEFAULT_PROJECTS_DIR = path.join(os.homedir(), ".claude", "projects");
+const DEFAULT_CREDENTIALS_FILE = path.join(
+  os.homedir(),
+  ".claude",
+  ".credentials.json",
+);
+const OAUTH_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
+const OAUTH_BETA = "oauth-2025-04-20";
+const OAUTH_TIMEOUT_MS = 15000;
 
 function monthKeyInAmsterdam(now) {
   return dateKeyInZone(now).slice(0, 7);
+}
+
+function isRecord(value) {
+  return value != null && typeof value === "object" && !Array.isArray(value);
+}
+
+function num(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function roundPct(value) {
+  return Math.round(value * 1000) / 1000;
+}
+
+/**
+ * Normalize reset timestamps from OAuth usage (unix seconds or ISO).
+ * @param {unknown} raw
+ * @returns {string|null}
+ */
+export function normalizeOauthReset(raw) {
+  if (raw == null) return null;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    const ms = raw < 1e12 ? raw * 1000 : raw;
+    const d = new Date(ms);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    if (/^\d+$/.test(raw.trim())) {
+      return normalizeOauthReset(Number(raw.trim()));
+    }
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  return null;
+}
+
+/**
+ * Calendar-day label when the reset is midnight-ish UTC.
+ * @param {string|null} iso
+ */
+function monthResetLabel(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  if (
+    d.getUTCHours() === 0 &&
+    d.getUTCMinutes() === 0 &&
+    d.getUTCSeconds() === 0
+  ) {
+    return iso.slice(0, 10);
+  }
+  return iso;
+}
+
+/**
+ * Read Claude.ai OAuth access token from the local Claude Code credentials file.
+ * Token is returned only to the caller for Authorization — never log it.
+ *
+ * @param {{
+ *   credentialsPath?: string,
+ *   readText?: typeof readFile,
+ * }} [opts]
+ * @returns {Promise<string|null>}
+ */
+export async function readClaudeOauthToken({
+  credentialsPath = process.env.CLAUDE_CREDENTIALS_PATH || DEFAULT_CREDENTIALS_FILE,
+  readText = readFile,
+} = {}) {
+  let raw;
+  try {
+    raw = await readText(credentialsPath, "utf8");
+  } catch {
+    return null;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!isRecord(parsed)) return null;
+  const oauth = isRecord(parsed.claudeAiOauth) ? parsed.claudeAiOauth : null;
+  const token = oauth?.accessToken;
+  return typeof token === "string" && token.trim() ? token.trim() : null;
+}
+
+/**
+ * Map Anthropic OAuth usage JSON → dashboard components.
+ * Deliberately narrow: never copies account ids, emails, or plan names.
+ *
+ * @param {unknown} json
+ * @returns {{
+ *   components: object[],
+ *   resetDate: string|null,
+ *   missing: string[],
+ * }|null}
+ */
+export function parseOauthUsage(json) {
+  if (!isRecord(json)) return null;
+
+  /** @type {object[]} */
+  const components = [];
+  /** @type {string[]} */
+  const missing = [];
+
+  const fiveHour = isRecord(json.five_hour) ? json.five_hour : null;
+  const sessionPct =
+    num(fiveHour?.utilization) ??
+    num(fiveHour?.used_percentage) ??
+    num(fiveHour?.usedPercent);
+  if (typeof sessionPct === "number") {
+    components.push({
+      id: "session",
+      label: "Session window",
+      role: "capacity",
+      usage: roundPct(sessionPct),
+      limit: 100,
+      unit: "% of session limit",
+      resetDate: normalizeOauthReset(fiveHour?.resets_at ?? fiveHour?.resetsAt),
+    });
+  } else {
+    missing.push("session %");
+  }
+
+  const sevenDay = isRecord(json.seven_day) ? json.seven_day : null;
+  const weeklyPct =
+    num(sevenDay?.utilization) ??
+    num(sevenDay?.used_percentage) ??
+    num(sevenDay?.usedPercent);
+  if (typeof weeklyPct === "number") {
+    components.push({
+      id: "weekly-all-models",
+      label: "Weekly (all models)",
+      role: "capacity",
+      usage: roundPct(weeklyPct),
+      limit: 100,
+      unit: "% of weekly limit",
+      resetDate: normalizeOauthReset(sevenDay?.resets_at ?? sevenDay?.resetsAt),
+    });
+  } else {
+    missing.push("weekly %");
+  }
+
+  const extra = isRecord(json.extra_usage) ? json.extra_usage : null;
+  if (extra) {
+    const used = num(extra.used) ?? num(extra.usage) ?? num(extra.spent);
+    const limit = num(extra.limit) ?? num(extra.allowance);
+    const currency =
+      typeof extra.currency === "string" && extra.currency.trim()
+        ? extra.currency.trim().toUpperCase()
+        : "EUR";
+    if (typeof used === "number" && typeof limit === "number" && limit > 0) {
+      components.push({
+        id: "usage-credits",
+        label: "Usage credits",
+        role: "capped",
+        usage: used,
+        limit,
+        unit: currency,
+        resetDate: monthResetLabel(
+          normalizeOauthReset(extra.resets_at ?? extra.resetsAt),
+        ),
+      });
+    } else if (typeof used === "number") {
+      components.push({
+        id: "usage-credits",
+        label: "Usage credits",
+        role: "capped",
+        usage: used,
+        limit: null,
+        unit: currency,
+        resetDate: monthResetLabel(
+          normalizeOauthReset(extra.resets_at ?? extra.resetsAt),
+        ),
+      });
+    } else {
+      missing.push("usage credits");
+    }
+  }
+
+  if (!components.length) return null;
+
+  const resetDate =
+    components.find((c) => c.id === "usage-credits")?.resetDate ||
+    components.find((c) => c.id === "weekly-all-models")?.resetDate ||
+    components.find((c) => c.id === "session")?.resetDate ||
+    null;
+
+  return { components, resetDate, missing };
+}
+
+/**
+ * GET /api/oauth/usage with the local Claude.ai OAuth token.
+ * Token stays in the Authorization header only.
+ *
+ * @param {{
+ *   token: string,
+ *   fetchImpl?: typeof fetch,
+ *   timeoutMs?: number,
+ *   url?: string,
+ * }} opts
+ * @returns {Promise<{ ok: true, json: unknown } | { ok: false, status?: number }>}
+ */
+export async function fetchOauthUsage({
+  token,
+  fetchImpl = globalThis.fetch,
+  timeoutMs = OAUTH_TIMEOUT_MS,
+  url = process.env.CLAUDE_OAUTH_USAGE_URL || OAUTH_USAGE_URL,
+}) {
+  if (typeof fetchImpl !== "function") return { ok: false };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetchImpl(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "anthropic-beta": OAUTH_BETA,
+        "User-Agent": "ai-usage-dashboard",
+      },
+      signal: controller.signal,
+    });
+    if (!res || typeof res.status !== "number") return { ok: false };
+    if (res.status < 200 || res.status >= 300) {
+      return { ok: false, status: res.status };
+    }
+    let json;
+    try {
+      json = await res.json();
+    } catch {
+      return { ok: false, status: res.status };
+    }
+    return { ok: true, json };
+  } catch {
+    return { ok: false };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -106,11 +358,14 @@ async function listTranscripts(dir) {
 }
 
 /**
- * Claude Code — token usage is measured from local transcripts. Anthropic's
- * plan/credit percentages stay account-authenticated and are not derivable
- * here, so no limit is published rather than a guessed one.
+ * @param {{
+ *   projectsDir?: string,
+ *   listFiles?: typeof listTranscripts,
+ *   readTranscript?: typeof readFile,
+ *   now?: Date,
+ * }} [opts]
  */
-export async function collect({
+async function collectTranscriptTotals({
   projectsDir = process.env.CLAUDE_PROJECTS_DIR || DEFAULT_PROJECTS_DIR,
   listFiles = listTranscripts,
   readTranscript = readFile,
@@ -120,19 +375,17 @@ export async function collect({
   try {
     files = await listFiles(projectsDir);
   } catch (err) {
-    return unknown(
-      "claude-code",
-      `Claude Code transcript directory unavailable (${err?.message || "unreadable"}). No usage fabricated.`,
-      { collectionMode: "unavailable" },
-    );
+    return {
+      ok: false,
+      reason: `Claude Code transcript directory unavailable (${err?.message || "unreadable"}).`,
+    };
   }
 
   if (files.length === 0) {
-    return unknown(
-      "claude-code",
-      "No Claude Code transcripts found locally, so token usage cannot be measured. No usage fabricated.",
-      { collectionMode: "unavailable" },
-    );
+    return {
+      ok: false,
+      reason: "No Claude Code transcripts found locally, so token usage cannot be measured.",
+    };
   }
 
   const seen = new Set();
@@ -156,31 +409,163 @@ export async function collect({
     mergeTotals(totals, parsed);
   }
 
+  return {
+    ok: true,
+    totals,
+    history: [...totals.daily.entries()].map(([date, usage]) => ({ date, usage })),
+  };
+}
+
+function tokenReason(totals) {
   const coverage = totals.firstSeenAt
     ? ` Transcript coverage this month starts ${totals.firstSeenAt}.`
     : "";
+  return (
+    `${totals.totalTokens} tokens this month (${totals.promptTokens} prompt/cache + ` +
+    `${totals.outputTokens} output) across ${totals.generations} assistant messages, ` +
+    `measured from local Claude Code transcripts.${coverage}`
+  );
+}
 
-  return {
-    id: "claude-code",
-    status: "measured",
-    collectionMode: "automatic",
-    reason:
-      `${totals.totalTokens} tokens this month (${totals.promptTokens} prompt/cache + ` +
-      `${totals.outputTokens} output) across ${totals.generations} assistant messages, ` +
-      `measured from local Claude Code transcripts.${coverage} ` +
-      "Anthropic's plan and usage-credit percentages need account access and are not published here.",
-    usage: totals.totalTokens,
-    limit: null,
-    unit: "tokens",
-    resetDate: null,
-    lastUpdate: totals.lastSeenAt || now.toISOString(),
-    coverageStart: totals.firstSeenAt,
-    breakdown: {
-      promptTokens: totals.promptTokens,
-      outputTokens: totals.outputTokens,
-      generations: totals.generations,
-    },
-    pace: { daily: null, monthly: null, weeklyTarget: null },
-    history: [...totals.daily.entries()].map(([date, usage]) => ({ date, usage })),
-  };
+/**
+ * Claude Code.
+ *
+ * Preferred: signed-in Claude.ai OAuth token from `~/.claude/.credentials.json`
+ * → `GET /api/oauth/usage` for session / weekly / extra-usage meters (same local
+ * login idea as Cursor and Codex). Token never enters the snapshot.
+ *
+ * Always: local transcript token totals as breakdown / fallback when OAuth is
+ * unavailable. Plan percentages are never invented.
+ */
+export async function collect({
+  projectsDir = process.env.CLAUDE_PROJECTS_DIR || DEFAULT_PROJECTS_DIR,
+  listFiles = listTranscripts,
+  readTranscript = readFile,
+  credentialsPath = process.env.CLAUDE_CREDENTIALS_PATH || DEFAULT_CREDENTIALS_FILE,
+  readCredentials = readFile,
+  readToken = readClaudeOauthToken,
+  queryOauth = fetchOauthUsage,
+  fetchImpl = globalThis.fetch,
+  now = new Date(),
+} = {}) {
+  const transcript = await collectTranscriptTotals({
+    projectsDir,
+    listFiles,
+    readTranscript,
+    now,
+  });
+
+  const token = await readToken({
+    credentialsPath,
+    readText: readCredentials,
+  });
+
+  let oauth = null;
+  let oauthFailure = null;
+  if (token) {
+    const res = await queryOauth({ token, fetchImpl });
+    if (res.ok) {
+      oauth = parseOauthUsage(res.json);
+      if (!oauth) oauthFailure = "OAuth usage response had no usable meters.";
+    } else if (res.status === 429) {
+      oauthFailure =
+        "Anthropic OAuth usage API rate-limited this collect (HTTP 429); will retry next interval.";
+    } else if (res.status === 401 || res.status === 403) {
+      oauthFailure =
+        "Claude OAuth token rejected by the usage API; re-auth in Claude Code, then collect again.";
+    } else {
+      oauthFailure = "Claude OAuth usage API unavailable this collect.";
+    }
+  } else {
+    oauthFailure =
+      "No local Claude.ai OAuth token in ~/.claude/.credentials.json.";
+  }
+
+  if (oauth) {
+    const session = oauth.components.find((c) => c.id === "session");
+    const weekly = oauth.components.find((c) => c.id === "weekly-all-models");
+    const credits = oauth.components.find((c) => c.id === "usage-credits");
+    const parts = [];
+    if (session) {
+      parts.push(
+        `session ${session.usage}%` +
+          (session.resetDate ? ` (resets ${session.resetDate})` : ""),
+      );
+    }
+    if (weekly) {
+      parts.push(
+        `weekly all-models ${weekly.usage}%` +
+          (weekly.resetDate ? ` (resets ${weekly.resetDate})` : ""),
+      );
+    }
+    if (credits) {
+      const lim = credits.limit == null ? "—" : credits.limit;
+      parts.push(
+        `usage credits ${credits.usage} of ${lim} ${credits.unit}` +
+          (credits.resetDate ? ` (resets ${credits.resetDate})` : ""),
+      );
+    }
+    const missingNote = oauth.missing.length
+      ? ` Missing from API: ${oauth.missing.join(", ")}.`
+      : "";
+    const tokenNote = transcript.ok
+      ? ` Local transcript detail: ${tokenReason(transcript.totals)}`
+      : ` ${transcript.reason} No usage fabricated for tokens.`;
+
+    return {
+      id: "claude-code",
+      status: "measured",
+      collectionMode: "automatic",
+      reason:
+        `Live from the signed-in Claude.ai OAuth session via /api/oauth/usage: ${parts.join("; ")}.` +
+        `${missingNote} Same local-login pattern as Cursor/Codex (no browser scrape).` +
+        tokenNote,
+      usage: null,
+      limit: null,
+      unit: "mixed (see components)",
+      resetDate: oauth.resetDate,
+      lastUpdate: now.toISOString(),
+      coverageStart: transcript.ok ? transcript.totals.firstSeenAt : null,
+      breakdown: transcript.ok
+        ? {
+            promptTokens: transcript.totals.promptTokens,
+            outputTokens: transcript.totals.outputTokens,
+            generations: transcript.totals.generations,
+          }
+        : null,
+      components: oauth.components,
+      pace: { daily: null, monthly: null, weeklyTarget: null },
+      history: transcript.ok ? transcript.history : [],
+    };
+  }
+
+  if (transcript.ok) {
+    return {
+      id: "claude-code",
+      status: "measured",
+      collectionMode: "automatic",
+      reason:
+        `${tokenReason(transcript.totals)} ${oauthFailure}` +
+        " Anthropic plan/credit percentages need a working local OAuth read and are not published here.",
+      usage: transcript.totals.totalTokens,
+      limit: null,
+      unit: "tokens",
+      resetDate: null,
+      lastUpdate: transcript.totals.lastSeenAt || now.toISOString(),
+      coverageStart: transcript.totals.firstSeenAt,
+      breakdown: {
+        promptTokens: transcript.totals.promptTokens,
+        outputTokens: transcript.totals.outputTokens,
+        generations: transcript.totals.generations,
+      },
+      pace: { daily: null, monthly: null, weeklyTarget: null },
+      history: transcript.history,
+    };
+  }
+
+  return unknown(
+    "claude-code",
+    `${transcript.reason} ${oauthFailure} No usage fabricated.`,
+    { collectionMode: "unavailable" },
+  );
 }

@@ -1,18 +1,11 @@
 name: Validate usage snapshot
 
-# Intended Amsterdam windows: 09:00 and 16:00 Europe/Amsterdam.
-# GitHub cron is UTC-only and does not follow DST. See docs/SCHEDULE.md.
+# Validates the committed public snapshot only.
+# Hosted runners cannot measure authenticated desktop/browser usage
+# (Cursor, Codex, Claude OAuth, Enrich Labs). Live meters run on the Mac
+# LaunchAgent — see docs/SCHEDULE.md and PLAN.md.
 #
-# Both CET and CEST UTC candidates are scheduled; scripts/amsterdam-gate.js
-# selects the run that lands near 09:00 or 16:00 local and skips the rest.
-#
-#   09:00 Amsterdam → 08:00 UTC (CET) or 07:00 UTC (CEST)
-#   16:00 Amsterdam → 15:00 UTC (CET) or 14:00 UTC (CEST)
-#
-# IMPORTANT: GitHub-hosted runners cannot inspect locally authenticated
-# desktop or browser apps (Cursor, Claude, Enrich Labs dashboards, etc.).
-# Scheduled collect must never claim those measurements. Real usage figures
-# require a local `npm run collect` with optional data/local-overrides.json.
+# Do not reintroduce a scheduled collect-as-meter job here.
 
 on:
   workflow_dispatch:

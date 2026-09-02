@@ -22,11 +22,29 @@ function fmtDate(isoOrDay) {
   if (!isoOrDay) return "—";
   const d = new Date(isoOrDay);
   if (Number.isNaN(d.getTime())) return String(isoOrDay);
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Amsterdam",
-    dateStyle: "medium",
-    timeStyle: isoOrDay.includes("T") ? "short" : undefined,
-  }).format(d);
+  // Date-only (YYYY-MM-DD) → calendar day; timestamps → Amsterdam wall clock.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(isoOrDay))) {
+    return new Intl.DateTimeFormat("nl-NL", {
+      timeZone: "Europe/Amsterdam",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(d);
+  }
+  return fmtAmsterdamDateTime(isoOrDay);
+}
+
+/** Short collection-mode label for the card badge row. */
+function collectionLabel(mode) {
+  if (mode === "automatic") return "live";
+  if (mode === "manual") return "handmatig";
+  return "n.v.t.";
+}
+
+function collectionBadgeClass(mode) {
+  if (mode === "automatic") return "badge-live";
+  if (mode === "manual") return "badge-manual";
+  return "badge-na";
 }
 
 /** Amsterdam wall-clock for the prominent global stamp (Dutch numerals). */
@@ -66,6 +84,17 @@ function readingAge(lastUpdate, now = new Date()) {
 
 function renderSourceFreshness(src) {
   const mode = src.collectionMode || "unavailable";
+  if (mode === "automatic") {
+    const age = readingAge(src.lastUpdate);
+    const observed = src.lastUpdate
+      ? fmtAmsterdamDateTime(src.lastUpdate)
+      : null;
+    if (!observed) return "";
+    return `
+    <p class="source-freshness is-live" data-mode="automatic">
+      <span class="source-freshness-main">Live · ${escapeHtml(observed)}${age ? ` · ${escapeHtml(age.label)} oud` : ""}</span>
+    </p>`;
+  }
   if (mode !== "manual") return "";
   const age = readingAge(src.lastUpdate);
   const observed = src.lastUpdate
@@ -75,8 +104,8 @@ function renderSourceFreshness(src) {
   const staleClass = age?.stale ? " is-stale" : "";
   return `
     <p class="source-freshness${staleClass}" data-mode="manual">
-      <span class="source-freshness-main">Afgelezen ${escapeHtml(observed)} · ${escapeHtml(ageText)}</span>
-      <span class="source-freshness-note">handmatige bron — niet opnieuw gemeten bij deze snapshot</span>
+      <span class="source-freshness-main">Handmatig ${escapeHtml(observed)} · ${escapeHtml(ageText)}</span>
+      <span class="source-freshness-note">niet opnieuw gemeten bij deze snapshot</span>
     </p>`;
 }
 
@@ -287,6 +316,32 @@ function cardCapacityTone(src) {
   return capacityCallout(src.components).tone;
 }
 
+/** Only show fact rows that carry a real value (no jargon wall of em dashes). */
+function renderFacts(src) {
+  const mode = src.collectionMode || "unavailable";
+  /** @type {Array<[string, string]>} */
+  const rows = [];
+  if (src.resetDate) rows.push(["Reset", fmtDate(src.resetDate)]);
+  if (src.lastUpdate) rows.push(["Gemeten", formatLastUpdateFact(src)]);
+  rows.push(["Bron", collectionLabel(mode)]);
+  if (src.coverageStart) rows.push(["Dekking vanaf", fmtDate(src.coverageStart)]);
+  if (src.pace?.daily != null) rows.push(["Dagtempo", fmtNum(src.pace.daily)]);
+  if (src.pace?.monthly != null) rows.push(["Maandtempo", fmtNum(src.pace.monthly)]);
+  if (src.pace?.weeklyTarget != null) {
+    rows.push(["Weekdoel", fmtNum(src.pace.weeklyTarget)]);
+  }
+  if (!rows.length) return "";
+  return `
+      <dl class="facts">
+        ${rows
+          .map(
+            ([dt, dd]) =>
+              `<div><dt>${escapeHtml(dt)}</dt><dd>${escapeHtml(dd)}</dd></div>`,
+          )
+          .join("")}
+      </dl>`;
+}
+
 function renderCard(src) {
   const status = src.status || "unknown";
   const hasComponents =
@@ -309,12 +364,22 @@ function renderCard(src) {
   const manualStale =
     mode === "manual" && readingAge(src.lastUpdate)?.stale === true;
   const staleAttr = manualStale ? ' data-freshness="stale"' : "";
+  const historyBlock =
+    Array.isArray(src.history) && src.history.length > 0
+      ? `<div class="history">
+        <p class="history-label">Dagelijks</p>
+        ${sparkBars(src.history)}
+      </div>`
+      : "";
 
   return `
-    <article class="source-card" data-id="${src.id}" data-status="${escapeHtml(status)}"${capacityAttr}${staleAttr}>
+    <article class="source-card" data-id="${src.id}" data-status="${escapeHtml(status)}" data-mode="${escapeHtml(mode)}"${capacityAttr}${staleAttr}>
       <div class="card-top">
         ${renderTitle(src)}
-        <span class="badge ${STATUS_CLASS[status] || STATUS_CLASS.unknown}">${escapeHtml(STATUS_LABEL[status] || STATUS_LABEL.unknown)}</span>
+        <div class="badge-stack">
+          <span class="badge ${STATUS_CLASS[status] || STATUS_CLASS.unknown}">${escapeHtml(STATUS_LABEL[status] || STATUS_LABEL.unknown)}</span>
+          <span class="badge ${collectionBadgeClass(mode)}">${escapeHtml(collectionLabel(mode))}</span>
+        </div>
       </div>
       ${renderSourceFreshness(src)}
       ${aggregate}
@@ -322,20 +387,8 @@ function renderCard(src) {
       ${budget}
       ${tokenBreakdown}
       ${renderReason(src.reason)}
-      <dl class="facts">
-        <div><dt>Reset</dt><dd>${escapeHtml(src.resetDate ? fmtDate(src.resetDate) : "—")}</dd></div>
-        <div><dt>Last update</dt><dd>${escapeHtml(formatLastUpdateFact(src))}</dd></div>
-        <div><dt>Collection</dt><dd>${escapeHtml(mode)}</dd></div>
-        <div><dt>Coverage starts</dt><dd>${escapeHtml(fmtDate(src.coverageStart))}</dd></div>
-        <div><dt>Daily pace</dt><dd>${escapeHtml(fmtNum(src.pace?.daily))}</dd></div>
-        <div><dt>Monthly pace</dt><dd>${escapeHtml(fmtNum(src.pace?.monthly))}</dd></div>
-        <div><dt>Weekly target</dt><dd>${escapeHtml(fmtNum(src.pace?.weeklyTarget))}</dd></div>
-        <div><dt>Unit</dt><dd>${escapeHtml(src.unit || "—")}</dd></div>
-      </dl>
-      <div class="history">
-        <p class="history-label">Daily history</p>
-        ${sparkBars(src.history)}
-      </div>
+      ${renderFacts(src)}
+      ${historyBlock}
     </article>
   `;
 }
@@ -383,8 +436,8 @@ function renderRoutingRow(label, bucket) {
 }
 
 /**
- * Top-level local-share card. Null routing ⇒ unavailable with reason
- * (missing/unreadable log), never fake zeros.
+ * Top-level local-share card. Null / unproven routing ⇒ unavailable,
+ * never fake zeros. Keep held state compact (no docs dump in the primary).
  */
 function renderRoutingCard(routing) {
   if (routing == null) {
@@ -396,9 +449,8 @@ function renderRoutingCard(routing) {
       </div>
       <div class="primary-metric">
         <p class="primary-value is-empty">—</p>
-        <p class="primary-sub">Routing log missing or unreadable</p>
+        <p class="primary-sub">Geen routing-log</p>
       </div>
-      <p class="budget-note">Share of delegated tasks that went to LocalAI guy.</p>
     </article>`;
   }
 
@@ -414,9 +466,9 @@ function renderRoutingCard(routing) {
       </div>
       <div class="primary-metric">
         <p class="primary-value is-empty">—</p>
-        <p class="primary-sub">${escapeHtml(routing.reason ?? "No verified routing data")}</p>
+        <p class="primary-sub">Aangehouden — geen runtime-bewijs</p>
       </div>
-      <p class="budget-note">Share of delegated tasks that went to LocalAI guy.</p>
+      ${renderReason(routing.reason)}
     </article>`;
   }
 

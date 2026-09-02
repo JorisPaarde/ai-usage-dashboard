@@ -628,6 +628,7 @@ describe("adapters", () => {
         msg("msg_1", "2026-08-31T10:00:02.000Z", 50) +
         msg("msg_2", "2026-08-31T11:00:00.000Z", 25) +
         msg("msg_old", "2026-07-30T11:00:00.000Z", 999),
+      readToken: async () => null,
       now: new Date("2026-08-31T12:00:00.000Z"),
     });
     assert.equal(r.status, "measured");
@@ -641,9 +642,90 @@ describe("adapters", () => {
   });
 
   it("claude-code stays unknown without transcripts", async () => {
-    const r = await claudeCode.collect({ listFiles: async () => [] });
+    const r = await claudeCode.collect({
+      listFiles: async () => [],
+      readToken: async () => null,
+    });
     assert.equal(r.status, "unknown");
     assert.equal(r.usage, null);
+  });
+
+  it("claude-code OAuth usage maps session/weekly/credits without leaking tokens", async () => {
+    const fixture = JSON.parse(await readFile(
+      path.join(ROOT, "test", "fixtures", "claude-oauth-usage.json"),
+      "utf8",
+    ));
+    const parsed = claudeCode.parseOauthUsage(fixture);
+    assert.ok(parsed);
+    assert.equal(parsed.components.length, 3);
+    assert.equal(parsed.components[0].id, "session");
+    assert.equal(parsed.components[0].usage, 14);
+    assert.equal(parsed.components[1].id, "weekly-all-models");
+    assert.equal(parsed.components[2].id, "usage-credits");
+    assert.equal(parsed.components[2].unit, "EUR");
+    assert.equal(parsed.resetDate, "2026-10-01");
+
+    const r = await claudeCode.collect({
+      listFiles: async () => ["a.jsonl"],
+      readTranscript: async () =>
+        `${JSON.stringify({
+          type: "assistant",
+          timestamp: "2026-09-02T10:00:00.000Z",
+          message: {
+            id: "msg_oauth",
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        })}\n`,
+      readToken: async () => "sk-ant-oat-TEST-TOKEN-NOT-REAL",
+      queryOauth: async ({ token }) => {
+        assert.equal(token, "sk-ant-oat-TEST-TOKEN-NOT-REAL");
+        return { ok: true, json: fixture };
+      },
+      now: new Date("2026-09-02T12:00:00.000Z"),
+    });
+    assert.equal(r.status, "measured");
+    assert.equal(r.collectionMode, "automatic");
+    assert.equal(r.usage, null);
+    assert.equal(r.unit, "mixed (see components)");
+    assert.equal(r.components.length, 3);
+    assert.equal(r.breakdown.generations, 1);
+    assert.match(r.reason, /OAuth/);
+    assert.doesNotMatch(r.reason, /sk-ant-oat/);
+    assert.doesNotMatch(JSON.stringify(r), /sk-ant-oat/);
+  });
+
+  it("claude-code falls back to transcripts when OAuth is rate-limited", async () => {
+    const r = await claudeCode.collect({
+      listFiles: async () => ["a.jsonl"],
+      readTranscript: async () =>
+        `${JSON.stringify({
+          type: "assistant",
+          timestamp: "2026-09-02T10:00:00.000Z",
+          message: {
+            id: "msg_rl",
+            usage: { input_tokens: 100, output_tokens: 20 },
+          },
+        })}\n`,
+      readToken: async () => "sk-ant-oat-TEST",
+      queryOauth: async () => ({ ok: false, status: 429 }),
+      now: new Date("2026-09-02T12:00:00.000Z"),
+    });
+    assert.equal(r.status, "measured");
+    assert.equal(r.collectionMode, "automatic");
+    assert.equal(r.usage, 120);
+    assert.equal(r.unit, "tokens");
+    assert.match(r.reason, /429/);
+  });
+
+  it("readClaudeOauthToken reads accessToken only", async () => {
+    const token = await claudeCode.readClaudeOauthToken({
+      credentialsPath: "unused",
+      readText: async () =>
+        JSON.stringify({
+          claudeAiOauth: { accessToken: "sk-ant-oat-ABC", refreshToken: "nope" },
+        }),
+    });
+    assert.equal(token, "sk-ant-oat-ABC");
   });
 
   it("enrich exposes public budget constants only", async () => {
@@ -654,6 +736,8 @@ describe("adapters", () => {
     assert.equal(r.budget.monthly, 200);
     assert.equal(r.budget.weeklyPaceMax, 50);
     assert.equal(r.pace.weeklyTarget, 50);
+    assert.match(r.reason, /Hard stop/i);
+    assert.match(r.reason, /enrich\.so/i);
   });
 
   it("ollama reports unknown or measured without fake usage", async () => {
@@ -760,7 +844,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.3.11");
+    assert.equal(snap.version, "1.4.1");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -1176,25 +1260,30 @@ describe("public seed", () => {
     const css = await readFile(path.join(ROOT, "site", "styles.css"), "utf8");
     const js = await readFile(path.join(ROOT, "site", "dashboard.js"), "utf8");
     assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/i);
-    assert.match(html, /measured/);
-    assert.match(html, /estimated/);
-    assert.match(html, /unavailable/);
+    assert.match(html, /Live meters/);
+    assert.match(html, /handmatige/);
     assert.match(html, /last-updated/);
-    assert.match(html, /dashboard\.js\?v=1\.3\.11/);
-    assert.match(html, /styles\.css\?v=1\.3\.11/);
+    assert.match(html, /dashboard\.js\?v=1\.4\.1/);
+    assert.match(html, /styles\.css\?v=1\.4\.1/);
     assert.match(html, /Laatst bijgewerkt:/);
     assert.doesNotMatch(js, /meta\.textContent = `Snapshot /);
     assert.match(css, /badge-measured/);
     assert.match(css, /badge-estimated/);
     assert.match(css, /badge-unknown/);
+    assert.match(css, /badge-live/);
     assert.match(css, /\.last-updated/);
     assert.match(css, /\.source-freshness/);
     assert.match(js, /STATUS_LABEL/);
+    assert.match(js, /measured/);
+    assert.match(js, /estimated/);
     assert.match(js, /unavailable/);
     assert.match(js, /Laatst bijgewerkt:/);
     assert.match(js, /fmtAmsterdamDateTime/);
     assert.match(js, /renderSourceFreshness/);
-    assert.match(js, /handmatige bron/);
+    assert.match(js, /niet opnieuw gemeten/);
+    assert.match(js, /badge-live/);
+    assert.match(js, /collectionLabel/);
+    assert.match(js, /Aangehouden — geen runtime-bewijs/);
     assert.match(js, /data-freshness/);
   });
 });

@@ -1,5 +1,10 @@
 name: Deploy GitHub Pages
 
+# Hosts the committed public snapshot only.
+# Never runs `npm run collect` — hosted runners cannot measure authenticated
+# desktop usage. Live meters are published by the Mac LaunchAgent pushing
+# data/latest.json to main. See docs/SCHEDULE.md and PLAN.md.
+
 on:
   push:
     branches: [main, master]
@@ -26,6 +31,8 @@ jobs:
         run: npm test
       - name: Build static site
         run: npm run build
+      - name: Guard — Pages must never collect meters
+        run: node scripts/assert-no-hosted-meter.js
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
