@@ -46,12 +46,15 @@ describe("build", () => {
     await access(path.join(DIST, "index.html"));
     await access(path.join(DIST, "styles.css"));
     await access(path.join(DIST, "app.js"));
+    const indexHtml = await readFile(path.join(DIST, "index.html"), "utf8");
+    assert.match(indexHtml, /app\.js\?v=1\.3\.10/);
+    assert.match(indexHtml, /styles\.css\?v=1\.3\.10/);
     const latest = await readFile(path.join(DIST, "data", "latest.json"), "utf8");
     const meta = JSON.parse(
       await readFile(path.join(DIST, "data", "build-meta.json"), "utf8"),
     );
-    assert.equal(JSON.parse(latest).version, "1.3.9");
-    assert.equal(meta.version, "1.3.9");
+    assert.equal(JSON.parse(latest).version, "1.3.10");
+    assert.equal(meta.version, "1.3.10");
     // The built site must not ship a local percentage while the metric is held.
     assert.ok(JSON.parse(latest).routing);
     assert.equal(JSON.parse(latest).routing.today.percent, null);

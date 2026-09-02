@@ -62,6 +62,20 @@ async function build() {
   );
 
   const pkg = JSON.parse(await readFile(path.join(ROOT, "package.json"), "utf8"));
+  // GitHub Pages / Fastly cache app.js+css (~10m). Bust via versioned query
+  // so a label fix is visible without waiting for CDN TTL.
+  const indexPath = path.join(DIST, "index.html");
+  let indexHtml = await readFile(indexPath, "utf8");
+  indexHtml = indexHtml
+    .replace(
+      /href="\.\/styles\.css(?:\?v=[^"]*)?"/,
+      `href="./styles.css?v=${pkg.version}"`,
+    )
+    .replace(
+      /src="\.\/app\.js(?:\?v=[^"]*)?"/,
+      `src="./app.js?v=${pkg.version}"`,
+    );
+  await writeFile(indexPath, indexHtml);
   await writeFile(
     path.join(DIST, "data", "build-meta.json"),
     `${JSON.stringify({ version: pkg.version, builtAt: new Date().toISOString() }, null, 2)}\n`,

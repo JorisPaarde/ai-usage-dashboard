@@ -760,7 +760,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.3.9");
+    assert.equal(snap.version, "1.3.10");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -1180,6 +1180,9 @@ describe("public seed", () => {
     assert.match(html, /estimated/);
     assert.match(html, /unavailable/);
     assert.match(html, /last-updated/);
+    assert.match(html, /app\.js\?v=1\.3\.10/);
+    assert.match(html, /styles\.css\?v=1\.3\.10/);
+    assert.doesNotMatch(js, /meta\.textContent = `Snapshot /);
     assert.match(css, /badge-measured/);
     assert.match(css, /badge-estimated/);
     assert.match(css, /badge-unknown/);
