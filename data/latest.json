@@ -1,6 +1,6 @@
 {
   "version": "1.3.6",
-  "generatedAt": "2026-09-02T01:01:22.904Z",
+  "generatedAt": "2026-09-02T01:16:30.498Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects every 15 minutes (LLM-free). Open dashboards soft-refresh every 5 minutes. GitHub Actions still gate CET+CEST UTC candidates to 09:00 and 16:00 Europe/Amsterdam. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
   "routing": {
@@ -29,8 +29,8 @@
       "usage": 0,
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
-      "resetDate": "2026-09-02T06:01:23.000Z",
-      "lastUpdate": "2026-09-02T01:01:22.904Z",
+      "resetDate": "2026-09-02T06:16:31.000Z",
+      "lastUpdate": "2026-09-02T01:16:30.498Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -167,7 +167,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-02T01:01:22.904Z",
+      "lastUpdate": "2026-09-02T01:16:30.498Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 714,
