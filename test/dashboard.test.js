@@ -34,12 +34,25 @@ import * as enrich from "../collector/adapters/enrich-labs.js";
 import * as openai from "../collector/adapters/openai-buzz.js";
 import * as ollama from "../collector/adapters/ollama.js";
 import * as claudeCode from "../collector/adapters/claude-code.js";
+import * as cursorAgent from "../collector/adapters/cursor-agent.js";
 import { EventEmitter } from "node:events";
 import { readFile, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const CURSOR_PERIOD_FIXTURE = path.join(
+  ROOT,
+  "test",
+  "fixtures",
+  "cursor-get-current-period-usage.json",
+);
+const CURSOR_GROK_FIXTURE = path.join(
+  ROOT,
+  "test",
+  "fixtures",
+  "cursor-get-sand-usage-status.json",
+);
 
 describe("schema", () => {
   it("requires all five sources and unknown reasons", () => {
@@ -389,6 +402,179 @@ describe("adapters", () => {
     assert.equal(r.usage, 44);
   });
 
+  it("cursor parses GetCurrentPeriodUsage fixture into spending components", async () => {
+    const period = JSON.parse(await readFile(CURSOR_PERIOD_FIXTURE, "utf8"));
+    const grok = JSON.parse(await readFile(CURSOR_GROK_FIXTURE, "utf8"));
+    const parsed = cursorAgent.parsePeriodUsage(period);
+    assert.ok(parsed);
+    assert.equal(parsed.components.length, 3);
+    assert.equal(parsed.components[0].id, "included-cursor-models");
+    assert.equal(parsed.components[0].usage, 14);
+    assert.equal(parsed.components[0].role, "capacity");
+    assert.equal(parsed.components[1].id, "other-models");
+    assert.equal(parsed.components[1].usage, 24);
+    assert.equal(parsed.components[2].id, "on-demand");
+    assert.equal(parsed.components[2].usage, 73.6);
+    assert.equal(parsed.components[2].limit, 75);
+    assert.equal(parsed.components[2].unit, "USD");
+    assert.equal(parsed.components[2].role, "capped");
+    // Fixture must never look like a real token / secret payload.
+    assert.doesNotMatch(JSON.stringify(period), /Bearer|eyJ|sk-/i);
+
+    const grokComponent = cursorAgent.parseGrokBotUsage(grok);
+    assert.equal(grokComponent.id, "grok-bot");
+    assert.equal(grokComponent.usage, 100);
+    assert.equal(grokComponent.role, "capped");
+    assert.equal(grokComponent.resetDate, "2026-08-31T18:29:14.000Z");
+  });
+
+  it("cursor omits Grok Bot when Sand status says no personal weekly meter", () => {
+    assert.equal(
+      cursorAgent.parseGrokBotUsage({
+        usagePercent: 0,
+        hasNonZeroIncludedLimit: false,
+      }),
+      null,
+    );
+    assert.equal(
+      cursorAgent.parseGrokBotUsage({
+        usagePercent: 50,
+        usesPooledEnterpriseAllowance: true,
+      }),
+      null,
+    );
+    assert.equal(
+      cursorAgent.parseGrokBotUsage({ includedLimitZero: true, usagePercent: 10 }),
+      null,
+    );
+  });
+
+  it("cursor collect measures from fixtures without leaking a token", async () => {
+    const period = JSON.parse(await readFile(CURSOR_PERIOD_FIXTURE, "utf8"));
+    const grok = JSON.parse(await readFile(CURSOR_GROK_FIXTURE, "utf8"));
+    const sentinel = "test-access-token-MUST-NOT-LEAK";
+    const r = await cursorAgent.collect({
+      now: new Date("2026-09-02T08:00:00.000Z"),
+      readToken: async () => sentinel,
+      fetchPeriod: async () => ({ ok: true, json: period }),
+      fetchGrok: async () => ({ ok: true, json: grok }),
+      fetchHard: async () => ({ ok: false }),
+      fetchSummary: async () => ({ ok: false }),
+    });
+    assert.equal(r.status, "measured");
+    assert.equal(r.collectionMode, "automatic");
+    assert.equal(r.usage, null);
+    assert.equal(r.components.length, 4);
+    assert.equal(r.components[0].usage, 14);
+    assert.equal(r.components[2].usage, 73.6);
+    assert.equal(r.components[3].id, "grok-bot");
+    assert.match(r.reason, /GetCurrentPeriodUsage/);
+    assert.match(r.reason, /GetSandUsageStatus/);
+    const published = JSON.stringify(r);
+    assert.doesNotMatch(published, new RegExp(sentinel));
+    assert.doesNotMatch(published, /Bearer\s/i);
+  });
+
+  it("cursor collect omits Grok Bot and notes it when Sand endpoint fails", async () => {
+    const period = JSON.parse(await readFile(CURSOR_PERIOD_FIXTURE, "utf8"));
+    const r = await cursorAgent.collect({
+      now: new Date("2026-09-02T08:00:00.000Z"),
+      readToken: async () => "unused-in-assertions",
+      fetchPeriod: async () => ({ ok: true, json: period }),
+      fetchGrok: async () => ({ ok: false, status: 404 }),
+      fetchHard: async () => ({ ok: false }),
+      fetchSummary: async () => ({ ok: false }),
+    });
+    assert.equal(r.status, "measured");
+    assert.equal(r.collectionMode, "automatic");
+    assert.equal(r.components.length, 3);
+    assert.ok(!r.components.some((c) => c.id === "grok-bot"));
+    assert.match(r.reason, /Grok Bot weekly % omitted/i);
+    assert.doesNotMatch(JSON.stringify(r), /unused-in-assertions/);
+  });
+
+  it("cursor fails closed when the local token/DB is missing", async () => {
+    const r = await cursorAgent.collect({
+      readToken: async () => null,
+      fetchPeriod: async () => {
+        throw new Error("must not call API without a token");
+      },
+    });
+    assert.equal(r.status, "unknown");
+    assert.equal(r.collectionMode, "unavailable");
+    assert.equal(r.usage, null);
+    assert.equal(r.components, undefined);
+    assert.match(r.reason, /no signed-in access token/i);
+  });
+
+  it("cursor fails closed when GetCurrentPeriodUsage is unavailable", async () => {
+    const r = await cursorAgent.collect({
+      readToken: async () => "tok",
+      fetchPeriod: async () => ({ ok: false, status: 401 }),
+      fetchGrok: async () => ({ ok: false }),
+    });
+    assert.equal(r.status, "unknown");
+    assert.equal(r.usage, null);
+    assert.match(r.reason, /GetCurrentPeriodUsage was unavailable/);
+    assert.doesNotMatch(JSON.stringify(r), /\btok\b/);
+  });
+
+  it("cursor automatic measurement ignores a non-supplement manual seed", () => {
+    const base = normalizeSource({
+      id: "cursor-agent",
+      status: "measured",
+      collectionMode: "automatic",
+      reason: "Live from GetCurrentPeriodUsage.",
+      usage: null,
+      lastUpdate: "2026-09-02T08:00:00.000Z",
+      components: [
+        {
+          id: "included-cursor-models",
+          label: "Included Cursor Models",
+          role: "capacity",
+          usage: 14,
+          limit: 100,
+          unit: "% of included allowance",
+        },
+      ],
+    });
+    const merged = applyOverride(
+      base,
+      {
+        id: "cursor-agent",
+        status: "measured",
+        collectionMode: "manual",
+        usage: null,
+        lastUpdate: "2026-08-31T13:59:14.000Z",
+        reason: "stale manual seed",
+        components: [
+          {
+            id: "included-cursor-models",
+            label: "Included Cursor Models",
+            role: "capacity",
+            usage: 99,
+            limit: 100,
+            unit: "% of included allowance",
+          },
+          {
+            id: "grok-bot",
+            label: "Grok Bot (weekly)",
+            role: "capped",
+            usage: 100,
+            limit: 100,
+            unit: "% of weekly allowance",
+          },
+        ],
+      },
+      new Date("2026-09-02T08:00:00.000Z"),
+    );
+    assert.equal(merged.collectionMode, "automatic");
+    assert.equal(merged.components.length, 1);
+    assert.equal(merged.components[0].usage, 14);
+    assert.match(merged.reason, /manual override was ignored/i);
+    assert.doesNotMatch(merged.reason, /stale manual seed/);
+  });
+
   it("claude-code measures transcript tokens and de-duplicates streamed messages", async () => {
     const msg = (id, ts, out) =>
       `${JSON.stringify({
@@ -544,7 +730,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.3.6");
+    assert.equal(snap.version, "1.3.7");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);

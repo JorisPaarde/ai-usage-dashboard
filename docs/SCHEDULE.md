@@ -12,12 +12,27 @@ A run is only worth scheduling if it re-measures something. Per source:
 | OpenAI / Buzz | `account/rateLimits/read` on the local `codex app-server`, falling back to `~/.codex/sessions/**` | Yes — live from the account |
 | Claude Code | token counters in `~/.claude/projects/**/*.jsonl` | Yes (tokens). Plan/credit percentages: **no**, see below |
 | Ollama | timing counters in the local `ollama.log` | Yes |
-| Cursor | none — no local meter; ground truth is `/dashboard/spending` | No, manual age-stamped seed only |
+| Cursor | `GetCurrentPeriodUsage` (+ optional `GetSandUsageStatus`) with the signed-in IDE Bearer token from `state.vscdb` | Yes — live from the account when Cursor is signed in locally |
 | Enrich Labs | none — no local meter exists | No, manual only |
 
 All routes read **numeric counters only**. Prompts, responses, credit balances,
 plan tiers, and account/installation identifiers are never parsed into the
 snapshot, and the publish step fails closed on secret- or email-looking values.
+
+### The live Cursor read costs nothing
+
+Cursor's IDE stores a session access token in its local `state.vscdb` (SQLite
+`ItemTable` key `cursorAuth/accessToken`). The collector reads that token and
+POSTs `{}` to `aiserver.v1.DashboardService/GetCurrentPeriodUsage` on
+`api2.cursor.sh` (Connect protocol). That returns Included Cursor Models %,
+Other Models %, and On-demand USD from `planUsage` / `spendLimitUsage`. An
+optional `GetSandUsageStatus` call fills the separate Grok Bot weekly meter when
+the account has one. No browser scrape, no cookies from a website session —
+same local-login idea as Codex. The token is never written into
+`data/latest.json`, logs, or reasons.
+
+Override the state DB / storage JSON paths with `CURSOR_STATE_DB` and
+`CURSOR_STORAGE_JSON`, or the API origin with `CURSOR_API_BASE`.
 
 ### The live OpenAI read costs nothing
 

@@ -34,9 +34,12 @@ that went to LocalAI guy (`routing` on the snapshot — not a sixth provider sou
 ## Collector
 
 Isolated adapters in `collector/adapters/`. Output: `data/latest.json`. No LLM
-calls. Ollama may report **measured** loopback reachability; other sources stay
-unavailable until a public-safe export or local override is supplied. Build and
-collect fail closed on dishonest records or secret-looking payloads.
+calls. Cursor reads the signed-in IDE session token from its local state DB and
+calls `GetCurrentPeriodUsage` (plus optional `GetSandUsageStatus` for Grok Bot).
+Codex uses the local app-server; Claude/Ollama read local logs. Remaining
+sources stay unavailable until a public-safe export or local override is
+supplied. Build and collect fail closed on dishonest records or secret-looking
+payloads.
 
 ## Schedule
 
@@ -52,4 +55,4 @@ keys, account exports, or `data/local-overrides.json`.
 
 ## Version
 
-`1.3.6`
+`1.3.7`
