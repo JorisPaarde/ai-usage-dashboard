@@ -54,6 +54,36 @@ const CURSOR_GROK_FIXTURE = path.join(
   "cursor-get-sand-usage-status.json",
 );
 
+/**
+ * Keep collectSnapshot override tests hermetic: a signed-in Cursor on the
+ * machine would otherwise produce an automatic measurement and ignore
+ * non-supplement overrides (by design).
+ */
+async function withMissingCursorLocalState(fn) {
+  const prevDb = process.env.CURSOR_STATE_DB;
+  const prevJson = process.env.CURSOR_STORAGE_JSON;
+  process.env.CURSOR_STATE_DB = path.join(
+    ROOT,
+    "test",
+    "fixtures",
+    "missing-cursor-state.vscdb",
+  );
+  process.env.CURSOR_STORAGE_JSON = path.join(
+    ROOT,
+    "test",
+    "fixtures",
+    "missing-cursor-storage.json",
+  );
+  try {
+    return await fn();
+  } finally {
+    if (prevDb === undefined) delete process.env.CURSOR_STATE_DB;
+    else process.env.CURSOR_STATE_DB = prevDb;
+    if (prevJson === undefined) delete process.env.CURSOR_STORAGE_JSON;
+    else process.env.CURSOR_STORAGE_JSON = prevJson;
+  }
+}
+
 describe("schema", () => {
   it("requires all five sources and unknown reasons", () => {
     const snap = {
@@ -730,7 +760,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.3.7");
+    assert.equal(snap.version, "1.3.8");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -771,24 +801,26 @@ describe("collector", () => {
     });
     assert.equal(bad.ok, false);
 
-    const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
-      overrides: [
-        {
-          id: "cursor-agent",
-          status: "estimated",
-          usage: 42,
-          limit: 100,
-          reason: "manual UI read",
-          lastUpdate: "2026-08-31T08:00:00.000Z",
-        },
-      ],
+    await withMissingCursorLocalState(async () => {
+      const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
+        overrides: [
+          {
+            id: "cursor-agent",
+            status: "estimated",
+            usage: 42,
+            limit: 100,
+            reason: "manual UI read",
+            lastUpdate: "2026-08-31T08:00:00.000Z",
+          },
+        ],
+      });
+      const cursor = snap.sources.find((s) => s.id === "cursor-agent");
+      assert.equal(cursor.status, "estimated");
+      assert.equal(cursor.usage, 42);
+      assert.equal(cursor.limit, 100);
+      assert.match(cursor.reason, /manual UI read/);
+      assert.ok(cursor.pace.daily != null);
     });
-    const cursor = snap.sources.find((s) => s.id === "cursor-agent");
-    assert.equal(cursor.status, "estimated");
-    assert.equal(cursor.usage, 42);
-    assert.equal(cursor.limit, 100);
-    assert.match(cursor.reason, /manual UI read/);
-    assert.ok(cursor.pace.daily != null);
   });
 
   it("stamps every manual override with how old the reading is", () => {
@@ -898,61 +930,63 @@ describe("collector", () => {
   });
 
   it("accepts Cursor spending-page capacity vs capped component roles", async () => {
-    const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
-      overrides: [
-        {
-          id: "cursor-agent",
-          status: "measured",
-          usage: null,
-          limit: null,
-          reason: "spending-page capacity/capped split test",
-          lastUpdate: "2026-08-31T08:00:00.000Z",
-          usageUrl: "https://cursor.com/dashboard/spending",
-          components: [
-            {
-              id: "included-cursor-models",
-              label: "Included Cursor Models",
-              role: "capacity",
-              usage: 14,
-              limit: 100,
-              unit: "% of included allowance",
-            },
-            {
-              id: "other-models",
-              label: "Other Models",
-              role: "capacity",
-              usage: 24,
-              limit: 100,
-              unit: "% of included allowance",
-            },
-            {
-              id: "on-demand",
-              label: "On-demand spend",
-              role: "capped",
-              usage: 73.6,
-              limit: 75,
-              unit: "USD",
-            },
-            {
-              id: "grok-bot",
-              label: "Grok Bot (weekly)",
-              role: "capped",
-              usage: 100,
-              limit: 100,
-              unit: "% of weekly allowance",
-            },
-          ],
-        },
-      ],
+    await withMissingCursorLocalState(async () => {
+      const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
+        overrides: [
+          {
+            id: "cursor-agent",
+            status: "measured",
+            usage: null,
+            limit: null,
+            reason: "spending-page capacity/capped split test",
+            lastUpdate: "2026-08-31T08:00:00.000Z",
+            usageUrl: "https://cursor.com/dashboard/spending",
+            components: [
+              {
+                id: "included-cursor-models",
+                label: "Included Cursor Models",
+                role: "capacity",
+                usage: 14,
+                limit: 100,
+                unit: "% of included allowance",
+              },
+              {
+                id: "other-models",
+                label: "Other Models",
+                role: "capacity",
+                usage: 24,
+                limit: 100,
+                unit: "% of included allowance",
+              },
+              {
+                id: "on-demand",
+                label: "On-demand spend",
+                role: "capped",
+                usage: 73.6,
+                limit: 75,
+                unit: "USD",
+              },
+              {
+                id: "grok-bot",
+                label: "Grok Bot (weekly)",
+                role: "capped",
+                usage: 100,
+                limit: 100,
+                unit: "% of weekly allowance",
+              },
+            ],
+          },
+        ],
+      });
+      const cursor = snap.sources.find((s) => s.id === "cursor-agent");
+      assert.equal(cursor.components.length, 4);
+      assert.equal(cursor.usageUrl, "https://cursor.com/dashboard/spending");
+      assert.equal(cursor.usage, null);
+      assert.equal(cursor.components[0].role, "capacity");
+      assert.equal(cursor.components[0].usage, 14);
+      assert.equal(cursor.components[2].role, "capped");
+      assert.equal(cursor.components[2].limit, 75);
     });
-    const cursor = snap.sources.find((s) => s.id === "cursor-agent");
-    assert.equal(cursor.components.length, 4);
-    assert.equal(cursor.usageUrl, "https://cursor.com/dashboard/spending");
-    assert.equal(cursor.usage, null);
-    assert.equal(cursor.components[0].role, "capacity");
-    assert.equal(cursor.components[0].usage, 14);
-    assert.equal(cursor.components[2].role, "capped");
-    assert.equal(cursor.components[2].limit, 75);
   });
 
   it("rejects unknown component roles", () => {
