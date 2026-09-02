@@ -75,6 +75,51 @@ body {
   font-family: var(--font-mono);
 }
 
+.last-updated {
+  margin: 0.85rem 0 0;
+  max-width: 36rem;
+  font-size: clamp(1.05rem, 2.8vw, 1.35rem);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.last-updated[data-generated-at=""] {
+  color: var(--warn);
+}
+
+.source-freshness {
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--unavailable);
+  background: var(--unavailable-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.source-freshness.is-stale {
+  border-left-color: var(--warn);
+  background: var(--warn-bg);
+}
+
+.source-freshness-main {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.source-freshness-note {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.source-card[data-freshness="stale"] {
+  border-color: #d4b48a;
+}
+
 .dashboard {
   display: grid;
   gap: 0.75rem;

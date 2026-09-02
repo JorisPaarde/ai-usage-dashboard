@@ -760,7 +760,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.3.8");
+    assert.equal(snap.version, "1.3.9");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -1179,10 +1179,18 @@ describe("public seed", () => {
     assert.match(html, /measured/);
     assert.match(html, /estimated/);
     assert.match(html, /unavailable/);
+    assert.match(html, /last-updated/);
     assert.match(css, /badge-measured/);
     assert.match(css, /badge-estimated/);
     assert.match(css, /badge-unknown/);
+    assert.match(css, /\.last-updated/);
+    assert.match(css, /\.source-freshness/);
     assert.match(js, /STATUS_LABEL/);
     assert.match(js, /unavailable/);
+    assert.match(js, /Laatst bijgewerkt:/);
+    assert.match(js, /fmtAmsterdamDateTime/);
+    assert.match(js, /renderSourceFreshness/);
+    assert.match(js, /handmatige bron/);
+    assert.match(js, /data-freshness/);
   });
 });
