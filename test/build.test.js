@@ -47,22 +47,22 @@ describe("build", () => {
     await access(path.join(DIST, "styles.css"));
     await access(path.join(DIST, "dashboard.js"));
     await access(path.join(DIST, "app.js"));
-    await access(path.join(DIST, "d", "1.3.11.js"));
+    await access(path.join(DIST, "d", "1.4.0.js"));
     await access(path.join(DIST, "go.html"));
     const indexHtml = await readFile(path.join(DIST, "index.html"), "utf8");
-    assert.match(indexHtml, /d\/1\.3\.11\.js/);
-    assert.match(indexHtml, /styles\.css\?v=1\.3\.11/);
+    assert.match(indexHtml, /d\/1\.4\.0\.js/);
+    assert.match(indexHtml, /styles\.css\?v=1\.4\.0/);
     assert.match(indexHtml, /Laatst bijgewerkt:/);
     assert.doesNotMatch(indexHtml, /src="\.\/app\.js"/);
     const goHtml = await readFile(path.join(DIST, "go.html"), "utf8");
     assert.match(goHtml, /Laatst bijgewerkt:/);
-    assert.match(goHtml, /d\/1\.3\.11\.js/);
+    assert.match(goHtml, /d\/1\.4\.0\.js/);
     const latest = await readFile(path.join(DIST, "data", "latest.json"), "utf8");
     const meta = JSON.parse(
       await readFile(path.join(DIST, "data", "build-meta.json"), "utf8"),
     );
-    assert.equal(JSON.parse(latest).version, "1.3.11");
-    assert.equal(meta.version, "1.3.11");
+    assert.equal(JSON.parse(latest).version, "1.4.0");
+    assert.equal(meta.version, "1.4.0");
     // The built site must not ship a local percentage while the metric is held.
     assert.ok(JSON.parse(latest).routing);
     assert.equal(JSON.parse(latest).routing.today.percent, null);

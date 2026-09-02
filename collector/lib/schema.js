@@ -32,7 +32,7 @@ export const SOURCE_META = {
     usageUrl: null,
   },
   "enrich-labs": {
-    name: "Enrich Labs",
+    name: "Enrich Labs / Helena",
     unit: "credits",
     usageUrl: "https://www.enrichlabs.ai/login",
   },

@@ -283,11 +283,11 @@ export async function collectSnapshot(now = new Date(), opts = {}) {
     sources.push(src);
   }
   const snapshot = {
-    version: "1.3.11",
+    version: "1.4.0",
     generatedAt: now.toISOString(),
     timezone: "Europe/Amsterdam",
     scheduleNote:
-      "Local LaunchAgent collects every 15 minutes (LLM-free). Open dashboards soft-refresh every 5 minutes. GitHub Actions still gate CET+CEST UTC candidates to 09:00 and 16:00 Europe/Amsterdam. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
+      "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Open dashboards soft-refresh every 5 minutes. GitHub Actions only rebuild Pages from committed data/latest.json — hosted runners cannot measure authenticated desktop usage.",
     // Fizz Claude Backup owns populating this from routing-log.jsonl. Held at
     // unavailable-with-reason: the routing log still carries legacy `local:true`
     // rows whose "local" claim came from an agent label, not from runtime proof.

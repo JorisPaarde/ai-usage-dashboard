@@ -1,0 +1,20 @@
+{
+  "five_hour": {
+    "utilization": 14,
+    "resets_at": "2026-09-02T13:40:38.000Z"
+  },
+  "seven_day": {
+    "utilization": 3,
+    "resets_at": "2026-09-05T09:00:00.000Z"
+  },
+  "seven_day_sonnet": {
+    "utilization": 1,
+    "resets_at": "2026-09-05T09:00:00.000Z"
+  },
+  "extra_usage": {
+    "used": 0,
+    "limit": 50,
+    "currency": "EUR",
+    "resets_at": "2026-10-01T00:00:00.000Z"
+  }
+}

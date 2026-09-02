@@ -8,15 +8,14 @@
       name="description"
       content="Operational multi-source AI usage overview. Public-safe metrics only."
     />
-    <link rel="stylesheet" href="./styles.css?v=1.3.11" />
+    <link rel="stylesheet" href="./styles.css?v=1.4.0" />
   </head>
   <body>
     <header class="site-header">
       <p class="brand">AI Usage</p>
       <p class="lede">
-        <strong>measured</strong>, <strong>estimated</strong>, or
-        <strong>unavailable</strong> — OpenAI/Buzz, Cursor, Claude Code, Ollama,
-        Enrich Labs.
+        Live meters from the Mac collector · resets in Europe/Amsterdam ·
+        handmatige bronnen worden als stale gemarkeerd.
       </p>
       <p class="last-updated" id="snapshot-meta">Laatst bijgewerkt: …</p>
     </header>
@@ -25,13 +24,13 @@
 
     <footer class="site-footer">
       <p>
-        No credentials, emails, prompts, or customer data are stored on this
-        page. Hosted GitHub runners cannot read authenticated desktop or browser
-        usage — real numbers come from a local collector run. See docs/SCHEDULE.md.
+        Alleen publiek-veilige totalen. Geen tokens, e-mails of prompts.
+        Collectie draait lokaal (LaunchAgent); Pages host alleen
+        <code>latest.json</code>.
       </p>
       <p id="build-meta"></p>
     </footer>
 
-    <script type="module" src="./dashboard.js?v=1.3.11"></script>
+    <script type="module" src="./dashboard.js?v=1.4.0"></script>
   </body>
 </html>
