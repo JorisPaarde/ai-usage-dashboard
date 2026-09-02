@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 /**
- * Exit 0 and print run=true/false for GitHub Actions.
+ * LEGACY HELPER — not wired into any GitHub Actions workflow in this repo.
+ * Hosted runners must not collect authenticated desktop meters. The sole live
+ * publisher is scripts/local-snapshot.sh (Mac LaunchAgent). Keep this file for
+ * optional local tooling; do not re-wire it into .github/workflows/collect.yml.
+ *
+ * Exit 0 and print run=true/false.
  * Skips scheduled runs that are not near 09:00 or 16:00 Europe/Amsterdam.
  *
- * Workflow schedules both CET and CEST UTC candidates; this gate picks the
- * slot that matches local Amsterdam time and rejects the off-season misfire.
+ * (Historical) Workflow schedules both CET and CEST UTC candidates; this gate
+ * picks the slot that matches local Amsterdam time and rejects off-season misfires.
  */
 import { appendFileSync } from "node:fs";
 import path from "node:path";

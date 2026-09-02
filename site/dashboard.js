@@ -436,8 +436,8 @@ function renderRoutingRow(label, bucket) {
 }
 
 /**
- * Top-level local-share card. Null routing ⇒ unavailable with reason
- * (missing/unreadable log), never fake zeros.
+ * Top-level local-share card. Null / unproven routing ⇒ unavailable,
+ * never fake zeros. Keep held state compact (no docs dump in the primary).
  */
 function renderRoutingCard(routing) {
   if (routing == null) {
@@ -449,9 +449,8 @@ function renderRoutingCard(routing) {
       </div>
       <div class="primary-metric">
         <p class="primary-value is-empty">—</p>
-        <p class="primary-sub">Routing log missing or unreadable</p>
+        <p class="primary-sub">Geen routing-log</p>
       </div>
-      <p class="budget-note">Share of delegated tasks that went to LocalAI guy.</p>
     </article>`;
   }
 
@@ -467,9 +466,9 @@ function renderRoutingCard(routing) {
       </div>
       <div class="primary-metric">
         <p class="primary-value is-empty">—</p>
-        <p class="primary-sub">${escapeHtml(routing.reason ?? "No verified routing data")}</p>
+        <p class="primary-sub">Aangehouden — geen runtime-bewijs</p>
       </div>
-      <p class="budget-note">Share of delegated tasks that went to LocalAI guy.</p>
+      ${renderReason(routing.reason)}
     </article>`;
   }
 

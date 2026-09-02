@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.4.1",
   "generatedAt": "2026-09-02T21:12:26.166Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Open dashboards soft-refresh every 5 minutes. GitHub Actions only rebuild Pages from committed data/latest.json \u2014 hosted runners cannot measure authenticated desktop usage.",

@@ -736,6 +736,8 @@ describe("adapters", () => {
     assert.equal(r.budget.monthly, 200);
     assert.equal(r.budget.weeklyPaceMax, 50);
     assert.equal(r.pace.weeklyTarget, 50);
+    assert.match(r.reason, /Hard stop/i);
+    assert.match(r.reason, /enrich\.so/i);
   });
 
   it("ollama reports unknown or measured without fake usage", async () => {
@@ -842,7 +844,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.4.0");
+    assert.equal(snap.version, "1.4.1");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -1261,8 +1263,8 @@ describe("public seed", () => {
     assert.match(html, /Live meters/);
     assert.match(html, /handmatige/);
     assert.match(html, /last-updated/);
-    assert.match(html, /dashboard\.js\?v=1\.4\.0/);
-    assert.match(html, /styles\.css\?v=1\.4\.0/);
+    assert.match(html, /dashboard\.js\?v=1\.4\.1/);
+    assert.match(html, /styles\.css\?v=1\.4\.1/);
     assert.match(html, /Laatst bijgewerkt:/);
     assert.doesNotMatch(js, /meta\.textContent = `Snapshot /);
     assert.match(css, /badge-measured/);
@@ -1281,6 +1283,7 @@ describe("public seed", () => {
     assert.match(js, /niet opnieuw gemeten/);
     assert.match(js, /badge-live/);
     assert.match(js, /collectionLabel/);
+    assert.match(js, /Aangehouden — geen runtime-bewijs/);
     assert.match(js, /data-freshness/);
   });
 });

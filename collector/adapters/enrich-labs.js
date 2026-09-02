@@ -1,9 +1,9 @@
 /**
  * Enrich Labs / Helena — public Starter budget (200/mo) and operating pace
  * (max 50/wk) are known; live workspace credits require authenticated
- * Enrich Labs access. There is no public usage API for Helena credits
- * (do not confuse with enrich.so wallet endpoints — different product).
- * See GitHub issue #10 for the next experiment.
+ * Enrich Labs access. Hard stop: no verified local meter or public usage API
+ * for Helena credits (do not use enrich.so wallet endpoints — different product).
+ * See docs/ENRICH.md and GitHub issue #10.
  */
 import { unknown } from "../lib/adapter-result.js";
 import {
@@ -13,13 +13,13 @@ import {
 import { dailyCapFromWeekly } from "../lib/pace.js";
 
 /**
- * Enrich Labs (Helena) — no local meter and no verified read-only API yet.
- * Returns unavailable with public budget constants only; never fabricates usage.
+ * Enrich Labs (Helena) — hard-stop: unavailable without a verified meter.
+ * Never fabricates usage. Optional manual overrides remain the only path.
  */
 export async function collect() {
   return unknown(
     "enrich-labs",
-    "Enrich Labs / Helena has no verified local meter or public usage API for workspace credits. Live figures require a signed-in workspace reading (manual override) until issue #10 lands. No usage fabricated. Note: enrich.so wallet APIs are a different product and must not be used here.",
+    "Hard stop: Enrich Labs / Helena has no verified local meter or public usage API for workspace credits (issue #10 / docs/ENRICH.md). Manual override only. enrich.so wallet APIs are a different product and must not be used. No usage fabricated.",
     {
       limit: ENRICH_MONTHLY_BUDGET,
       unit: "credits",
