@@ -15,6 +15,9 @@ function fmtNum(n) {
   return new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1 }).format(n);
 }
 
+/** Hours after which a hand-entered reading is visually marked stale. */
+const MANUAL_STALE_HOURS = 12;
+
 function fmtDate(isoOrDay) {
   if (!isoOrDay) return "—";
   const d = new Date(isoOrDay);
@@ -24,6 +27,65 @@ function fmtDate(isoOrDay) {
     dateStyle: "medium",
     timeStyle: isoOrDay.includes("T") ? "short" : undefined,
   }).format(d);
+}
+
+/** Amsterdam wall-clock for the prominent global stamp (Dutch numerals). */
+function fmtAmsterdamDateTime(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  return new Intl.DateTimeFormat("nl-NL", {
+    timeZone: "Europe/Amsterdam",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
+}
+
+/**
+ * Age of a source reading relative to now. Used so a fresh snapshot
+ * `generatedAt` cannot make a stale manual seed look current.
+ * @returns {{ hours: number, label: string, stale: boolean }|null}
+ */
+function readingAge(lastUpdate, now = new Date()) {
+  if (!lastUpdate) return null;
+  const observed = new Date(lastUpdate);
+  if (Number.isNaN(observed.getTime())) return null;
+  const hours = Math.max(0, (now.getTime() - observed.getTime()) / 3600000);
+  const label =
+    hours < 1
+      ? `${Math.max(1, Math.round(hours * 60))} min`
+      : hours < 48
+        ? `${Math.round(hours)} u`
+        : `${Math.round(hours / 24)} d`;
+  return { hours, label, stale: hours >= MANUAL_STALE_HOURS };
+}
+
+function renderSourceFreshness(src) {
+  const mode = src.collectionMode || "unavailable";
+  if (mode !== "manual") return "";
+  const age = readingAge(src.lastUpdate);
+  const observed = src.lastUpdate
+    ? fmtAmsterdamDateTime(src.lastUpdate)
+    : "onbekend";
+  const ageText = age ? `${age.label} oud` : "leeftijd onbekend";
+  const staleClass = age?.stale ? " is-stale" : "";
+  return `
+    <p class="source-freshness${staleClass}" data-mode="manual">
+      <span class="source-freshness-main">Afgelezen ${escapeHtml(observed)} · ${escapeHtml(ageText)}</span>
+      <span class="source-freshness-note">handmatige bron — niet opnieuw gemeten bij deze snapshot</span>
+    </p>`;
+}
+
+function formatLastUpdateFact(src) {
+  const base = fmtDate(src.lastUpdate);
+  if ((src.collectionMode || "") !== "manual") return base;
+  const age = readingAge(src.lastUpdate);
+  if (!age) return base;
+  return `${base} (${age.label} oud)`;
 }
 
 function usageLabel(src) {
@@ -244,13 +306,17 @@ function renderCard(src) {
   const capacityAttr = capacityTone
     ? ` data-capacity="${escapeHtml(capacityTone)}"`
     : "";
+  const manualStale =
+    mode === "manual" && readingAge(src.lastUpdate)?.stale === true;
+  const staleAttr = manualStale ? ' data-freshness="stale"' : "";
 
   return `
-    <article class="source-card" data-id="${src.id}" data-status="${escapeHtml(status)}"${capacityAttr}>
+    <article class="source-card" data-id="${src.id}" data-status="${escapeHtml(status)}"${capacityAttr}${staleAttr}>
       <div class="card-top">
         ${renderTitle(src)}
         <span class="badge ${STATUS_CLASS[status] || STATUS_CLASS.unknown}">${escapeHtml(STATUS_LABEL[status] || STATUS_LABEL.unknown)}</span>
       </div>
+      ${renderSourceFreshness(src)}
       ${aggregate}
       ${renderComponents(src.components)}
       ${budget}
@@ -258,7 +324,7 @@ function renderCard(src) {
       ${renderReason(src.reason)}
       <dl class="facts">
         <div><dt>Reset</dt><dd>${escapeHtml(src.resetDate ? fmtDate(src.resetDate) : "—")}</dd></div>
-        <div><dt>Last update</dt><dd>${escapeHtml(fmtDate(src.lastUpdate))}</dd></div>
+        <div><dt>Last update</dt><dd>${escapeHtml(formatLastUpdateFact(src))}</dd></div>
         <div><dt>Collection</dt><dd>${escapeHtml(mode)}</dd></div>
         <div><dt>Coverage starts</dt><dd>${escapeHtml(fmtDate(src.coverageStart))}</dd></div>
         <div><dt>Daily pace</dt><dd>${escapeHtml(fmtNum(src.pace?.daily))}</dd></div>
@@ -404,9 +470,16 @@ async function main() {
       loadJson("./data/build-meta.json").catch(() => null),
     ]);
 
-    meta.textContent = `Snapshot ${snapshot.generatedAt ? fmtDate(snapshot.generatedAt) : "—"} · ${snapshot.timezone || "Europe/Amsterdam"} · v${snapshot.version || "?"}`;
+    const tz = snapshot.timezone || "Europe/Amsterdam";
+    const stamp = snapshot.generatedAt
+      ? fmtAmsterdamDateTime(snapshot.generatedAt)
+      : "—";
+    meta.textContent = `Laatst bijgewerkt: ${stamp} ${tz}`;
+    meta.dataset.generatedAt = snapshot.generatedAt || "";
     if (build?.version) {
-      buildMeta.textContent = `Site build v${build.version}${build.builtAt ? ` · ${fmtDate(build.builtAt)}` : ""}`;
+      buildMeta.textContent = `Site build v${build.version}${build.builtAt ? ` · ${fmtDate(build.builtAt)}` : ""} · snapshot v${snapshot.version || "?"}`;
+    } else if (snapshot.version) {
+      buildMeta.textContent = `Snapshot v${snapshot.version}`;
     }
 
     const sources = Array.isArray(snapshot.sources) ? snapshot.sources : [];
