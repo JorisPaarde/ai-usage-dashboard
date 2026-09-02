@@ -1,54 +1,16 @@
 {
   "sources": [
     {
-      "id": "cursor-agent",
+      "id": "enrich-labs",
       "status": "measured",
       "collectionMode": "manual",
-      "usage": null,
-      "limit": null,
-      "unit": "mixed (see components)",
-      "reason": "Manual reading from https://cursor.com/dashboard/spending. role=capacity meters are plan headroom; role=capped meters are separate limits and must not read as the whole plan being maxed.",
-      "lastUpdate": "2026-08-31T13:59:14.000Z",
-      "resetDate": "2026-09-24",
-      "usageUrl": "https://cursor.com/dashboard/spending",
-      "components": [
-        {
-          "id": "included-cursor-models",
-          "label": "Included Cursor Models",
-          "role": "capacity",
-          "usage": 14,
-          "limit": 100,
-          "unit": "% of included allowance",
-          "resetDate": "2026-09-24"
-        },
-        {
-          "id": "other-models",
-          "label": "Other Models",
-          "role": "capacity",
-          "usage": 24,
-          "limit": 100,
-          "unit": "% of included allowance",
-          "resetDate": "2026-09-24"
-        },
-        {
-          "id": "on-demand",
-          "label": "On-demand spend",
-          "role": "capped",
-          "usage": 73.6,
-          "limit": 75,
-          "unit": "USD",
-          "resetDate": "2026-09-24"
-        },
-        {
-          "id": "grok-bot",
-          "label": "Grok Bot (weekly)",
-          "role": "capped",
-          "usage": 100,
-          "limit": 100,
-          "unit": "% of weekly allowance",
-          "resetDate": "2026-08-31T18:29:14.000Z"
-        }
-      ]
+      "usage": 27,
+      "limit": 200,
+      "unit": "credits",
+      "reason": "Manual reading from the signed-in Enrich Labs / Helena workspace. No verified local meter yet (issue #10).",
+      "lastUpdate": "2026-09-02T09:34:17.833Z",
+      "resetDate": "2026-10-01",
+      "usageUrl": "https://www.enrichlabs.ai/login"
     }
   ]
 }
