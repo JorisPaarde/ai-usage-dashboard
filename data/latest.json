@@ -1,8 +1,8 @@
 {
-  "version": "1.3.7",
+  "version": "1.3.8",
   "generatedAt": "2026-09-02T07:50:04.331Z",
   "timezone": "Europe/Amsterdam",
-  "scheduleNote": "Local LaunchAgent collects every 15 minutes (LLM-free). Open dashboards soft-refresh every 5 minutes. GitHub Actions still gate CET+CEST UTC candidates to 09:00 and 16:00 Europe/Amsterdam. Hosted runners cannot measure authenticated desktop/browser usage — use a local collect with data/local-overrides.json.",
+  "scheduleNote": "Local LaunchAgent collects every 15 minutes (LLM-free). Open dashboards soft-refresh every 5 minutes. GitHub Actions still gate CET+CEST UTC candidates to 09:00 and 16:00 Europe/Amsterdam. Hosted runners cannot measure authenticated desktop/browser usage \u2014 use a local collect with data/local-overrides.json.",
   "routing": {
     "today": {
       "local": 0,
