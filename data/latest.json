@@ -1,6 +1,6 @@
 {
   "version": "1.4.1",
-  "generatedAt": "2026-09-02T21:12:26.166Z",
+  "generatedAt": "2026-09-02T21:27:35.785Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Open dashboards soft-refresh every 5 minutes. GitHub Actions only rebuild Pages from committed data/latest.json \u2014 hosted runners cannot measure authenticated desktop usage.",
   "routing": {
@@ -29,8 +29,8 @@
       "usage": 0,
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
-      "resetDate": "2026-09-03T02:12:26.000Z",
-      "lastUpdate": "2026-09-02T21:12:26.166Z",
+      "resetDate": "2026-09-03T02:27:36.000Z",
+      "lastUpdate": "2026-09-02T21:27:35.785Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -47,12 +47,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 24.214166666666667%; Other Models 24.181818181818183%; On-demand $73.6/$75; Grok Bot weekly 81.820205%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 24.73333333333333%; Other Models 24.490909090909092%; On-demand $73.6/$75; Grok Bot weekly 82.499908%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-02T21:12:26.166Z",
+      "lastUpdate": "2026-09-02T21:27:35.785Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -60,7 +60,7 @@
           "id": "included-cursor-models",
           "label": "Included Cursor Models",
           "role": "capacity",
-          "usage": 24.214166666666667,
+          "usage": 24.73333333333333,
           "limit": 100,
           "unit": "% of included allowance",
           "resetDate": "2026-09-24"
@@ -69,7 +69,7 @@
           "id": "other-models",
           "label": "Other Models",
           "role": "capacity",
-          "usage": 24.181818181818183,
+          "usage": 24.490909090909092,
           "limit": 100,
           "unit": "% of included allowance",
           "resetDate": "2026-09-24"
@@ -87,7 +87,7 @@
           "id": "grok-bot",
           "label": "Grok Bot (weekly)",
           "role": "capped",
-          "usage": 81.820205,
+          "usage": 82.499908,
           "limit": 100,
           "unit": "% of weekly allowance",
           "resetDate": "2026-09-07T18:29:55.366Z"
@@ -171,7 +171,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-02T21:12:26.166Z",
+      "lastUpdate": "2026-09-02T21:27:35.785Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 714,
