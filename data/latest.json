@@ -1,6 +1,6 @@
 {
   "version": "1.4.1",
-  "generatedAt": "2026-09-02T23:39:53.545Z",
+  "generatedAt": "2026-09-03T00:10:35.727Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Open dashboards soft-refresh every 5 minutes. GitHub Actions only rebuild Pages from committed data/latest.json — hosted runners cannot measure authenticated desktop usage.",
   "routing": {
@@ -29,8 +29,8 @@
       "usage": 0,
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
-      "resetDate": "2026-09-03T04:39:54.000Z",
-      "lastUpdate": "2026-09-02T23:39:53.545Z",
+      "resetDate": "2026-09-03T05:10:36.000Z",
+      "lastUpdate": "2026-09-03T00:10:35.727Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -52,7 +52,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-02T23:39:53.545Z",
+      "lastUpdate": "2026-09-03T00:10:35.727Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -106,7 +106,7 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "manual",
-      "reason": "Read from the signed-in Claude usage page at 2026-09-02T09:34:38.875Z: session window 14% (resets 2026-09-02T13:40Z), weekly all-models 3% (resets 2026-09-05T09:00Z), usage credits EUR 0 of EUR 50 (0%, resets 2026-10-01 after the 2026-09-01 reset). Claude Code does not persist these plan percentages locally, so a scheduled run cannot re-measure them. STALE: Manual reading 14 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it. Local automatic measurement alongside it: 7571967 tokens this month (7548792 prompt/cache + 23175 output) across 28 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Anthropic OAuth usage API rate-limited this collect (HTTP 429); will retry next interval. Anthropic plan/credit percentages need a working local OAuth read and are not published here.",
+      "reason": "Read from the signed-in Claude usage page at 2026-09-02T09:34:38.875Z: session window 14% (resets 2026-09-02T13:40Z), weekly all-models 3% (resets 2026-09-05T09:00Z), usage credits EUR 0 of EUR 50 (0%, resets 2026-10-01 after the 2026-09-01 reset). Claude Code does not persist these plan percentages locally, so a scheduled run cannot re-measure them. STALE: Manual reading 15 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it. Local automatic measurement alongside it: 7571967 tokens this month (7548792 prompt/cache + 23175 output) across 28 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Claude OAuth token rejected by the usage API; re-auth in Claude Code, then collect again. Anthropic plan/credit percentages need a working local OAuth read and are not published here.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
@@ -164,31 +164,40 @@
     {
       "id": "ollama",
       "name": "Ollama",
-      "status": "unknown",
+      "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Local Ollama at 127.0.0.1:11434 unavailable (timed out). No usage fabricated.",
-      "usage": null,
+      "reason": "1366 tokens this month (714 prompt + 652 output) across 1 generations. Log coverage starts 2026-08-28T10:43:29.198+02:00; the month may be partial after rotation. No vendor quota exists.",
+      "usage": 1366,
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": null,
-      "coverageStart": null,
-      "breakdown": null,
+      "lastUpdate": "2026-09-03T00:10:35.727Z",
+      "coverageStart": "2026-08-28T10:43:29.198+02:00",
+      "breakdown": {
+        "promptTokens": 714,
+        "outputTokens": 652,
+        "generations": 1
+      },
       "components": null,
       "usageUrl": null,
       "pace": {
-        "daily": null,
-        "monthly": null,
+        "daily": 455.3,
+        "monthly": 13660,
         "weeklyTarget": null
       },
-      "history": []
+      "history": [
+        {
+          "date": "2026-09-03",
+          "usage": 1366
+        }
+      ]
     },
     {
       "id": "enrich-labs",
       "name": "Enrich Labs / Helena",
       "status": "measured",
       "collectionMode": "manual",
-      "reason": "Read from the signed-in Enrich Labs workspace at 2026-09-02T09:34:17.833Z: 27 of 200 credits used (14%), 173 remaining, resets 2026-10-01. Breakdown: 15 social posts and 12 chat/task executions; all other categories 0. STALE: Manual reading 14 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
+      "reason": "Read from the signed-in Enrich Labs workspace at 2026-09-02T09:34:17.833Z: 27 of 200 credits used (14%), 173 remaining, resets 2026-10-01. Breakdown: 15 social posts and 12 chat/task executions; all other categories 0. STALE: Manual reading 15 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
       "usage": 27,
       "limit": 200,
       "unit": "credits",
