@@ -1,6 +1,6 @@
 {
   "version": "1.6.1",
-  "generatedAt": "2026-09-03T09:00:30.653Z",
+  "generatedAt": "2026-09-03T09:15:42.649Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
       "resetDate": "2026-09-03T10:55:20.000Z",
-      "lastUpdate": "2026-09-03T09:00:30.653Z",
+      "lastUpdate": "2026-09-03T09:15:42.649Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -47,12 +47,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 26.64916666666667%; Other Models 26.172727272727276%; On-demand $73.6/$75; Grok Bot weekly 90.288779%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 26.64916666666667%; Other Models 26.172727272727276%; On-demand $73.6/$75; Grok Bot weekly 91.991924%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-03T09:00:30.653Z",
+      "lastUpdate": "2026-09-03T09:15:42.649Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -87,7 +87,7 @@
           "id": "grok-bot",
           "label": "Grok Bot (weekly)",
           "role": "capped",
-          "usage": 90.288779,
+          "usage": 91.991924,
           "limit": 100,
           "unit": "% of weekly allowance",
           "resetDate": "2026-09-07T18:29:55.366Z"
@@ -106,27 +106,27 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Claude.ai OAuth session via /api/oauth/usage: session 17% (resets 2026-09-03T12:59:59.513Z); weekly all-models 9% (resets 2026-09-05T06:59:59.513Z). Missing from API: usage credits. Same local-login pattern as Cursor/Codex (no browser scrape). Local transcript detail: 8710421 tokens this month (8668797 prompt/cache + 41624 output) across 70 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Manual override filled missing meter(s) only: usage-credits (manual fill 2 hour(s) old.). Source stays automatic from this collect.",
+      "reason": "Live from the signed-in Claude.ai OAuth session via /api/oauth/usage: session 18% (resets 2026-09-03T13:00:00.438Z); weekly all-models 9% (resets 2026-09-05T07:00:00.438Z). Missing from API: usage credits. Same local-login pattern as Cursor/Codex (no browser scrape). Local transcript detail: 8864673 tokens this month (8820926 prompt/cache + 43747 output) across 73 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Manual override filled missing meter(s) only: usage-credits (manual fill 2 hour(s) old.). Source stays automatic from this collect.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
-      "resetDate": "2026-09-05T06:59:59.513Z",
-      "lastUpdate": "2026-09-03T09:00:30.653Z",
+      "resetDate": "2026-09-05T07:00:00.438Z",
+      "lastUpdate": "2026-09-03T09:15:42.649Z",
       "coverageStart": "2026-09-01T13:16:40.770Z",
       "breakdown": {
-        "promptTokens": 8668797,
-        "outputTokens": 41624,
-        "generations": 70
+        "promptTokens": 8820926,
+        "outputTokens": 43747,
+        "generations": 73
       },
       "components": [
         {
           "id": "session",
           "label": "Session window",
           "role": "capacity",
-          "usage": 17,
+          "usage": 18,
           "limit": 100,
           "unit": "% of session limit",
-          "resetDate": "2026-09-03T12:59:59.513Z"
+          "resetDate": "2026-09-03T13:00:00.438Z"
         },
         {
           "id": "weekly-all-models",
@@ -135,7 +135,7 @@
           "usage": 9,
           "limit": 100,
           "unit": "% of weekly limit",
-          "resetDate": "2026-09-05T06:59:59.513Z"
+          "resetDate": "2026-09-05T07:00:00.438Z"
         },
         {
           "id": "usage-credits",
@@ -163,7 +163,7 @@
         },
         {
           "date": "2026-09-03",
-          "usage": 1138454
+          "usage": 1292706
         }
       ]
     },
@@ -177,7 +177,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-03T09:00:30.653Z",
+      "lastUpdate": "2026-09-03T09:15:42.649Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 714,
