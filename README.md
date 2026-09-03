@@ -69,6 +69,13 @@ Details in [`docs/SCHEDULE.md`](docs/SCHEDULE.md).
 Committed and published data is public-safe only. Do not commit `.env`, API
 keys, account exports, or `data/local-overrides.json`.
 
+## Mac online badge
+
+The header badge is an honest signal from `generatedAt` only (LaunchAgent
+snapshot age). **Mac online** if the snapshot is within ~20 minutes; otherwise
+**Mac offline / in slaap**. Tooltip shows last collect in Europe/Amsterdam.
+No ping endpoint and no secrets on the page.
+
 ## Version
 
-`1.5.1`
+`1.6.0`

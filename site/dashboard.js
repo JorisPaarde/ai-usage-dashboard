@@ -18,6 +18,18 @@ function fmtNum(n) {
 /** Hours after which a hand-entered reading is visually marked stale. */
 const MANUAL_STALE_HOURS = 12;
 
+/**
+ * LaunchAgent publishes about every 15 minutes while the Mac is awake.
+ * A snapshot older than this is treated as Mac offline / asleep.
+ */
+const MAC_ONLINE_MINUTES = 20;
+
+const STATUS_LABEL_NL = {
+  measured: "gemeten",
+  estimated: "schatting",
+  unknown: "n.v.t.",
+};
+
 function fmtDate(isoOrDay) {
   if (!isoOrDay) return "—";
   const d = new Date(isoOrDay);
@@ -46,6 +58,69 @@ function collectionBadgeClass(mode) {
   if (mode === "manual") return "badge-manual";
   return "badge-na";
 }
+
+/**
+ * Honest Mac presence from snapshot age (no separate heartbeat).
+ * @param {string|null|undefined} generatedAt
+ * @param {Date} [now]
+ * @returns {{ online: boolean, label: string, title: string, minutes: number|null }}
+ */
+function macPresence(generatedAt, now = new Date()) {
+  if (!generatedAt) {
+    return {
+      online: false,
+      label: "Mac offline",
+      title: "Geen snapshot-tijd beschikbaar",
+      minutes: null,
+    };
+  }
+  const observed = new Date(generatedAt);
+  if (Number.isNaN(observed.getTime())) {
+    return {
+      online: false,
+      label: "Mac offline",
+      title: "Snapshot-tijd onleesbaar",
+      minutes: null,
+    };
+  }
+  const minutes = Math.max(0, (now.getTime() - observed.getTime()) / 60000);
+  const stamp = fmtAmsterdamDateTime(generatedAt);
+  if (minutes <= MAC_ONLINE_MINUTES) {
+    return {
+      online: true,
+      label: "Mac online",
+      title: `Laatste collect ${stamp} (Europe/Amsterdam) · ${Math.round(minutes)} min geleden`,
+      minutes,
+    };
+  }
+  return {
+    online: false,
+    label: "Mac offline / in slaap",
+    title: `Laatste collect ${stamp} (Europe/Amsterdam) · ${
+      minutes < 120
+        ? `${Math.round(minutes)} min`
+        : minutes < 48 * 60
+          ? `${Math.round(minutes / 60)} u`
+          : `${Math.round(minutes / 1440)} d`
+    } geleden`,
+    minutes,
+  };
+}
+
+function updateMacBadge(generatedAt, now = new Date()) {
+  const el = document.getElementById("mac-badge");
+  if (!el) return;
+  const presence = macPresence(generatedAt, now);
+  el.textContent = presence.label;
+  el.dataset.state = generatedAt
+    ? presence.online
+      ? "online"
+      : "offline"
+    : "unknown";
+  el.title = presence.title;
+}
+
+export { MAC_ONLINE_MINUTES, macPresence, updateMacBadge };
 
 /** Amsterdam wall-clock for the prominent global stamp (Dutch numerals). */
 function fmtAmsterdamDateTime(iso) {
@@ -342,18 +417,7 @@ function renderCard(src) {
   const status = src.status || "unknown";
   const hasComponents =
     Array.isArray(src.components) && src.components.length > 0;
-  const budget =
-    src.budget?.monthly != null
-      ? `<p class="budget-note">Budget ${fmtNum(src.budget.monthly)} / maand${
-          src.budget.weeklyPaceMax != null
-            ? ` · max ${fmtNum(src.budget.weeklyPaceMax)} / week`
-            : ""
-        }</p>`
-      : "";
   const mode = src.collectionMode || "unavailable";
-  const tokenBreakdown = src.breakdown
-    ? `<p class="budget-note">Prompt ${fmtNum(src.breakdown.promptTokens)} · output ${fmtNum(src.breakdown.outputTokens)} · ${fmtNum(src.breakdown.generations)} generations</p>`
-    : "";
   // Never promote a single aggregate % when components exist — that is how a
   // full on-demand/Grok meter incorrectly reads as the whole source being maxed.
   const aggregate = hasComponents ? "" : renderPrimary(primaryDisplay(src));
@@ -364,31 +428,59 @@ function renderCard(src) {
   const manualStale =
     mode === "manual" && readingAge(src.lastUpdate)?.stale === true;
   const staleAttr = manualStale ? ' data-freshness="stale"' : "";
-  const historyBlock =
-    Array.isArray(src.history) && src.history.length > 0
-      ? `<div class="history">
+
+  const moreBits = [];
+  if (src.budget?.monthly != null) {
+    moreBits.push(
+      `<p class="budget-note">Budget ${fmtNum(src.budget.monthly)} / maand${
+        src.budget.weeklyPaceMax != null
+          ? ` · max ${fmtNum(src.budget.weeklyPaceMax)} / week`
+          : ""
+      }</p>`,
+    );
+  }
+  if (src.breakdown) {
+    moreBits.push(
+      `<p class="budget-note">Prompt ${fmtNum(src.breakdown.promptTokens)} · output ${fmtNum(src.breakdown.outputTokens)} · ${fmtNum(src.breakdown.generations)} generations</p>`,
+    );
+  }
+  const facts = renderFacts(src);
+  if (facts) moreBits.push(facts);
+  if (Array.isArray(src.history) && src.history.length > 0) {
+    moreBits.push(`
+      <div class="history">
         <p class="history-label">Dagelijks</p>
         ${sparkBars(src.history)}
-      </div>`
+      </div>`);
+  }
+  const reason = renderReason(src.reason);
+  if (reason) moreBits.push(reason);
+
+  const more =
+    moreBits.length > 0
+      ? `<details class="card-more"><summary>Meer</summary>${moreBits.join("")}</details>`
       : "";
 
+  // Home glance: live/handmatig only — measured/estimated stay in details via status attr.
   return `
     <article class="source-card" data-id="${src.id}" data-status="${escapeHtml(status)}" data-mode="${escapeHtml(mode)}"${capacityAttr}${staleAttr}>
       <div class="card-top">
         ${renderTitle(src)}
         <div class="badge-stack">
-          <span class="badge ${STATUS_CLASS[status] || STATUS_CLASS.unknown}">${escapeHtml(STATUS_LABEL[status] || STATUS_LABEL.unknown)}</span>
           <span class="badge ${collectionBadgeClass(mode)}">${escapeHtml(collectionLabel(mode))}</span>
+          ${
+            manualStale
+              ? `<span class="badge badge-manual">stale</span>`
+              : status === "unknown"
+                ? `<span class="badge ${STATUS_CLASS.unknown}">${escapeHtml(STATUS_LABEL_NL.unknown)}</span>`
+                : ""
+          }
         </div>
       </div>
       ${renderSourceFreshness(src)}
       ${aggregate}
       ${renderComponents(src.components)}
-      ${budget}
-      ${tokenBreakdown}
-      ${renderReason(src.reason)}
-      ${renderFacts(src)}
-      ${historyBlock}
+      ${more}
     </article>
   `;
 }
@@ -552,6 +644,7 @@ async function renderDashboard(opts = {}) {
     : "—";
   meta.textContent = `Laatst bijgewerkt: ${stamp} ${tz}`;
   meta.dataset.generatedAt = snapshot.generatedAt || "";
+  updateMacBadge(snapshot.generatedAt);
   if (build?.version) {
     buildMeta.textContent = `Site v${build.version}${build.builtAt ? ` · ${fmtDate(build.builtAt)}` : ""} · snapshot v${snapshot.version || "?"}`;
   } else if (snapshot.version) {
@@ -692,9 +785,12 @@ async function main() {
   }
 }
 
-main();
+// Browser-only boot. Node tests import macPresence without starting the app.
+if (typeof document !== "undefined") {
+  main();
 
-// Soft refresh of the published snapshot between LaunchAgent runs.
-setInterval(() => {
-  renderDashboard().catch(() => {});
-}, 5 * 60 * 1000);
+  // Soft refresh of the published snapshot between LaunchAgent runs.
+  setInterval(() => {
+    renderDashboard().catch(() => {});
+  }, 5 * 60 * 1000);
+}

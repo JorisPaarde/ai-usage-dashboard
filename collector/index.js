@@ -345,11 +345,11 @@ export async function collectSnapshot(now = new Date(), opts = {}) {
     sources.push(src);
   }
   const snapshot = {
-    version: "1.5.1",
+    version: "1.6.0",
     generatedAt: now.toISOString(),
     timezone: "Europe/Amsterdam",
     scheduleNote:
-      "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. On-demand re-measure: local app (npm run app) → LaunchAgent/local-snapshot — never Codex/Grok/agent.",
+      "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
     // Fizz Claude Backup owns populating this from routing-log.jsonl. Held at
     // unavailable-with-reason: the routing log still carries legacy `local:true`
     // rows whose "local" claim came from an agent label, not from runtime proof.

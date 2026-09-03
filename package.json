@@ -1,6 +1,6 @@
 {
   "name": "ai-usage-dashboard",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "private": true,
   "description": "Calm multi-source AI usage dashboard with a local snapshot collector",
   "type": "module",
