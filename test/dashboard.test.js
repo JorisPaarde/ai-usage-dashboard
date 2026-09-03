@@ -844,7 +844,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.5.0");
+    assert.equal(snap.version, "1.5.1");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -1000,18 +1000,123 @@ describe("collector", () => {
         unit: "EUR usage credits",
         reason: "Read from the Claude usage settings page.",
         lastUpdate: "2026-08-31T10:00:00.000Z",
+        components: [
+          {
+            id: "usage-credits",
+            label: "Usage credits",
+            usage: 10.23,
+            limit: 50,
+            unit: "EUR",
+            resetDate: "2026-10-01",
+          },
+        ],
       },
       new Date("2026-08-31T12:00:00.000Z"),
     );
-    // Ground-truth metric becomes the headline …
-    assert.equal(merged.usage, 10.23);
-    assert.equal(merged.limit, 50);
-    assert.equal(merged.collectionMode, "manual");
-    assert.match(merged.reason, /Manual reading 2 hour\(s\) old/);
-    // … while the automatic local measurement survives as supporting detail.
+    // Automatic reading stays the source of truth; override only adds meters.
+    assert.equal(merged.collectionMode, "automatic");
+    assert.equal(merged.usage, 2079);
+    assert.equal(merged.lastUpdate, "2026-08-31T11:00:00.000Z");
     assert.equal(merged.breakdown.generations, 2);
-    assert.equal(merged.history.length, 1);
-    assert.match(merged.reason, /Local automatic measurement alongside it/);
+    assert.equal(merged.components.length, 1);
+    assert.equal(merged.components[0].id, "usage-credits");
+    assert.equal(merged.components[0].usage, 10.23);
+    assert.match(merged.reason, /Source stays automatic/);
+    assert.doesNotMatch(merged.reason, /Local automatic measurement alongside it/);
+    assert.doesNotMatch(merged.reason, /does not persist these plan percentages/i);
+  });
+
+  it("Claude OAuth automatic wins over a stale supplements scrape", () => {
+    const base = normalizeSource({
+      id: "claude-code",
+      status: "measured",
+      collectionMode: "automatic",
+      reason:
+        "Live from the signed-in Claude.ai OAuth session via /api/oauth/usage: session 0%; weekly all-models 8% (resets 2026-09-05T07:00:00.320Z). Missing from API: usage credits.",
+      usage: null,
+      limit: null,
+      unit: "mixed (see components)",
+      lastUpdate: "2026-09-03T05:44:00.000Z",
+      components: [
+        {
+          id: "session",
+          label: "Session window",
+          usage: 0,
+          limit: 100,
+          unit: "% of session limit",
+          resetDate: "2026-09-03T10:00:00.000Z",
+        },
+        {
+          id: "weekly-all-models",
+          label: "Weekly (all models)",
+          usage: 8,
+          limit: 100,
+          unit: "% of weekly limit",
+          resetDate: "2026-09-05T07:00:00.320Z",
+        },
+      ],
+      breakdown: { promptTokens: 100, outputTokens: 10, generations: 1 },
+    });
+    const merged = applyOverride(
+      base,
+      {
+        id: "claude-code",
+        supplements: true,
+        status: "measured",
+        collectionMode: "manual",
+        reason:
+          "Read from the signed-in Claude usage page. Claude Code does not persist these plan percentages locally, so a scheduled run cannot re-measure them.",
+        lastUpdate: "2026-09-02T09:34:38.875Z",
+        components: [
+          {
+            id: "session",
+            label: "Session window",
+            usage: 14,
+            limit: 100,
+            unit: "% of session limit",
+            resetDate: "2026-09-02T13:40:38.000Z",
+          },
+          {
+            id: "weekly-all-models",
+            label: "Weekly (all models)",
+            usage: 3,
+            limit: 100,
+            unit: "% of weekly limit",
+            resetDate: "2026-09-05T09:00:00.000Z",
+          },
+          {
+            id: "usage-credits",
+            label: "Usage credits",
+            usage: 0,
+            limit: 50,
+            unit: "EUR",
+            resetDate: "2026-10-01",
+          },
+        ],
+      },
+      new Date("2026-09-03T05:44:00.000Z"),
+    );
+    assert.equal(merged.collectionMode, "automatic");
+    assert.equal(merged.lastUpdate, "2026-09-03T05:44:00.000Z");
+    assert.equal(merged.components.length, 3);
+    assert.equal(
+      merged.components.find((c) => c.id === "session").usage,
+      0,
+    );
+    assert.equal(
+      merged.components.find((c) => c.id === "weekly-all-models").usage,
+      8,
+    );
+    assert.equal(
+      merged.components.find((c) => c.id === "usage-credits").usage,
+      0,
+    );
+    assert.match(merged.reason, /OAuth/);
+    assert.match(merged.reason, /usage-credits/);
+    assert.match(merged.reason, /Source stays automatic/);
+    assert.doesNotMatch(merged.reason, /does not persist these plan percentages/i);
+    assert.doesNotMatch(merged.reason, /no local meter exists for this source/i);
+    assert.doesNotMatch(merged.reason, /Local automatic measurement alongside it/);
   });
 
   it("accepts Cursor spending-page capacity vs capped component roles", async () => {
@@ -1264,8 +1369,8 @@ describe("public seed", () => {
     assert.match(html, /Alles updaten/);
     assert.match(html, /btn-update/);
     assert.match(html, /last-updated/);
-    assert.match(html, /dashboard\.js\?v=1\.5\.0/);
-    assert.match(html, /styles\.css\?v=1\.5\.0/);
+    assert.match(html, /dashboard\.js\?v=1\.5\.1/);
+    assert.match(html, /styles\.css\?v=1\.5\.1/);
     assert.match(html, /Laatst bijgewerkt:/);
     assert.doesNotMatch(js, /meta\.textContent = `Snapshot /);
     assert.doesNotMatch(js, /Dagtempo|Maandtempo/);

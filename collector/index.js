@@ -138,14 +138,19 @@ export function isAutomaticMeasurement(source) {
  * visible rather than hidden behind a fresh `generatedAt`.
  * @param {string|null|undefined} lastUpdate
  * @param {Date} now
+ * @param {{ filledMeter?: boolean }} [opts]
  */
-export function manualFreshnessNote(lastUpdate, now = new Date()) {
+export function manualFreshnessNote(lastUpdate, now = new Date(), opts = {}) {
   if (!lastUpdate) {
-    return "Manual reading with no recorded timestamp; this run did not re-measure it.";
+    return opts.filledMeter
+      ? "manual fill with no recorded timestamp."
+      : "Manual reading with no recorded timestamp; this run did not re-measure it.";
   }
   const observed = new Date(lastUpdate);
   if (Number.isNaN(observed.getTime())) {
-    return "Manual reading with an unreadable timestamp; this run did not re-measure it.";
+    return opts.filledMeter
+      ? "manual fill with an unreadable timestamp."
+      : "Manual reading with an unreadable timestamp; this run did not re-measure it.";
   }
   const hours = Math.max(0, (now.getTime() - observed.getTime()) / 3600000);
   const age =
@@ -153,7 +158,88 @@ export function manualFreshnessNote(lastUpdate, now = new Date()) {
       ? `${Math.round(hours * 60)} minute(s)`
       : `${Math.round(hours)} hour(s)`;
   const prefix = hours >= MANUAL_STALE_HOURS ? "STALE: " : "";
+  if (opts.filledMeter) {
+    return `${prefix}manual fill ${age} old.`;
+  }
   return `${prefix}Manual reading ${age} old at this collect; no local meter exists for this source, so this run did not re-measure it.`;
+}
+
+/**
+ * When the adapter already measured this run, a local override must never flip
+ * the source back to manual or replace live meters with a stale scrape.
+ * Missing component ids (e.g. Claude usage-credits when OAuth omitted them)
+ * may still be filled from the override.
+ * @param {object} base automatic measurement
+ * @param {object} override
+ * @param {Date} [now]
+ */
+export function mergeOverrideOntoAutomatic(base, override, now = new Date()) {
+  const baseComponents = Array.isArray(base.components) ? [...base.components] : [];
+  const overrideComponents = Array.isArray(override.components)
+    ? override.components
+    : [];
+  const byId = new Map();
+  for (const c of baseComponents) {
+    if (c && typeof c.id === "string") byId.set(c.id, c);
+  }
+  /** @type {string[]} */
+  const filledIds = [];
+  // Only a declared supplement may add meters the automatic path lacked.
+  // A non-supplement override is presentation-only (name / budget / usageUrl).
+  if (override.supplements) {
+    for (const c of overrideComponents) {
+      if (!c || typeof c.id !== "string" || !c.id) continue;
+      if (byId.has(c.id)) continue;
+      byId.set(c.id, c);
+      filledIds.push(c.id);
+    }
+  }
+
+  const hasBaseComponents = baseComponents.length > 0;
+  const mergedComponents =
+    byId.size > 0 ? [...byId.values()] : base.components ?? null;
+
+  // Headline usage/limit stay with the automatic reading. Overrides never
+  // replace OAuth/plan components wholesale, and never demote collectionMode.
+  const kept = normalizeSource({
+    ...base,
+    name: override.name || base.name,
+    budget: override.budget || base.budget,
+    usageUrl:
+      override.usageUrl !== undefined ? override.usageUrl : base.usageUrl,
+    components: mergedComponents,
+    collectionMode: "automatic",
+    status: base.status,
+    lastUpdate: base.lastUpdate,
+    usage: base.usage,
+    limit: base.limit,
+    unit: base.unit,
+    coverageStart: base.coverageStart,
+    breakdown: base.breakdown,
+    history: base.history,
+    reason: base.reason,
+  });
+
+  if (hasBaseComponents && filledIds.length) {
+    kept.reason =
+      `${kept.reason} Manual override filled missing meter(s) only: ${filledIds.join(", ")} ` +
+      `(${manualFreshnessNote(override.lastUpdate, now, { filledMeter: true })}). Source stays automatic from this collect.`;
+  } else if (filledIds.length && !hasBaseComponents) {
+    // Automatic tokens-only + override components for plan meters that OAuth
+    // could not return this run — still automatic; components are supplements.
+    kept.reason =
+      `${kept.reason} Manual override added meter(s) the automatic path lacked: ` +
+      `${filledIds.join(", ")} (${manualFreshnessNote(override.lastUpdate, now, { filledMeter: true })}). ` +
+      "Source stays automatic.";
+  } else if (!override.supplements) {
+    kept.reason = `${kept.reason} A manual override was ignored: the collector measures this source directly.`;
+  } else {
+    kept.reason = `${kept.reason} A manual override added no new meters; automatic reading kept.`;
+  }
+
+  // Never append whole-source STALE / "no local meter" copy when we measured live.
+  assertHonestSource(kept);
+  return kept;
 }
 
 /**
@@ -162,33 +248,17 @@ export function manualFreshnessNote(lastUpdate, now = new Date()) {
  *
  * A manual override never silently replaces a real automatic reading of the
  * same thing — that is how a scheduled run ends up republishing hand-typed
- * numbers as if it had measured them. An override that carries a *different*
- * metric than the collector can measure must say so with `supplements: true`;
- * it then becomes the headline figure while the automatic reading is kept as
- * supporting detail.
+ * numbers as if it had measured them. When the adapter measured this run,
+ * overrides may only fill *missing* component meters (see
+ * mergeOverrideOntoAutomatic); they cannot flip collectionMode to manual.
  * @param {object} base
  * @param {object} override
  * @param {Date} [now]
  */
 export function applyOverride(base, override, now = new Date()) {
-  if (isAutomaticMeasurement(base) && !override.supplements) {
-    // Presentation-only fields still merge; only the measurement is protected.
-    const kept = normalizeSource({
-      ...base,
-      name: override.name || base.name,
-      budget: override.budget || base.budget,
-      usageUrl:
-        override.usageUrl !== undefined ? override.usageUrl : base.usageUrl,
-    });
-    kept.reason = `${kept.reason} A manual override was ignored: the collector measures this source directly.`;
-    assertHonestSource(kept);
-    return kept;
+  if (isAutomaticMeasurement(base)) {
+    return mergeOverrideOntoAutomatic(base, override, now);
   }
-
-  const supplementNote =
-    isAutomaticMeasurement(base) && override.supplements
-      ? ` Local automatic measurement alongside it: ${base.reason}`
-      : "";
 
   const merged = normalizeSource({
     ...base,
@@ -215,7 +285,7 @@ export function applyOverride(base, override, now = new Date()) {
       "Local override applied from data/local-overrides.json (credentials never published).";
   }
   merged.reason =
-    `${merged.reason} ${manualFreshnessNote(merged.lastUpdate, now)}${supplementNote}`.trim();
+    `${merged.reason} ${manualFreshnessNote(merged.lastUpdate, now)}`.trim();
   assertHonestSource(merged);
   return merged;
 }
@@ -275,7 +345,7 @@ export async function collectSnapshot(now = new Date(), opts = {}) {
     sources.push(src);
   }
   const snapshot = {
-    version: "1.5.0",
+    version: "1.5.1",
     generatedAt: now.toISOString(),
     timezone: "Europe/Amsterdam",
     scheduleNote:
