@@ -844,7 +844,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.4.1");
+    assert.equal(snap.version, "1.5.0");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -903,7 +903,8 @@ describe("collector", () => {
       assert.equal(cursor.usage, 42);
       assert.equal(cursor.limit, 100);
       assert.match(cursor.reason, /manual UI read/);
-      assert.ok(cursor.pace.daily != null);
+      assert.equal(cursor.pace.daily, null);
+      assert.equal(cursor.pace.monthly, null);
     });
   });
 
@@ -1260,17 +1261,20 @@ describe("public seed", () => {
     const css = await readFile(path.join(ROOT, "site", "styles.css"), "utf8");
     const js = await readFile(path.join(ROOT, "site", "dashboard.js"), "utf8");
     assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/i);
-    assert.match(html, /Live meters/);
-    assert.match(html, /handmatige/);
+    assert.match(html, /Alles updaten/);
+    assert.match(html, /btn-update/);
     assert.match(html, /last-updated/);
-    assert.match(html, /dashboard\.js\?v=1\.4\.1/);
-    assert.match(html, /styles\.css\?v=1\.4\.1/);
+    assert.match(html, /dashboard\.js\?v=1\.5\.0/);
+    assert.match(html, /styles\.css\?v=1\.5\.0/);
     assert.match(html, /Laatst bijgewerkt:/);
     assert.doesNotMatch(js, /meta\.textContent = `Snapshot /);
+    assert.doesNotMatch(js, /Dagtempo|Maandtempo/);
+    assert.doesNotMatch(html, /Dagtempo|Maandtempo/);
     assert.match(css, /badge-measured/);
     assert.match(css, /badge-estimated/);
     assert.match(css, /badge-unknown/);
     assert.match(css, /badge-live/);
+    assert.match(css, /\.btn-update/);
     assert.match(css, /\.last-updated/);
     assert.match(css, /\.source-freshness/);
     assert.match(js, /STATUS_LABEL/);
@@ -1283,6 +1287,10 @@ describe("public seed", () => {
     assert.match(js, /niet opnieuw gemeten/);
     assert.match(js, /badge-live/);
     assert.match(js, /collectionLabel/);
+    assert.match(js, /handleUpdateClick/);
+    assert.match(js, /isLocalAppHost/);
+    assert.match(js, /Never uses Codex/);
+    assert.doesNotMatch(js, /codex exec/i);
     assert.match(js, /Aangehouden — geen runtime-bewijs/);
     assert.match(js, /data-freshness/);
   });

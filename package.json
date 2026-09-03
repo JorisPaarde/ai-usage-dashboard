@@ -1,6 +1,6 @@
 {
   "name": "ai-usage-dashboard",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "private": true,
   "description": "Calm multi-source AI usage dashboard with a local snapshot collector",
   "type": "module",
@@ -10,6 +10,7 @@
   "scripts": {
     "collect": "node collector/index.js",
     "build": "node scripts/build.js",
+    "app": "node scripts/local-app-server.js",
     "test": "node --test test/*.test.js",
     "check": "node --test test/*.test.js && node scripts/build.js"
   }

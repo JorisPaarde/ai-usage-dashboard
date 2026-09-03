@@ -12,10 +12,20 @@ See [`PLAN.md`](PLAN.md) for the unattended-collect roadmap and backlog issues.
 npm test
 npm run build
 npm run collect   # local adapters (+ optional overrides) → data/latest.json
+npm run app       # optional: http://127.0.0.1:8787/ with on-demand collect button
 ```
 
 Serve `dist/` as static files. For GitHub Pages, push to `main`/`master` — see
 `.github/workflows/pages.yml`.
+
+## “Alles updaten” button
+
+| Where | What it does |
+| --- | --- |
+| **GitHub Pages** | Re-fetches published `data/latest.json` (cache-bust) and redraws. Does **not** re-measure vendors. |
+| **Local app** (`npm run app` / `install-local-app.sh`) | Same refresh, plus `POST /api/collect` → LaunchAgent kickstart or `local-snapshot.sh`. |
+
+Never uses Codex, Grok, cloud agents, or browser bots. Pages cannot reach the Mac localhost API over HTTPS.
 
 ## Steady-state loop (no human, no AI agent)
 
@@ -26,33 +36,29 @@ Serve `dist/` as static files. For GitHub Pages, push to `main`/`master` — see
 3. GitHub Pages rebuilds from that commit. Hosted runners **never** measure
    authenticated desktop usage.
 
-Cursor cloud agents may plan and implement changes. They must **not** sit in
-the scheduled collect/publish path.
+Optional on-demand UI: `./scripts/install-local-app.sh` → open
+`http://127.0.0.1:8787/`.
 
 ## Why the page shows “unavailable”
 
-Most vendors do not expose public usage meters. The seed snapshot and
-GitHub-hosted validate keep those sources **unavailable** on purpose — never
-fabricated. Claude plan % is read automatically from the local Claude.ai OAuth
-token when present; Enrich Labs / Helena still needs a verified meter
-([issue #10](https://github.com/JorisPaarde/ai-usage-dashboard/issues/10)).
-Until then, optional `data/local-overrides.json` (gitignored) can hold a
-hand reading. Only the sanitized aggregate in `data/latest.json` is published.
+Most vendors do not expose public usage meters. Unavailable sources stay
+unavailable — never fabricated. Claude plan % uses local OAuth when present;
+Enrich Labs / Helena is a documented hard stop (`docs/ENRICH.md`) unless a
+manual override is supplied.
 
 ## What you see
 
-Each source is distinctly **measured**, **estimated**, or **unavailable**,
-plus a **live / handmatig** collection badge. Usage vs limit, Amsterdam reset
-times, pace, and compact daily history. Enrich monthly budget is **200**
-credits (public Starter operating target; weekly pace max **50**). A separate
-**Local share** card stays unavailable until routing is runtime-proven.
+Each source is **measured**, **estimated**, or **unavailable**, plus a
+**live / handmatig** badge. Usage vs limit, Amsterdam reset times, and compact
+daily history. No dagtempo/maandtempo. Enrich budget **200**/maand (max
+**50**/week). Local share stays unavailable until routing is runtime-proven.
 
 ## Collector
 
 Isolated adapters in `collector/adapters/`. Output: `data/latest.json`. No LLM
-calls. Cursor reads the signed-in IDE session token; Codex uses the local
-app-server; Claude uses OAuth usage + local transcripts; Ollama reads logs.
-Build and collect fail closed on dishonest records or secret-looking payloads.
+calls. Cursor/Codex/Claude/Ollama use local signed-in meters. Codex
+`app-server` is read-only for OpenAI rate limits (no model, no tokens) — it is
+**not** in the Update button path.
 
 ## Schedule
 
@@ -65,4 +71,4 @@ keys, account exports, or `data/local-overrides.json`.
 
 ## Version
 
-`1.4.1`
+`1.5.0`

@@ -325,11 +325,7 @@ function renderFacts(src) {
   if (src.lastUpdate) rows.push(["Gemeten", formatLastUpdateFact(src)]);
   rows.push(["Bron", collectionLabel(mode)]);
   if (src.coverageStart) rows.push(["Dekking vanaf", fmtDate(src.coverageStart)]);
-  if (src.pace?.daily != null) rows.push(["Dagtempo", fmtNum(src.pace.daily)]);
-  if (src.pace?.monthly != null) rows.push(["Maandtempo", fmtNum(src.pace.monthly)]);
-  if (src.pace?.weeklyTarget != null) {
-    rows.push(["Weekdoel", fmtNum(src.pace.weeklyTarget)]);
-  }
+  // Daily/monthly pace projections intentionally omitted from the product.
   if (!rows.length) return "";
   return `
       <dl class="facts">
@@ -348,7 +344,11 @@ function renderCard(src) {
     Array.isArray(src.components) && src.components.length > 0;
   const budget =
     src.budget?.monthly != null
-      ? `<p class="budget-note">Budget ${fmtNum(src.budget.monthly)}/mo · pace ≤ ${fmtNum(src.budget.weeklyPaceMax)}/wk</p>`
+      ? `<p class="budget-note">Budget ${fmtNum(src.budget.monthly)} / maand${
+          src.budget.weeklyPaceMax != null
+            ? ` · max ${fmtNum(src.budget.weeklyPaceMax)} / week`
+            : ""
+        }</p>`
       : "";
   const mode = src.collectionMode || "unavailable";
   const tokenBreakdown = src.breakdown
@@ -511,43 +511,190 @@ async function loadJson(url) {
   return res.json();
 }
 
-async function main() {
+function isLocalAppHost() {
+  const host = location.hostname;
+  return host === "127.0.0.1" || host === "localhost" || host === "[::1]";
+}
+
+function setActionStatus(text, tone = "") {
+  const el = document.getElementById("action-status");
+  if (!el) return;
+  el.textContent = text || "";
+  el.dataset.tone = tone;
+}
+
+function setUpdateBusy(busy) {
+  const btn = document.getElementById("btn-update");
+  if (!btn) return;
+  btn.disabled = busy;
+  btn.setAttribute("aria-busy", busy ? "true" : "false");
+}
+
+/**
+ * Render snapshot into the page. Does not re-measure vendors — only paints JSON.
+ * @param {{ snapshotUrl?: string }} [opts]
+ */
+async function renderDashboard(opts = {}) {
   const root = document.getElementById("dashboard");
   const meta = document.getElementById("snapshot-meta");
   const buildMeta = document.getElementById("build-meta");
+  const bust = `t=${Date.now()}`;
+  const snapshotUrl = opts.snapshotUrl || `./data/latest.json?${bust}`;
+
+  const [snapshot, build] = await Promise.all([
+    loadJson(snapshotUrl),
+    loadJson(`./data/build-meta.json?${bust}`).catch(() => null),
+  ]);
+
+  const tz = snapshot.timezone || "Europe/Amsterdam";
+  const stamp = snapshot.generatedAt
+    ? fmtAmsterdamDateTime(snapshot.generatedAt)
+    : "—";
+  meta.textContent = `Laatst bijgewerkt: ${stamp} ${tz}`;
+  meta.dataset.generatedAt = snapshot.generatedAt || "";
+  if (build?.version) {
+    buildMeta.textContent = `Site v${build.version}${build.builtAt ? ` · ${fmtDate(build.builtAt)}` : ""} · snapshot v${snapshot.version || "?"}`;
+  } else if (snapshot.version) {
+    buildMeta.textContent = `Build v${snapshot.version}`;
+  }
+
+  const sources = Array.isArray(snapshot.sources) ? snapshot.sources : [];
+  const routingCard = renderRoutingCard(
+    "routing" in snapshot ? snapshot.routing : null,
+  );
+  root.innerHTML =
+    sources.map(renderCard).join("") + routingCard ||
+    `<p class="error-banner">Geen bronnen in snapshot.</p>`;
+
+  return snapshot;
+}
+
+/**
+ * Same-origin local collect only (Mac app server). Never called from github.io.
+ * Never invokes Codex, Grok, or any AI agent — only LaunchAgent / local-snapshot.
+ */
+async function triggerLocalCollect() {
+  const healthRes = await fetch("/api/health", { cache: "no-store" });
+  if (!healthRes.ok) {
+    throw new Error("Lokale collect-API niet bereikbaar.");
+  }
+  const health = await healthRes.json();
+  if (!health?.collect) {
+    throw new Error("Deze host biedt geen collect aan.");
+  }
+  const res = await fetch("/api/collect", {
+    method: "POST",
+    headers: { Accept: "application/json" },
+    body: "{}",
+  });
+  let body = null;
+  try {
+    body = await res.json();
+  } catch {
+    body = null;
+  }
+  if (!res.ok || !body?.ok) {
+    throw new Error(body?.message || `Collect mislukt (HTTP ${res.status}).`);
+  }
+  return body;
+}
+
+async function waitForNewerSnapshot(previousGeneratedAt, attempts = 24) {
+  for (let i = 0; i < attempts; i += 1) {
+    await new Promise((r) => setTimeout(r, 2500));
+    try {
+      const snap = await loadJson(`./data/latest.json?t=${Date.now()}`);
+      if (
+        snap?.generatedAt &&
+        snap.generatedAt !== previousGeneratedAt
+      ) {
+        return snap;
+      }
+    } catch {
+      /* keep polling */
+    }
+  }
+  return null;
+}
+
+/**
+ * "Alles updaten"
+ * - On GitHub Pages: re-fetch published latest.json only (no vendor re-measure).
+ * - On local Mac app (127.0.0.1): also POST /api/collect → LaunchAgent/local-snapshot.
+ * Never uses Codex, Grok, cloud agents, or browser bots.
+ */
+async function handleUpdateClick() {
+  setUpdateBusy(true);
+  setActionStatus("Bezig…", "busy");
+  const previous = document.getElementById("snapshot-meta")?.dataset.generatedAt || "";
 
   try {
-    const [snapshot, build] = await Promise.all([
-      loadJson("./data/latest.json"),
-      loadJson("./data/build-meta.json").catch(() => null),
-    ]);
-
-    const tz = snapshot.timezone || "Europe/Amsterdam";
-    const stamp = snapshot.generatedAt
-      ? fmtAmsterdamDateTime(snapshot.generatedAt)
-      : "—";
-    meta.textContent = `Laatst bijgewerkt: ${stamp} ${tz}`;
-    meta.dataset.generatedAt = snapshot.generatedAt || "";
-    if (build?.version) {
-      buildMeta.textContent = `Site build v${build.version}${build.builtAt ? ` · ${fmtDate(build.builtAt)}` : ""} · snapshot v${snapshot.version || "?"}`;
-    } else if (snapshot.version) {
-      buildMeta.textContent = `Build v${snapshot.version}`;
+    if (isLocalAppHost()) {
+      try {
+        const result = await triggerLocalCollect();
+        setActionStatus(
+          `${result.message || "Collect gestart."} Wacht op nieuwe snapshot…`,
+          "busy",
+        );
+        const newer = await waitForNewerSnapshot(previous);
+        await renderDashboard();
+        if (newer) {
+          setActionStatus("Alles bijgewerkt (lokale collect).", "ok");
+        } else {
+          setActionStatus(
+            "Collect gestart; snapshot nog niet vernieuwd — probeer zo opnieuw of wacht op de LaunchAgent.",
+            "warn",
+          );
+        }
+        return;
+      } catch (err) {
+        // Fall through to Pages-style refresh if local API is down.
+        setActionStatus(
+          `${err.message || "Lokale collect mislukt."} Ververs snapshot…`,
+          "warn",
+        );
+      }
     }
 
-    const sources = Array.isArray(snapshot.sources) ? snapshot.sources : [];
-    const routingCard = renderRoutingCard(
-      "routing" in snapshot ? snapshot.routing : null,
-    );
-    root.innerHTML =
-      sources.map(renderCard).join("") + routingCard ||
-      `<p class="error-banner">No sources in snapshot.</p>`;
+    await renderDashboard();
+    if (isLocalAppHost()) {
+      setActionStatus("Snapshot ververst (geen lokale collect).", "ok");
+    } else {
+      setActionStatus(
+        "Snapshot ververst. Meters meet de Mac elke 15 min — deze knop meet niet opnieuw vanaf Pages.",
+        "ok",
+      );
+    }
   } catch (err) {
-    meta.textContent = "Could not load snapshot.";
-    root.innerHTML = `<p class="error-banner">${escapeHtml(err.message || "Load failed")}</p>`;
+    setActionStatus(err.message || "Updaten mislukt.", "err");
+  } finally {
+    setUpdateBusy(false);
+  }
+}
+
+async function main() {
+  const btn = document.getElementById("btn-update");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      handleUpdateClick();
+    });
+  }
+
+  try {
+    await renderDashboard({ snapshotUrl: "./data/latest.json" });
+  } catch (err) {
+    const meta = document.getElementById("snapshot-meta");
+    const root = document.getElementById("dashboard");
+    if (meta) meta.textContent = "Kon snapshot niet laden.";
+    if (root) {
+      root.innerHTML = `<p class="error-banner">${escapeHtml(err.message || "Load failed")}</p>`;
+    }
   }
 }
 
 main();
 
-// Keep an open dashboard current between the 15-minute local collector runs.
-setInterval(main, 5 * 60 * 1000);
+// Soft refresh of the published snapshot between LaunchAgent runs.
+setInterval(() => {
+  renderDashboard().catch(() => {});
+}, 5 * 60 * 1000);
