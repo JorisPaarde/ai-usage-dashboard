@@ -844,7 +844,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.6.0");
+    assert.equal(snap.version, "1.6.1");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -1339,7 +1339,7 @@ describe("public seed", () => {
     );
     assert.match(
       await readFile(path.join(ROOT, "site", "dashboard.js"), "utf8"),
-      /Plan capacity ample/,
+      /Planruimte ruim/,
     );
     // Held at unavailable-with-reason until a routing log renormalised against
     // measured runtimes exists. The previous 6/12 = 50% counted an agent that
@@ -1370,8 +1370,8 @@ describe("public seed", () => {
     assert.match(html, /btn-update/);
     assert.match(html, /mac-badge/);
     assert.match(html, /last-updated/);
-    assert.match(html, /dashboard\.js\?v=1\.6\.0/);
-    assert.match(html, /styles\.css\?v=1\.6\.0/);
+    assert.match(html, /dashboard\.js\?v=1\.6\.1/);
+    assert.match(html, /styles\.css\?v=1\.6\.1/);
     assert.match(html, /Laatst bijgewerkt:/);
     assert.doesNotMatch(js, /meta\.textContent = `Snapshot /);
     assert.doesNotMatch(js, /Dagtempo|Maandtempo/);
@@ -1384,8 +1384,10 @@ describe("public seed", () => {
     assert.match(css, /\.mac-badge/);
     assert.match(css, /\.last-updated/);
     assert.match(css, /\.source-freshness/);
+    assert.match(css, /\.settings-group/);
     assert.match(css, /-apple-system|system-ui/);
     assert.match(css, /prefers-color-scheme:\s*dark/);
+    assert.match(css, /prefers-reduced-motion/);
     assert.match(js, /STATUS_LABEL/);
     assert.match(js, /measured/);
     assert.match(js, /estimated/);
@@ -1407,6 +1409,10 @@ describe("public seed", () => {
     assert.match(js, /Mac offline \/ in slaap/);
     assert.match(js, /updateMacBadge/);
     assert.match(js, /card-more/);
+    assert.match(js, /glanceMeter/);
+    assert.match(js, /renderGlancePrimary/);
+    assert.match(js, /verouderd/);
+    assert.doesNotMatch(js, /badge-manual">stale/);
   });
 
   it("macPresence uses snapshot age only (no heartbeat)", async () => {
@@ -1426,5 +1432,18 @@ describe("public seed", () => {
     const missing = macPresence(null, now);
     assert.equal(missing.online, false);
     assert.match(missing.label, /Mac offline/);
+  });
+
+  it("glanceMeter picks hottest capped meter for home", async () => {
+    const { glanceMeter } = await import("../site/dashboard.js");
+    const pick = glanceMeter({
+      components: [
+        { id: "a", role: "capacity", usage: 20, limit: 100, label: "Incl" },
+        { id: "b", role: "capped", usage: 98, limit: 100, label: "On-demand" },
+        { id: "c", role: "capped", usage: 40, limit: 100, label: "Grok" },
+      ],
+    });
+    assert.equal(pick.id, "b");
+    assert.equal(pick.label, "On-demand");
   });
 });
