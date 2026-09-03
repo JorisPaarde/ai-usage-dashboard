@@ -1,6 +1,6 @@
 {
   "version": "1.6.1",
-  "generatedAt": "2026-09-03T08:30:06.854Z",
+  "generatedAt": "2026-09-03T08:45:19.053Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
   "routing": {
@@ -25,12 +25,12 @@
       "name": "OpenAI / Buzz",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Codex account: 78% of the 5-hour limit used. The weekly window is 62% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
-      "usage": 78,
+      "reason": "Live from the signed-in Codex account: 79% of the 5-hour limit used. The weekly window is 62% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
+      "usage": 79,
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
       "resetDate": "2026-09-03T10:55:20.000Z",
-      "lastUpdate": "2026-09-03T08:30:06.854Z",
+      "lastUpdate": "2026-09-03T08:45:19.053Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -52,7 +52,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-03T08:30:06.854Z",
+      "lastUpdate": "2026-09-03T08:45:19.053Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -106,12 +106,12 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Claude.ai OAuth session via /api/oauth/usage: session 10% (resets 2026-09-03T13:00:00.185Z); weekly all-models 9% (resets 2026-09-05T07:00:00.185Z). Missing from API: usage credits. Same local-login pattern as Cursor/Codex (no browser scrape). Local transcript detail: 8158697 tokens this month (8124727 prompt/cache + 33970 output) across 56 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Manual override filled missing meter(s) only: usage-credits (manual fill 2 hour(s) old.). Source stays automatic from this collect.",
+      "reason": "Live from the signed-in Claude.ai OAuth session via /api/oauth/usage: session 10% (resets 2026-09-03T13:00:00.099Z); weekly all-models 9% (resets 2026-09-05T07:00:00.099Z). Missing from API: usage credits. Same local-login pattern as Cursor/Codex (no browser scrape). Local transcript detail: 8158697 tokens this month (8124727 prompt/cache + 33970 output) across 56 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Manual override filled missing meter(s) only: usage-credits (manual fill 2 hour(s) old.). Source stays automatic from this collect.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
-      "resetDate": "2026-09-05T07:00:00.185Z",
-      "lastUpdate": "2026-09-03T08:30:06.854Z",
+      "resetDate": "2026-09-05T07:00:00.099Z",
+      "lastUpdate": "2026-09-03T08:45:19.053Z",
       "coverageStart": "2026-09-01T13:16:40.770Z",
       "breakdown": {
         "promptTokens": 8124727,
@@ -126,7 +126,7 @@
           "usage": 10,
           "limit": 100,
           "unit": "% of session limit",
-          "resetDate": "2026-09-03T13:00:00.185Z"
+          "resetDate": "2026-09-03T13:00:00.099Z"
         },
         {
           "id": "weekly-all-models",
@@ -135,7 +135,7 @@
           "usage": 9,
           "limit": 100,
           "unit": "% of weekly limit",
-          "resetDate": "2026-09-05T07:00:00.185Z"
+          "resetDate": "2026-09-05T07:00:00.099Z"
         },
         {
           "id": "usage-credits",
@@ -177,7 +177,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-03T08:30:06.854Z",
+      "lastUpdate": "2026-09-03T08:45:19.053Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 714,
