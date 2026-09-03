@@ -1,5 +1,5 @@
 {
-  "version": "1.5.0",
+  "version": "1.5.1",
   "generatedAt": "2026-09-03T05:44:19.891Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Open dashboards soft-refresh every 5 minutes. On-demand collect: local app only (npm run app / http://127.0.0.1:8787) \u2014 never Codex/Grok/agent. Pages \"Alles updaten\" only re-fetches published latest.json.",
