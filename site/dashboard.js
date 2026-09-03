@@ -120,7 +120,7 @@ function updateMacBadge(generatedAt, now = new Date()) {
   el.title = presence.title;
 }
 
-export { MAC_ONLINE_MINUTES, macPresence, updateMacBadge };
+export { MAC_ONLINE_MINUTES, macPresence, updateMacBadge, glanceMeter };
 
 /** Amsterdam wall-clock for the prominent global stamp (Dutch numerals). */
 function fmtAmsterdamDateTime(iso) {
@@ -157,30 +157,23 @@ function readingAge(lastUpdate, now = new Date()) {
   return { hours, label, stale: hours >= MANUAL_STALE_HOURS };
 }
 
+/** Home freshness: one short line. Long “not re-measured” copy stays in Meer. */
 function renderSourceFreshness(src) {
   const mode = src.collectionMode || "unavailable";
   if (mode === "automatic") {
     const age = readingAge(src.lastUpdate);
-    const observed = src.lastUpdate
-      ? fmtAmsterdamDateTime(src.lastUpdate)
-      : null;
-    if (!observed) return "";
+    if (!age && !src.lastUpdate) return "";
     return `
     <p class="source-freshness is-live" data-mode="automatic">
-      <span class="source-freshness-main">Live · ${escapeHtml(observed)}${age ? ` · ${escapeHtml(age.label)} oud` : ""}</span>
+      <span class="source-freshness-main">live${age ? ` · ${escapeHtml(age.label)}` : ""}</span>
     </p>`;
   }
   if (mode !== "manual") return "";
   const age = readingAge(src.lastUpdate);
-  const observed = src.lastUpdate
-    ? fmtAmsterdamDateTime(src.lastUpdate)
-    : "onbekend";
-  const ageText = age ? `${age.label} oud` : "leeftijd onbekend";
   const staleClass = age?.stale ? " is-stale" : "";
   return `
     <p class="source-freshness${staleClass}" data-mode="manual">
-      <span class="source-freshness-main">Handmatig ${escapeHtml(observed)} · ${escapeHtml(ageText)}</span>
-      <span class="source-freshness-note">niet opnieuw gemeten bij deze snapshot</span>
+      <span class="source-freshness-main">handmatig${age ? ` · ${escapeHtml(age.label)}` : ""}</span>
     </p>`;
 }
 
@@ -194,17 +187,60 @@ function formatLastUpdateFact(src) {
 
 function usageLabel(src) {
   if (src.status === "unknown" && src.usage == null) {
-    return "Unavailable";
+    return "Niet beschikbaar";
   }
-  if (src.usage == null && src.limit == null) return "No limit available";
+  if (src.usage == null && src.limit == null) return "Geen limiet";
   if (src.usage != null && src.limit == null) {
     const unit = src.unit ? ` ${src.unit}` : "";
-    return `${fmtNum(src.usage)}${unit} · no limit available`;
+    return `${fmtNum(src.usage)}${unit} · geen limiet`;
   }
   const u = src.usage == null ? "—" : fmtNum(src.usage);
   const lim = src.limit == null ? "—" : fmtNum(src.limit);
   const unit = src.unit ? ` ${src.unit}` : "";
   return `${u} / ${lim}${unit}`;
+}
+
+/**
+ * One home-screen meter. Prefer the hottest capped meter (what bites first),
+ * else hottest capacity, else first readable component.
+ */
+function glanceMeter(src) {
+  const comps = Array.isArray(src.components) ? src.components : [];
+  if (!comps.length) return null;
+  const ranked = (list) =>
+    list
+      .map((c) => ({ c, p: pct(c) }))
+      .filter((x) => x.p != null)
+      .sort((a, b) => b.p - a.p);
+  const capped = ranked(comps.filter((c) => c.role === "capped"));
+  if (capped.length) return capped[0].c;
+  const capacity = ranked(comps.filter((c) => c.role === "capacity"));
+  if (capacity.length) return capacity[0].c;
+  const any = ranked(comps);
+  if (any.length) return any[0].c;
+  return comps.find((c) => c.usage != null) || comps[0] || null;
+}
+
+/** Home glance: one large number + tiny label / reset. */
+function renderGlancePrimary(src) {
+  const meter = glanceMeter(src);
+  if (meter) {
+    const metric = primaryDisplay(meter);
+    const name = meter.label || meter.id || "";
+    const reset = meter.resetDate
+      ? ` · reset ${fmtDate(meter.resetDate)}`
+      : "";
+    return renderPrimary({
+      ...metric,
+      sub: `${name}${name && metric.sub ? " · " : ""}${metric.sub || ""}${reset}`,
+    });
+  }
+  const metric = primaryDisplay(src);
+  const reset = src.resetDate ? ` · reset ${fmtDate(src.resetDate)}` : "";
+  return renderPrimary({
+    ...metric,
+    sub: `${metric.sub || ""}${reset}`,
+  });
 }
 
 function pct(src) {
@@ -227,7 +263,7 @@ function primaryDisplay(src) {
     return {
       value: fmtNum(src.usage),
       empty: false,
-      sub: src.limit == null ? `${unit.trim()} · no limit` : usageLabel(src),
+      sub: src.limit == null ? `${unit.trim()} · geen limiet` : usageLabel(src),
       bar: null,
     };
   }
@@ -318,10 +354,10 @@ function capacityCallout(components) {
   const tone = max < 50 ? "ample" : max < 80 ? "moderate" : "tight";
   const headline =
     tone === "ample"
-      ? "Plan capacity ample"
+      ? "Planruimte ruim"
       : tone === "moderate"
-        ? "Plan capacity moderate"
-        : "Plan capacity tighter";
+        ? "Planruimte matig"
+        : "Planruimte krap";
   const detail = capacity
     .map((c) => {
       const p = pct(c);
@@ -349,6 +385,7 @@ function renderComponentGroup(title, items, ariaLabel) {
     </section>`;
 }
 
+/** Full meter breakdown — only inside Meer, never on the home glance. */
 function renderComponents(components) {
   if (!Array.isArray(components) || components.length === 0) return "";
   const capacity = components.filter((c) => c.role === "capacity");
@@ -359,7 +396,7 @@ function renderComponents(components) {
 
   if (!capacity.length && !capped.length) {
     return `
-    <ul class="component-list" aria-label="Usage components">
+    <ul class="component-list" aria-label="Meters">
       ${components.map(renderComponentRow).join("")}
     </ul>`;
   }
@@ -367,11 +404,11 @@ function renderComponents(components) {
   const callout = capacityCallout(components);
   return `
     ${callout.html}
-    ${renderComponentGroup("Plan capacity", capacity, "Plan capacity")}
-    ${renderComponentGroup("Separate caps", capped, "Separate caps")}
+    ${renderComponentGroup("Planruimte", capacity, "Planruimte")}
+    ${renderComponentGroup("Losse limieten", capped, "Losse limieten")}
     ${
       plain.length
-        ? renderComponentGroup("Other meters", plain, "Other meters")
+        ? renderComponentGroup("Overige meters", plain, "Overige meters")
         : ""
     }`;
 }
@@ -415,12 +452,7 @@ function renderFacts(src) {
 
 function renderCard(src) {
   const status = src.status || "unknown";
-  const hasComponents =
-    Array.isArray(src.components) && src.components.length > 0;
   const mode = src.collectionMode || "unavailable";
-  // Never promote a single aggregate % when components exist — that is how a
-  // full on-demand/Grok meter incorrectly reads as the whole source being maxed.
-  const aggregate = hasComponents ? "" : renderPrimary(primaryDisplay(src));
   const capacityTone = cardCapacityTone(src);
   const capacityAttr = capacityTone
     ? ` data-capacity="${escapeHtml(capacityTone)}"`
@@ -430,6 +462,8 @@ function renderCard(src) {
   const staleAttr = manualStale ? ' data-freshness="stale"' : "";
 
   const moreBits = [];
+  const componentsHtml = renderComponents(src.components);
+  if (componentsHtml) moreBits.push(componentsHtml);
   if (src.budget?.monthly != null) {
     moreBits.push(
       `<p class="budget-note">Budget ${fmtNum(src.budget.monthly)} / maand${
@@ -446,6 +480,11 @@ function renderCard(src) {
   }
   const facts = renderFacts(src);
   if (facts) moreBits.push(facts);
+  if (mode === "manual") {
+    moreBits.push(
+      `<p class="budget-note">Handmatige waarde — niet opnieuw gemeten bij deze snapshot.</p>`,
+    );
+  }
   if (Array.isArray(src.history) && src.history.length > 0) {
     moreBits.push(`
       <div class="history">
@@ -461,7 +500,7 @@ function renderCard(src) {
       ? `<details class="card-more"><summary>Meer</summary>${moreBits.join("")}</details>`
       : "";
 
-  // Home glance: live/handmatig only — measured/estimated stay in details via status attr.
+  // Home glance: name · live/stale · one number · reset. Everything else after tap.
   return `
     <article class="source-card" data-id="${src.id}" data-status="${escapeHtml(status)}" data-mode="${escapeHtml(mode)}"${capacityAttr}${staleAttr}>
       <div class="card-top">
@@ -470,7 +509,7 @@ function renderCard(src) {
           <span class="badge ${collectionBadgeClass(mode)}">${escapeHtml(collectionLabel(mode))}</span>
           ${
             manualStale
-              ? `<span class="badge badge-manual">stale</span>`
+              ? `<span class="badge badge-manual">verouderd</span>`
               : status === "unknown"
                 ? `<span class="badge ${STATUS_CLASS.unknown}">${escapeHtml(STATUS_LABEL_NL.unknown)}</span>`
                 : ""
@@ -478,8 +517,7 @@ function renderCard(src) {
         </div>
       </div>
       ${renderSourceFreshness(src)}
-      ${aggregate}
-      ${renderComponents(src.components)}
+      ${renderGlancePrimary(src)}
       ${more}
     </article>
   `;
@@ -537,7 +575,7 @@ function renderRoutingCard(routing) {
     <article class="source-card routing-card" data-id="local-share" data-status="unknown">
       <div class="card-top">
         <h2>Local share</h2>
-        <span class="badge ${STATUS_CLASS.unknown}">${STATUS_LABEL.unknown}</span>
+        <span class="badge ${STATUS_CLASS.unknown}">${STATUS_LABEL_NL.unknown}</span>
       </div>
       <div class="primary-metric">
         <p class="primary-value is-empty">—</p>
@@ -554,13 +592,13 @@ function renderRoutingCard(routing) {
     <article class="source-card routing-card" data-id="local-share" data-status="unknown">
       <div class="card-top">
         <h2>Local share</h2>
-        <span class="badge ${STATUS_CLASS.unknown}">${STATUS_LABEL.unknown}</span>
+        <span class="badge ${STATUS_CLASS.unknown}">${STATUS_LABEL_NL.unknown}</span>
       </div>
       <div class="primary-metric">
         <p class="primary-value is-empty">—</p>
         <p class="primary-sub">Aangehouden — geen runtime-bewijs</p>
       </div>
-      ${renderReason(routing.reason)}
+      <details class="card-more"><summary>Meer</summary>${renderReason(routing.reason)}</details>
     </article>`;
   }
 
@@ -569,23 +607,28 @@ function renderRoutingCard(routing) {
       ? `<p class="budget-note">${fmtNum(routing.skipped)} malformed log line(s) skipped</p>`
       : "";
 
+  const today = routingBucketMetric(routing.today);
   return `
     <article class="source-card routing-card" data-id="local-share" data-status="measured">
       <div class="card-top">
         <h2>Local share</h2>
-        <span class="badge ${STATUS_CLASS.measured}">${STATUS_LABEL.measured}</span>
+        <span class="badge ${STATUS_CLASS.measured}">${STATUS_LABEL_NL.measured}</span>
       </div>
-      <p class="budget-note">Share of delegated tasks that went to LocalAI guy.</p>
-      <ul class="component-list" aria-label="Local share windows">
-        ${renderRoutingRow("Today", routing.today)}
-        ${renderRoutingRow("Rolling 7 days", routing.rolling7d)}
-      </ul>
-      ${skipped}
-      <dl class="facts">
-        <div><dt>Last entry</dt><dd>${escapeHtml(fmtDate(routing.lastEntry))}</dd></div>
-        <div><dt>Today</dt><dd>${escapeHtml(routingBucketMetric(routing.today).count)}</dd></div>
-        <div><dt>7-day</dt><dd>${escapeHtml(routingBucketMetric(routing.rolling7d).count)}</dd></div>
-      </dl>
+      <div class="primary-metric">
+        <p class="primary-value${today.empty ? " is-empty" : ""}">${escapeHtml(today.value)}</p>
+        ${renderBar(today.bar, today.empty ? "" : "is-capacity")}
+        <p class="primary-sub">Vandaag · ${escapeHtml(today.count)}</p>
+      </div>
+      <details class="card-more"><summary>Meer</summary>
+        <ul class="component-list" aria-label="Local share vensters">
+          ${renderRoutingRow("Vandaag", routing.today)}
+          ${renderRoutingRow("Rolling 7 dagen", routing.rolling7d)}
+        </ul>
+        ${skipped}
+        <dl class="facts">
+          <div><dt>Laatste entry</dt><dd>${escapeHtml(fmtDate(routing.lastEntry))}</dd></div>
+        </dl>
+      </details>
     </article>`;
 }
 
@@ -655,9 +698,12 @@ async function renderDashboard(opts = {}) {
   const routingCard = renderRoutingCard(
     "routing" in snapshot ? snapshot.routing : null,
   );
-  root.innerHTML =
+  const body =
     sources.map(renderCard).join("") + routingCard ||
     `<p class="error-banner">Geen bronnen in snapshot.</p>`;
+  root.innerHTML = body
+    ? `<div class="settings-group">${body}</div>`
+    : body;
 
   return snapshot;
 }
