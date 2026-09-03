@@ -6,38 +6,42 @@
     <title>AI Usage</title>
     <meta
       name="description"
-      content="AI usage meters — publiek-veilige totalen, Europe/Amsterdam."
+      content="AI-usage meters — publiek-veilige totalen, Europe/Amsterdam."
     />
-    <link rel="stylesheet" href="./styles.css?v=1.5.1" />
+    <link rel="stylesheet" href="./styles.css?v=1.6.0" />
   </head>
   <body>
     <header class="site-header">
       <div class="header-row">
-        <div class="header-copy">
-          <p class="brand">AI Usage</p>
-          <p class="lede">Meters voor je AI-tools · resets in Europe/Amsterdam</p>
-        </div>
+        <p class="brand">AI Usage</p>
         <div class="header-actions">
+          <span
+            class="mac-badge"
+            id="mac-badge"
+            data-state="unknown"
+            title="Gebaseerd op de laatste LaunchAgent-snapshot"
+            >Mac …</span
+          >
           <button type="button" class="btn-update" id="btn-update">
             Alles updaten
           </button>
-          <p class="action-status" id="action-status" aria-live="polite"></p>
         </div>
       </div>
       <p class="last-updated" id="snapshot-meta">Laatst bijgewerkt: …</p>
+      <p class="action-status" id="action-status" aria-live="polite"></p>
     </header>
 
     <main id="dashboard" class="dashboard" aria-live="polite"></main>
 
     <footer class="site-footer">
       <p>
-        Publiek-veilige totalen alleen. Geen tokens of e-mails op deze pagina.
-        Live meting draait op de Mac (LaunchAgent); Pages toont
+        Publiek-veilige totalen. Geen tokens of e-mails. Meting op de Mac
+        (LaunchAgent elke 15&nbsp;min); deze pagina toont
         <code>latest.json</code>.
       </p>
       <p id="build-meta"></p>
     </footer>
 
-    <script type="module" src="./dashboard.js?v=1.5.1"></script>
+    <script type="module" src="./dashboard.js?v=1.6.0"></script>
   </body>
 </html>

@@ -844,7 +844,7 @@ describe("collector", () => {
       overrides: [],
     });
     assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.5.1");
+    assert.equal(snap.version, "1.6.0");
     assert.equal(snap.sources.length, 5);
     for (const s of snap.sources) {
       assertHonestSource(s);
@@ -1368,9 +1368,10 @@ describe("public seed", () => {
     assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/i);
     assert.match(html, /Alles updaten/);
     assert.match(html, /btn-update/);
+    assert.match(html, /mac-badge/);
     assert.match(html, /last-updated/);
-    assert.match(html, /dashboard\.js\?v=1\.5\.1/);
-    assert.match(html, /styles\.css\?v=1\.5\.1/);
+    assert.match(html, /dashboard\.js\?v=1\.6\.0/);
+    assert.match(html, /styles\.css\?v=1\.6\.0/);
     assert.match(html, /Laatst bijgewerkt:/);
     assert.doesNotMatch(js, /meta\.textContent = `Snapshot /);
     assert.doesNotMatch(js, /Dagtempo|Maandtempo/);
@@ -1380,8 +1381,11 @@ describe("public seed", () => {
     assert.match(css, /badge-unknown/);
     assert.match(css, /badge-live/);
     assert.match(css, /\.btn-update/);
+    assert.match(css, /\.mac-badge/);
     assert.match(css, /\.last-updated/);
     assert.match(css, /\.source-freshness/);
+    assert.match(css, /-apple-system|system-ui/);
+    assert.match(css, /prefers-color-scheme:\s*dark/);
     assert.match(js, /STATUS_LABEL/);
     assert.match(js, /measured/);
     assert.match(js, /estimated/);
@@ -1398,5 +1402,29 @@ describe("public seed", () => {
     assert.doesNotMatch(js, /codex exec/i);
     assert.match(js, /Aangehouden — geen runtime-bewijs/);
     assert.match(js, /data-freshness/);
+    assert.match(js, /MAC_ONLINE_MINUTES\s*=\s*20/);
+    assert.match(js, /Mac online/);
+    assert.match(js, /Mac offline \/ in slaap/);
+    assert.match(js, /updateMacBadge/);
+    assert.match(js, /card-more/);
+  });
+
+  it("macPresence uses snapshot age only (no heartbeat)", async () => {
+    const { macPresence, MAC_ONLINE_MINUTES } = await import(
+      "../site/dashboard.js"
+    );
+    assert.equal(MAC_ONLINE_MINUTES, 20);
+    const now = new Date("2026-09-03T12:00:00.000Z");
+    const online = macPresence("2026-09-03T11:50:00.000Z", now);
+    assert.equal(online.online, true);
+    assert.equal(online.label, "Mac online");
+    assert.match(online.title, /Europe\/Amsterdam/);
+    const offline = macPresence("2026-09-03T11:30:00.000Z", now);
+    assert.equal(offline.online, false);
+    assert.equal(offline.label, "Mac offline / in slaap");
+    assert.match(offline.title, /Laatste collect/);
+    const missing = macPresence(null, now);
+    assert.equal(missing.online, false);
+    assert.match(missing.label, /Mac offline/);
   });
 });
