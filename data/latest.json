@@ -1,6 +1,6 @@
 {
   "version": "1.6.1",
-  "generatedAt": "2026-09-03T09:46:05.805Z",
+  "generatedAt": "2026-09-03T10:01:19.665Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
   "routing": {
@@ -25,12 +25,12 @@
       "name": "OpenAI / Buzz",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Codex account: 95% of the 5-hour limit used. The weekly window is 65% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
-      "usage": 95,
+      "reason": "Live from the signed-in Codex account: 100% of the 5-hour limit used. The weekly window is 66% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
+      "usage": 100,
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
       "resetDate": "2026-09-03T10:55:20.000Z",
-      "lastUpdate": "2026-09-03T09:46:05.805Z",
+      "lastUpdate": "2026-09-03T10:01:19.665Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -47,12 +47,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 26.64916666666667%; Other Models 26.172727272727276%; On-demand $73.6/$75; Grok Bot weekly 92.423575%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 26.64916666666667%; Other Models 26.172727272727276%; On-demand $73.6/$75; Grok Bot weekly 92.952154%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-03T09:46:05.805Z",
+      "lastUpdate": "2026-09-03T10:01:19.665Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -87,7 +87,7 @@
           "id": "grok-bot",
           "label": "Grok Bot (weekly)",
           "role": "capped",
-          "usage": 92.423575,
+          "usage": 92.952154,
           "limit": 100,
           "unit": "% of weekly allowance",
           "resetDate": "2026-09-07T18:29:55.366Z"
@@ -106,36 +106,36 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Claude.ai OAuth session via /api/oauth/usage: session 39% (resets 2026-09-03T13:00:00.133Z); weekly all-models 11% (resets 2026-09-05T07:00:00.133Z). Missing from API: usage credits. Same local-login pattern as Cursor/Codex (no browser scrape). Local transcript detail: 10859585 tokens this month (10786597 prompt/cache + 72988 output) across 102 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Manual override filled missing meter(s) only: usage-credits (manual fill 3 hour(s) old.). Source stays automatic from this collect.",
+      "reason": "Live from the signed-in Claude.ai OAuth session via /api/oauth/usage: session 53% (resets 2026-09-03T12:59:59.988Z); weekly all-models 12% (resets 2026-09-05T06:59:59.988Z). Missing from API: usage credits. Same local-login pattern as Cursor/Codex (no browser scrape). Local transcript detail: 11442093 tokens this month (11351069 prompt/cache + 91024 output) across 113 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Manual override filled missing meter(s) only: usage-credits (manual fill 3 hour(s) old.). Source stays automatic from this collect.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
-      "resetDate": "2026-09-05T07:00:00.133Z",
-      "lastUpdate": "2026-09-03T09:46:05.805Z",
+      "resetDate": "2026-09-05T06:59:59.988Z",
+      "lastUpdate": "2026-09-03T10:01:19.665Z",
       "coverageStart": "2026-09-01T13:16:40.770Z",
       "breakdown": {
-        "promptTokens": 10786597,
-        "outputTokens": 72988,
-        "generations": 102
+        "promptTokens": 11351069,
+        "outputTokens": 91024,
+        "generations": 113
       },
       "components": [
         {
           "id": "session",
           "label": "Session window",
           "role": "capacity",
-          "usage": 39,
+          "usage": 53,
           "limit": 100,
           "unit": "% of session limit",
-          "resetDate": "2026-09-03T13:00:00.133Z"
+          "resetDate": "2026-09-03T12:59:59.988Z"
         },
         {
           "id": "weekly-all-models",
           "label": "Weekly (all models)",
           "role": "capacity",
-          "usage": 11,
+          "usage": 12,
           "limit": 100,
           "unit": "% of weekly limit",
-          "resetDate": "2026-09-05T07:00:00.133Z"
+          "resetDate": "2026-09-05T06:59:59.988Z"
         },
         {
           "id": "usage-credits",
@@ -163,7 +163,7 @@
         },
         {
           "date": "2026-09-03",
-          "usage": 3287618
+          "usage": 3870126
         }
       ]
     },
@@ -177,7 +177,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-03T09:46:05.805Z",
+      "lastUpdate": "2026-09-03T10:01:19.665Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 714,
