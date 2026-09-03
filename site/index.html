@@ -1,22 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AI Usage</title>
     <meta
       name="description"
-      content="Operational multi-source AI usage overview. Public-safe metrics only."
+      content="AI usage meters — publiek-veilige totalen, Europe/Amsterdam."
     />
-    <link rel="stylesheet" href="./styles.css?v=1.4.1" />
+    <link rel="stylesheet" href="./styles.css?v=1.5.0" />
   </head>
   <body>
     <header class="site-header">
-      <p class="brand">AI Usage</p>
-      <p class="lede">
-        Live meters from the Mac collector · resets in Europe/Amsterdam ·
-        handmatige bronnen worden als stale gemarkeerd.
-      </p>
+      <div class="header-row">
+        <div class="header-copy">
+          <p class="brand">AI Usage</p>
+          <p class="lede">Meters voor je AI-tools · resets in Europe/Amsterdam</p>
+        </div>
+        <div class="header-actions">
+          <button type="button" class="btn-update" id="btn-update">
+            Alles updaten
+          </button>
+          <p class="action-status" id="action-status" aria-live="polite"></p>
+        </div>
+      </div>
       <p class="last-updated" id="snapshot-meta">Laatst bijgewerkt: …</p>
     </header>
 
@@ -24,13 +31,13 @@
 
     <footer class="site-footer">
       <p>
-        Alleen publiek-veilige totalen. Geen tokens, e-mails of prompts.
-        Collectie draait lokaal (LaunchAgent); Pages host alleen
+        Publiek-veilige totalen alleen. Geen tokens of e-mails op deze pagina.
+        Live meting draait op de Mac (LaunchAgent); Pages toont
         <code>latest.json</code>.
       </p>
       <p id="build-meta"></p>
     </footer>
 
-    <script type="module" src="./dashboard.js?v=1.4.1"></script>
+    <script type="module" src="./dashboard.js?v=1.5.0"></script>
   </body>
 </html>

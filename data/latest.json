@@ -1,8 +1,8 @@
 {
-  "version": "1.4.1",
+  "version": "1.5.0",
   "generatedAt": "2026-09-03T05:44:19.891Z",
   "timezone": "Europe/Amsterdam",
-  "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Open dashboards soft-refresh every 5 minutes. GitHub Actions only rebuild Pages from committed data/latest.json — hosted runners cannot measure authenticated desktop usage.",
+  "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Open dashboards soft-refresh every 5 minutes. On-demand collect: local app only (npm run app / http://127.0.0.1:8787) \u2014 never Codex/Grok/agent. Pages \"Alles updaten\" only re-fetches published latest.json.",
   "routing": {
     "today": {
       "local": 0,
@@ -36,8 +36,8 @@
       "components": null,
       "usageUrl": "https://chatgpt.com/#settings/Usage",
       "pace": {
-        "daily": 0,
-        "monthly": 0,
+        "daily": null,
+        "monthly": null,
         "weeklyTarget": null
       },
       "history": []
@@ -181,8 +181,8 @@
       "components": null,
       "usageUrl": null,
       "pace": {
-        "daily": 455.3,
-        "monthly": 13660,
+        "daily": null,
+        "monthly": null,
         "weeklyTarget": null
       },
       "history": [
@@ -208,8 +208,8 @@
       "components": null,
       "usageUrl": "https://www.enrichlabs.ai/login",
       "pace": {
-        "daily": 9,
-        "monthly": 270,
+        "daily": null,
+        "monthly": null,
         "weeklyTarget": 50
       },
       "history": [],

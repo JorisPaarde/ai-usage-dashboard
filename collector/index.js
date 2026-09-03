@@ -25,7 +25,7 @@ import {
   ENRICH_MONTHLY_BUDGET,
   ENRICH_WEEKLY_PACE_MAX,
 } from "./lib/schema.js";
-import { computePace, compactHistory } from "./lib/pace.js";
+import { compactHistory } from "./lib/pace.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -105,14 +105,12 @@ const SECRET_RE =
  */
 export function normalizeSource(result) {
   const src = emptySource(result);
-  if (src.usage != null) {
-    const pace = computePace(src.usage);
-    src.pace = {
-      daily: pace.daily,
-      monthly: pace.monthly,
-      weeklyTarget: src.pace.weeklyTarget,
-    };
-  }
+  // pace.daily / pace.monthly removed from the product — do not compute or show them.
+  src.pace = {
+    daily: null,
+    monthly: null,
+    weeklyTarget: src.pace?.weeklyTarget ?? null,
+  };
   if (src.id === "enrich-labs") {
     src.limit = src.limit ?? ENRICH_MONTHLY_BUDGET;
     src.budget = {
@@ -205,18 +203,12 @@ export function applyOverride(base, override, now = new Date()) {
     components: override.components ?? base.components,
     usageUrl:
       override.usageUrl !== undefined ? override.usageUrl : base.usageUrl,
-    pace: override.pace
-      ? {
-          daily: override.pace.daily ?? null,
-          monthly: override.pace.monthly ?? null,
-          weeklyTarget:
-            override.pace.weeklyTarget ?? base.pace?.weeklyTarget ?? null,
-        }
-      : {
-          daily: null,
-          monthly: null,
-          weeklyTarget: base.pace?.weeklyTarget ?? null,
-        },
+    pace: {
+      daily: null,
+      monthly: null,
+      weeklyTarget:
+        override.pace?.weeklyTarget ?? base.pace?.weeklyTarget ?? null,
+    },
   });
   if (!override.reason && (!merged.reason || merged.reason === base.reason)) {
     merged.reason =
@@ -283,11 +275,11 @@ export async function collectSnapshot(now = new Date(), opts = {}) {
     sources.push(src);
   }
   const snapshot = {
-    version: "1.4.1",
+    version: "1.5.0",
     generatedAt: now.toISOString(),
     timezone: "Europe/Amsterdam",
     scheduleNote:
-      "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Open dashboards soft-refresh every 5 minutes. GitHub Actions only rebuild Pages from committed data/latest.json — hosted runners cannot measure authenticated desktop usage.",
+      "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. On-demand re-measure: local app (npm run app) → LaunchAgent/local-snapshot — never Codex/Grok/agent.",
     // Fizz Claude Backup owns populating this from routing-log.jsonl. Held at
     // unavailable-with-reason: the routing log still carries legacy `local:true`
     // rows whose "local" claim came from an agent label, not from runtime proof.

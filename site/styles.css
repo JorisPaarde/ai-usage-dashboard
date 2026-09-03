@@ -48,13 +48,88 @@ body {
 }
 
 .site-header {
-  padding: 2.25rem 0 1.1rem;
-  margin-bottom: 1.1rem;
+  padding: 1.75rem 0 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+}
+
+.header-copy {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.header-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  max-width: 18rem;
+}
+
+.btn-update {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent);
+  color: #f4fffc;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  min-width: 9.5rem;
+}
+
+.btn-update:hover {
+  filter: brightness(1.05);
+}
+
+.btn-update:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.btn-update:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.action-status {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+.action-status[data-tone="ok"] {
+  color: var(--measured);
+}
+
+.action-status[data-tone="warn"] {
+  color: var(--warn);
+}
+
+.action-status[data-tone="err"] {
+  color: #8b2e2e;
+}
+
+.action-status[data-tone="busy"] {
+  color: var(--ink-soft);
 }
 
 .brand {
   margin: 0;
-  font-size: clamp(2.35rem, 5.5vw, 3.1rem);
+  font-size: clamp(2.1rem, 5vw, 2.85rem);
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.05;
@@ -62,23 +137,16 @@ body {
 }
 
 .lede {
-  max-width: 34rem;
-  margin: 0.55rem 0 0;
+  max-width: 28rem;
+  margin: 0.4rem 0 0;
   color: var(--ink-soft);
-  font-size: 1rem;
-}
-
-.meta-line {
-  margin: 0.7rem 0 0;
-  font-size: 0.78rem;
-  color: var(--ink-soft);
-  font-family: var(--font-mono);
+  font-size: 0.95rem;
 }
 
 .last-updated {
-  margin: 0.85rem 0 0;
+  margin: 1rem 0 0;
   max-width: 36rem;
-  font-size: clamp(1.05rem, 2.8vw, 1.35rem);
+  font-size: clamp(1.02rem, 2.6vw, 1.28rem);
   font-weight: 650;
   letter-spacing: -0.01em;
   line-height: 1.3;
