@@ -1,6 +1,6 @@
 {
   "version": "1.6.1",
-  "generatedAt": "2026-09-03T15:11:41.464Z",
+  "generatedAt": "2026-09-03T19:13:14.880Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
   "routing": {
@@ -25,12 +25,12 @@
       "name": "OpenAI / Buzz",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live account read unavailable, so this is the last state Codex wrote to its own session log: 23% of the 5-hour limit used. The weekly window is 69% used. Recorded 134 minute(s) before this collect; it only advances when Codex is used. A manual override was ignored: the collector measures this source directly.",
-      "usage": 23,
+      "reason": "Live from the signed-in Codex account: 0% of the 5-hour limit used. The weekly window is 69% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
+      "usage": 0,
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
-      "resetDate": "2026-09-03T16:14:28.000Z",
-      "lastUpdate": "2026-09-03T12:57:49.240Z",
+      "resetDate": "2026-09-04T00:13:16.000Z",
+      "lastUpdate": "2026-09-03T19:13:14.880Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -47,12 +47,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 27.48%; Other Models 33.41818181818182%; On-demand $73.6/$75; Grok Bot weekly 93.889268%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 28.788333333333334%; Other Models 35.236363636363635%; On-demand $73.6/$75; Grok Bot weekly 93.889268%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-03T15:11:41.464Z",
+      "lastUpdate": "2026-09-03T19:13:14.880Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -60,7 +60,7 @@
           "id": "included-cursor-models",
           "label": "Included Cursor Models",
           "role": "capacity",
-          "usage": 27.48,
+          "usage": 28.788333333333334,
           "limit": 100,
           "unit": "% of included allowance",
           "resetDate": "2026-09-24"
@@ -69,7 +69,7 @@
           "id": "other-models",
           "label": "Other Models",
           "role": "capacity",
-          "usage": 33.41818181818182,
+          "usage": 35.236363636363635,
           "limit": 100,
           "unit": "% of included allowance",
           "resetDate": "2026-09-24"
@@ -106,17 +106,17 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "11827213 tokens this month (11721527 prompt/cache + 105686 output) across 122 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Claude OAuth token rejected by the usage API; re-auth in Claude Code, then collect again. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual override added meter(s) the automatic path lacked: session, usage-credits, weekly-all-models (manual fill 8 hour(s) old.). Source stays automatic.",
-      "usage": 11827213,
+      "reason": "11963963 tokens this month (11855481 prompt/cache + 108482 output) across 126 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Claude OAuth token rejected by the usage API; re-auth in Claude Code, then collect again. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual override added meter(s) the automatic path lacked: session, usage-credits, weekly-all-models (STALE: manual fill 12 hour(s) old.). Source stays automatic.",
+      "usage": 11963963,
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-03T14:33:06.496Z",
+      "lastUpdate": "2026-09-03T15:30:47.926Z",
       "coverageStart": "2026-09-01T13:16:40.770Z",
       "breakdown": {
-        "promptTokens": 11721527,
-        "outputTokens": 105686,
-        "generations": 122
+        "promptTokens": 11855481,
+        "outputTokens": 108482,
+        "generations": 126
       },
       "components": [
         {
@@ -161,7 +161,7 @@
         },
         {
           "date": "2026-09-03",
-          "usage": 4255246
+          "usage": 4391996
         }
       ]
     },
@@ -175,7 +175,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-03T15:11:41.464Z",
+      "lastUpdate": "2026-09-03T19:13:14.880Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 714,
@@ -201,7 +201,7 @@
       "name": "Enrich Labs / Helena",
       "status": "measured",
       "collectionMode": "manual",
-      "reason": "Read from the signed-in Enrich Labs workspace profile at 2026-09-03T06:55:23Z: 28 of 200 credits used (14%), 172 remaining, resets 2026-10-01. Breakdown: 15 social posts and 13 chat/task executions; all other categories 0. Manual reading 8 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
+      "reason": "Read from the signed-in Enrich Labs workspace profile at 2026-09-03T06:55:23Z: 28 of 200 credits used (14%), 172 remaining, resets 2026-10-01. Breakdown: 15 social posts and 13 chat/task executions; all other categories 0. STALE: Manual reading 12 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
       "usage": 28,
       "limit": 200,
       "unit": "credits",
