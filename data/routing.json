@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-09-04T08:32:58.550Z",
+  "snapshotGeneratedAt": "2026-09-04T09:22:20.958Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -10,21 +10,21 @@
       "pool": "claude",
       "agent": "Claude-agent",
       "sourceId": "claude-code",
-      "percent": 8,
+      "percent": null,
       "capped": [],
-      "measuredAt": "2026-09-04T08:11:18.287Z",
+      "measuredAt": "2026-09-04T08:35:32.649Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
-      "reason": "Highest of session, weekly-all-models."
+      "reason": "Measured, but no usage/limit pair to turn into a percentage — consumption without a known limit is not room."
     },
     "openai": {
       "pool": "openai",
       "agent": "Codex-agent",
       "sourceId": "openai-buzz",
-      "percent": 34,
+      "percent": 54,
       "capped": [],
-      "measuredAt": "2026-09-04T08:32:58.550Z",
+      "measuredAt": "2026-09-04T09:22:20.958Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -42,10 +42,10 @@
         },
         {
           "id": "grok-bot",
-          "percent": 94.9
+          "percent": 95.1
         }
       ],
-      "measuredAt": "2026-09-04T08:32:58.550Z",
+      "measuredAt": "2026-09-04T09:22:20.958Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -57,7 +57,7 @@
       "sourceId": "ollama",
       "percent": null,
       "capped": [],
-      "measuredAt": "2026-09-04T08:32:58.550Z",
+      "measuredAt": "2026-09-04T09:22:20.958Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": true,
