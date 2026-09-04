@@ -1,6 +1,6 @@
 {
   "version": "1.6.1",
-  "generatedAt": "2026-09-04T06:46:49.870Z",
+  "generatedAt": "2026-09-04T07:02:01.064Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
   "routing": {
@@ -25,12 +25,12 @@
       "name": "OpenAI / Buzz",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Codex account: 0% of the 5-hour limit used. The weekly window is 69% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
-      "usage": 0,
+      "reason": "Live from the signed-in Codex account: 28% of the 5-hour limit used. The weekly window is 74% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
+      "usage": 28,
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
-      "resetDate": "2026-09-04T11:46:51.000Z",
-      "lastUpdate": "2026-09-04T06:46:49.870Z",
+      "resetDate": "2026-09-04T11:48:21.000Z",
+      "lastUpdate": "2026-09-04T07:02:01.064Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -52,7 +52,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-04T06:46:49.870Z",
+      "lastUpdate": "2026-09-04T07:02:01.064Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -106,17 +106,17 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "11963963 tokens this month (11855481 prompt/cache + 108482 output) across 126 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Claude OAuth token rejected by the usage API; re-auth in Claude Code, then collect again. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual override added meter(s) the automatic path lacked: session, usage-credits, weekly-all-models (STALE: manual fill 24 hour(s) old.). Source stays automatic.",
-      "usage": 11963963,
+      "reason": "12399818 tokens this month (12277136 prompt/cache + 122682 output) across 136 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Anthropic OAuth usage API rate-limited this collect (HTTP 429); will retry next interval. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual override added meter(s) the automatic path lacked: session, usage-credits, weekly-all-models (STALE: manual fill 24 hour(s) old.). Source stays automatic.",
+      "usage": 12399818,
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-03T15:30:47.926Z",
+      "lastUpdate": "2026-09-04T06:55:28.679Z",
       "coverageStart": "2026-09-01T13:16:40.770Z",
       "breakdown": {
-        "promptTokens": 11855481,
-        "outputTokens": 108482,
-        "generations": 126
+        "promptTokens": 12277136,
+        "outputTokens": 122682,
+        "generations": 136
       },
       "components": [
         {
@@ -162,6 +162,10 @@
         {
           "date": "2026-09-03",
           "usage": 4391996
+        },
+        {
+          "date": "2026-09-04",
+          "usage": 435855
         }
       ]
     },
@@ -170,17 +174,17 @@
       "name": "Ollama",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "1366 tokens this month (714 prompt + 652 output) across 1 generations. Log coverage starts 2026-08-28T10:43:29.198+02:00; the month may be partial after rotation. No vendor quota exists.",
-      "usage": 1366,
+      "reason": "4731 tokens this month (4722 prompt + 9 output) across 2 generations. Log coverage starts 2026-08-28T10:43:29.198+02:00; the month may be partial after rotation. No vendor quota exists.",
+      "usage": 4731,
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-04T06:46:49.870Z",
+      "lastUpdate": "2026-09-04T07:02:01.064Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
-        "promptTokens": 714,
-        "outputTokens": 652,
-        "generations": 1
+        "promptTokens": 4722,
+        "outputTokens": 9,
+        "generations": 2
       },
       "components": null,
       "usageUrl": null,
@@ -191,8 +195,8 @@
       },
       "history": [
         {
-          "date": "2026-09-03",
-          "usage": 1366
+          "date": "2026-09-04",
+          "usage": 4731
         }
       ]
     },
