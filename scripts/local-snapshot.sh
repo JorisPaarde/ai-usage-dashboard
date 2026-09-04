@@ -27,14 +27,15 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
-# data/latest.json is this job's output. A prior collect that failed check
-# leaves it dirty; refusing forever then freezes live generatedAt. Discard
-# that path first. Any other dirty tracked file still means "agent worktree
-# — do not schedule".
-if ! git diff --quiet -- data/latest.json || ! git diff --cached --quiet -- data/latest.json; then
-  echo "Discarding leftover data/latest.json from a prior run."
-  git restore --source=HEAD --staged --worktree -- data/latest.json
-fi
+# latest.json and routing.json are this job's paired outputs. A failed run may
+# leave either dirty; discard only those generated paths before checking that
+# no agent work is present.
+for output in data/latest.json data/routing.json; do
+  if ! git diff --quiet -- "$output" || ! git diff --cached --quiet -- "$output"; then
+    echo "Discarding leftover $output from a prior run."
+    git restore --source=HEAD --staged --worktree -- "$output"
+  fi
+done
 
 if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "Working tree has tracked changes; refusing scheduled update."
@@ -43,13 +44,17 @@ fi
 
 git fetch origin main
 git merge --ff-only origin/main
-npm run collect
-if ! npm run check; then
-  echo "check failed; restoring data/latest.json so the next interval can retry." >&2
-  git restore --source=HEAD --staged --worktree -- data/latest.json
+if ! npm run collect || ! npm run routing; then
+  echo "snapshot generation failed; restoring generated outputs." >&2
+  git restore --source=HEAD --staged --worktree -- data/latest.json data/routing.json
   exit 1
 fi
-git add data/latest.json
+if ! npm run check; then
+  echo "check failed; restoring generated outputs so the next interval can retry." >&2
+  git restore --source=HEAD --staged --worktree -- data/latest.json data/routing.json
+  exit 1
+fi
+git add data/latest.json data/routing.json
 
 if git diff --cached --quiet; then
   echo "No snapshot change."

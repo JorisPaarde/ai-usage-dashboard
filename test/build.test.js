@@ -130,4 +130,18 @@ describe("build", () => {
     assert.doesNotMatch(src, /codex exec/i);
   });
 
+  it("scheduled snapshots publish routing facts beside every usage snapshot", async () => {
+    const src = await readFile(
+      path.join(ROOT, "scripts", "local-snapshot.sh"),
+      "utf8",
+    );
+    assert.match(src, /npm run collect \|\| ! npm run routing/);
+    assert.match(src, /git add data\/latest\.json data\/routing\.json/);
+    assert.match(src, /for output in data\/latest\.json data\/routing\.json/);
+    assert.match(
+      src,
+      /git restore --source=HEAD --staged --worktree -- data\/latest\.json data\/routing\.json/,
+    );
+  });
+
 });
