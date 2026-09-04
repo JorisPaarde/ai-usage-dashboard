@@ -1,6 +1,6 @@
 {
   "version": "1.6.1",
-  "generatedAt": "2026-09-04T08:32:58.550Z",
+  "generatedAt": "2026-09-04T08:48:09.902Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
       "resetDate": "2026-09-04T11:48:21.000Z",
-      "lastUpdate": "2026-09-04T08:32:58.550Z",
+      "lastUpdate": "2026-09-04T08:48:09.902Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -47,12 +47,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 28.788333333333334%; Other Models 35.236363636363635%; On-demand $73.6/$75; Grok Bot weekly 94.890114%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 28.788333333333334%; Other Models 35.236363636363635%; On-demand $73.6/$75; Grok Bot weekly 95.113139%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-04T08:32:58.550Z",
+      "lastUpdate": "2026-09-04T08:48:09.902Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -87,7 +87,7 @@
           "id": "grok-bot",
           "label": "Grok Bot (weekly)",
           "role": "capped",
-          "usage": 94.890114,
+          "usage": 95.113139,
           "limit": 100,
           "unit": "% of weekly allowance",
           "resetDate": "2026-09-07T18:29:55.366Z"
@@ -106,17 +106,17 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "13609994 tokens this month (13452967 prompt/cache + 157027 output) across 163 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Anthropic OAuth usage API rate-limited this collect (HTTP 429); will retry next interval. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual override added meter(s) the automatic path lacked: session, usage-credits, weekly-all-models (STALE: manual fill 26 hour(s) old.). Source stays automatic.",
-      "usage": 13609994,
+      "reason": "13778301 tokens this month (13617755 prompt/cache + 160546 output) across 169 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Claude OAuth token rejected by the usage API; re-auth in Claude Code, then collect again. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual override added meter(s) the automatic path lacked: session, usage-credits, weekly-all-models (STALE: manual fill 26 hour(s) old.). Source stays automatic.",
+      "usage": 13778301,
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-04T08:11:18.287Z",
+      "lastUpdate": "2026-09-04T08:35:32.649Z",
       "coverageStart": "2026-09-01T13:16:40.770Z",
       "breakdown": {
-        "promptTokens": 13452967,
-        "outputTokens": 157027,
-        "generations": 163
+        "promptTokens": 13617755,
+        "outputTokens": 160546,
+        "generations": 169
       },
       "components": [
         {
@@ -165,7 +165,7 @@
         },
         {
           "date": "2026-09-04",
-          "usage": 1646031
+          "usage": 1814338
         }
       ]
     },
@@ -174,17 +174,17 @@
       "name": "Ollama",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "4731 tokens this month (4722 prompt + 9 output) across 2 generations. Log coverage starts 2026-08-28T10:43:29.198+02:00; the month may be partial after rotation. No vendor quota exists.",
-      "usage": 4731,
+      "reason": "5719 tokens this month (4744 prompt + 975 output) across 3 generations. Log coverage starts 2026-08-28T10:43:29.198+02:00; the month may be partial after rotation. No vendor quota exists.",
+      "usage": 5719,
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-04T08:32:58.550Z",
+      "lastUpdate": "2026-09-04T08:48:09.902Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
-        "promptTokens": 4722,
-        "outputTokens": 9,
-        "generations": 2
+        "promptTokens": 4744,
+        "outputTokens": 975,
+        "generations": 3
       },
       "components": null,
       "usageUrl": null,
@@ -196,7 +196,7 @@
       "history": [
         {
           "date": "2026-09-04",
-          "usage": 4731
+          "usage": 5719
         }
       ]
     },
