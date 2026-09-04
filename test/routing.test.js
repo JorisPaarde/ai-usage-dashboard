@@ -8,6 +8,7 @@ import {
   verdictForPool,
   verdictsFor,
   ageMinutes,
+  CLAUDE_MAX_AGE_MINUTES,
   OK_BELOW_PERCENT,
   FULL_AT_PERCENT,
 } from "../collector/lib/routing.js";
@@ -74,6 +75,7 @@ describe("capacity facts", () => {
   it("takes the highest of Claude's session and weekly meters", () => {
     const fact = poolFromSource("claude", POOLS.claude, claudeSource(82, 8));
     assert.equal(fact.percent, 82);
+    assert.equal(fact.maxAgeMinutes, 60);
     // usage-credits is a spend meter, not a rate limit; it must not drive the verdict.
     assert.equal(verdictForPool(fact, NOW).verdict, "low");
   });
@@ -88,6 +90,8 @@ describe("capacity facts", () => {
       limit: null,
     });
     assert.equal(fact.percent, null);
+    assert.equal(fact.measuredAt, null);
+    assert.equal(fact.collectionMode, "unavailable");
     assert.equal(verdictForPool(fact, NOW).verdict, "unknown");
   });
 
@@ -158,6 +162,21 @@ describe("verdicts", () => {
     );
     assert.equal(v.verdict, "low");
     assert.match(v.reason, /past its 15 min limit/);
+  });
+
+  it("keeps a cached Claude reading usable for the configured hour", () => {
+    const v = verdictForPool(
+      {
+        pool: "claude",
+        percent: 14,
+        measuredAt: "2026-09-04T08:15:00.000Z",
+        maxAgeMinutes: CLAUDE_MAX_AGE_MINUTES,
+        collectionMode: "automatic",
+      },
+      NOW,
+    );
+    assert.equal(v.verdict, "ok");
+    assert.equal(v.age, 45);
   });
 
   it("keeps a stale full reading full", () => {
@@ -442,7 +461,7 @@ describe("provenance: a hand-typed meter is not a measurement", () => {
     const fact = poolFromSource("claude", POOLS.claude, source);
     const v = verdictForPool(fact, NOW);
     assert.equal(v.verdict, "low");
-    assert.match(v.reason, /past its 15 min limit/);
+    assert.match(v.reason, /past its 60 min limit/);
   });
 
   it("keeps a genuinely measured pool automatic", () => {

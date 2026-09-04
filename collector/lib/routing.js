@@ -24,6 +24,17 @@ export const OK_BELOW_PERCENT = 80;
 /** At or above this percentage a pool is treated as exhausted. */
 export const FULL_AT_PERCENT = 95;
 
+function positiveMinutes(raw, fallback) {
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+/** Keep the router's freshness window aligned with the OAuth cache interval. */
+export const CLAUDE_MAX_AGE_MINUTES = positiveMinutes(
+  process.env.CLAUDE_OAUTH_CACHE_TTL_MINUTES,
+  60,
+);
+
 /**
  * Which dashboard source backs each pool, and how the pool's headline
  * percentage is derived from it.
@@ -41,7 +52,7 @@ export const POOLS = Object.freeze({
   claude: {
     sourceId: "claude-code",
     componentIds: ["session", "weekly-all-models"],
-    maxAgeMinutes: 15,
+    maxAgeMinutes: CLAUDE_MAX_AGE_MINUTES,
     agent: "Claude-agent",
   },
   openai: {
@@ -200,6 +211,8 @@ export function poolFromSource(name, config, source) {
     return {
       ...base,
       capped,
+      measuredAt: null,
+      collectionMode: "unavailable",
       reason:
         "Measured, but no usage/limit pair to turn into a percentage — " +
         "consumption without a known limit is not room.",

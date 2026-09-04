@@ -772,6 +772,13 @@ describe("adapters", () => {
     assert.equal(routing.pools.claude.percent, 14);
     assert.equal(routing.pools.claude.collectionMode, "automatic");
     assert.equal(routing.pools.claude.measuredAt, measuredAt);
+    assert.equal(
+      verdictForPool(
+        routing.pools.claude,
+        new Date("2026-09-02T12:45:00.000Z"),
+      ).verdict,
+      "ok",
+    );
   });
 
   it("claude-code respects Retry-After and stays unknown after a 429 without cache", async () => {
