@@ -1,4 +1,4 @@
-import { readdir, readFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -14,6 +14,13 @@ const DEFAULT_CREDENTIALS_FILE = path.join(
 const OAUTH_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
 const OAUTH_BETA = "oauth-2025-04-20";
 const OAUTH_TIMEOUT_MS = 15000;
+export const DEFAULT_OAUTH_CACHE_TTL_MINUTES = 60;
+export const DEFAULT_OAUTH_CACHE_FILE = path.join(
+  os.homedir(),
+  ".config",
+  "ai-usage-dashboard",
+  "claude-oauth-usage.json",
+);
 
 function monthKeyInAmsterdam(now) {
   return dateKeyInZone(now).slice(0, 7);
@@ -34,6 +41,34 @@ function num(value) {
 
 function roundPct(value) {
   return Math.round(value * 1000) / 1000;
+}
+
+function validIso(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function configuredCacheTtlMinutes(raw = process.env.CLAUDE_OAUTH_CACHE_TTL_MINUTES) {
+  if (raw == null || raw === "") return DEFAULT_OAUTH_CACHE_TTL_MINUTES;
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0
+    ? value
+    : DEFAULT_OAUTH_CACHE_TTL_MINUTES;
+}
+
+/**
+ * Retry-After is either delta-seconds or an HTTP date.
+ * @param {unknown} raw
+ * @param {Date} now
+ */
+export function retryAfterTimestamp(raw, now = new Date()) {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const value = raw.trim();
+  if (/^\d+(?:\.\d+)?$/.test(value)) {
+    return new Date(now.getTime() + Number(value) * 1000).toISOString();
+  }
+  return validIso(value);
 }
 
 /**
@@ -213,6 +248,112 @@ export function parseOauthUsage(json) {
   return { components, resetDate, missing };
 }
 
+function sanitizeCachedOauth(value) {
+  if (!isRecord(value) || !Array.isArray(value.components)) return null;
+  const allowedIds = new Set(["session", "weekly-all-models", "usage-credits"]);
+  const components = [];
+  for (const component of value.components) {
+    if (!isRecord(component) || !allowedIds.has(component.id)) return null;
+    if (typeof component.usage !== "number" || !Number.isFinite(component.usage)) {
+      return null;
+    }
+    if (
+      component.limit != null &&
+      (typeof component.limit !== "number" || !Number.isFinite(component.limit))
+    ) {
+      return null;
+    }
+    if (
+      typeof component.label !== "string" ||
+      typeof component.unit !== "string" ||
+      !["capacity", "capped"].includes(component.role)
+    ) {
+      return null;
+    }
+    const resetDate =
+      component.resetDate == null
+        ? null
+        : /^\d{4}-\d{2}-\d{2}$/.test(component.resetDate)
+          ? component.resetDate
+          : validIso(component.resetDate);
+    if (component.resetDate != null && !resetDate) return null;
+    components.push({
+      id: component.id,
+      label: component.label,
+      role: component.role,
+      usage: component.usage,
+      limit: component.limit ?? null,
+      unit: component.unit,
+      resetDate,
+    });
+  }
+  if (!components.length) return null;
+  const resetDate =
+    value.resetDate == null
+      ? null
+      : /^\d{4}-\d{2}-\d{2}$/.test(value.resetDate)
+        ? value.resetDate
+        : validIso(value.resetDate);
+  if (value.resetDate != null && !resetDate) return null;
+  const missing = Array.isArray(value.missing)
+    ? value.missing.filter((item) => typeof item === "string").slice(0, 3)
+    : [];
+  return { components, resetDate, missing };
+}
+
+function sanitizeOauthCache(value) {
+  if (!isRecord(value)) return null;
+  const oauth = sanitizeCachedOauth(value.oauth);
+  const measuredAt = oauth ? validIso(value.measuredAt) : null;
+  if (oauth && !measuredAt) return null;
+  return {
+    version: 1,
+    measuredAt,
+    lastAttemptAt: validIso(value.lastAttemptAt),
+    retryAfter: validIso(value.retryAfter),
+    oauth,
+  };
+}
+
+/** Read the narrow, secret-free OAuth cache. Corruption is a cache miss. */
+export async function readOauthUsageCache(
+  cachePath = process.env.CLAUDE_OAUTH_CACHE_PATH || DEFAULT_OAUTH_CACHE_FILE,
+  readText = readFile,
+) {
+  try {
+    return sanitizeOauthCache(JSON.parse(await readText(cachePath, "utf8")));
+  } catch {
+    return null;
+  }
+}
+
+/** Write atomically so a stopped collect cannot leave a half-written cache. */
+export async function writeOauthUsageCache(
+  value,
+  cachePath = process.env.CLAUDE_OAUTH_CACHE_PATH || DEFAULT_OAUTH_CACHE_FILE,
+) {
+  const safe = sanitizeOauthCache(value);
+  if (!safe) throw new Error("Refusing to write an invalid Claude OAuth cache");
+  await mkdir(path.dirname(cachePath), { recursive: true, mode: 0o700 });
+  const tmp = `${cachePath}.${process.pid}.tmp`;
+  await writeFile(tmp, `${JSON.stringify(safe, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  });
+  await rename(tmp, cachePath);
+}
+
+function nextOauthAttempt(cache, ttlMinutes) {
+  if (!cache) return null;
+  const base = cache.lastAttemptAt || cache.measuredAt;
+  const ttlAt = base
+    ? new Date(new Date(base).getTime() + ttlMinutes * 60000)
+    : null;
+  const retryAt = cache.retryAfter ? new Date(cache.retryAfter) : null;
+  if (ttlAt && retryAt) return ttlAt > retryAt ? ttlAt : retryAt;
+  return ttlAt || retryAt;
+}
+
 /**
  * GET /api/oauth/usage with the local Claude.ai OAuth token.
  * Token stays in the Authorization header only.
@@ -223,7 +364,10 @@ export function parseOauthUsage(json) {
  *   timeoutMs?: number,
  *   url?: string,
  * }} opts
- * @returns {Promise<{ ok: true, json: unknown } | { ok: false, status?: number }>}
+ * @returns {Promise<
+ *   { ok: true, json: unknown } |
+ *   { ok: false, status?: number, retryAfter?: string|null }
+ * >}
  */
 export async function fetchOauthUsage({
   token,
@@ -247,7 +391,11 @@ export async function fetchOauthUsage({
     });
     if (!res || typeof res.status !== "number") return { ok: false };
     if (res.status < 200 || res.status >= 300) {
-      return { ok: false, status: res.status };
+      const retryAfter =
+        typeof res.headers?.get === "function"
+          ? res.headers.get("retry-after")
+          : null;
+      return { ok: false, status: res.status, retryAfter };
     }
     let json;
     try {
@@ -446,6 +594,10 @@ export async function collect({
   readToken = readClaudeOauthToken,
   queryOauth = fetchOauthUsage,
   fetchImpl = globalThis.fetch,
+  oauthCachePath = process.env.CLAUDE_OAUTH_CACHE_PATH || DEFAULT_OAUTH_CACHE_FILE,
+  cacheTtlMinutes = configuredCacheTtlMinutes(),
+  readOauthCache = readOauthUsageCache,
+  writeOauthCache = writeOauthUsageCache,
   now = new Date(),
 } = {}) {
   const transcript = await collectTranscriptTotals({
@@ -461,20 +613,77 @@ export async function collect({
   });
 
   let oauth = null;
+  let oauthMeasuredAt = null;
+  let oauthFromCache = false;
   let oauthFailure = null;
   if (token) {
-    const res = await queryOauth({ token, fetchImpl });
-    if (res.ok) {
-      oauth = parseOauthUsage(res.json);
-      if (!oauth) oauthFailure = "OAuth usage response had no usable meters.";
-    } else if (res.status === 429) {
-      oauthFailure =
-        "Anthropic OAuth usage API rate-limited this collect (HTTP 429); will retry next interval.";
-    } else if (res.status === 401 || res.status === 403) {
-      oauthFailure =
-        "Claude OAuth token rejected by the usage API; re-auth in Claude Code, then collect again.";
+    const cache = await readOauthCache(oauthCachePath);
+    const nextAttempt = nextOauthAttempt(cache, cacheTtlMinutes);
+    if (nextAttempt && nextAttempt > now) {
+      if (cache?.oauth) {
+        oauth = cache.oauth;
+        oauthMeasuredAt = cache.measuredAt;
+        oauthFromCache = true;
+      } else {
+        oauthFailure =
+          `Claude OAuth usage backoff is active until ${nextAttempt.toISOString()}, ` +
+          "but no successful cached reading exists.";
+      }
     } else {
-      oauthFailure = "Claude OAuth usage API unavailable this collect.";
+      const res = await queryOauth({ token, fetchImpl });
+      const attemptAt = now.toISOString();
+      const parsed = res.ok ? parseOauthUsage(res.json) : null;
+      const retryAfter =
+        !res.ok && res.status === 429
+          ? retryAfterTimestamp(res.retryAfter, now)
+          : null;
+      const retained = cache?.oauth
+        ? { oauth: cache.oauth, measuredAt: cache.measuredAt }
+        : { oauth: null, measuredAt: null };
+      const nextCache = parsed
+        ? {
+            version: 1,
+            oauth: parsed,
+            measuredAt: attemptAt,
+            lastAttemptAt: attemptAt,
+            retryAfter: null,
+          }
+        : {
+            version: 1,
+            ...retained,
+            lastAttemptAt: attemptAt,
+            retryAfter,
+          };
+      try {
+        await writeOauthCache(nextCache, oauthCachePath);
+      } catch {
+        oauthFailure =
+          "Claude OAuth cache could not be written; no fresh value was published.";
+      }
+
+      if (parsed && !oauthFailure) {
+        oauth = parsed;
+        oauthMeasuredAt = attemptAt;
+      } else if (cache?.oauth) {
+        oauth = cache.oauth;
+        oauthMeasuredAt = cache.measuredAt;
+        oauthFromCache = true;
+      }
+
+      if (!parsed && !oauthFailure) {
+        if (res.ok) {
+          oauthFailure = "OAuth usage response had no usable meters.";
+        } else if (res.status === 429) {
+          oauthFailure = retryAfter
+            ? `Anthropic OAuth usage API rate-limited this collect (HTTP 429); retry after ${retryAfter}.`
+            : "Anthropic OAuth usage API rate-limited this collect (HTTP 429); the one-hour cache interval applies.";
+        } else if (res.status === 401 || res.status === 403) {
+          oauthFailure =
+            "Claude OAuth token rejected by the usage API; re-auth in Claude Code, then collect again.";
+        } else {
+          oauthFailure = "Claude OAuth usage API unavailable this collect.";
+        }
+      }
     }
   } else {
     oauthFailure =
@@ -517,14 +726,16 @@ export async function collect({
       status: "measured",
       collectionMode: "automatic",
       reason:
-        `Live from the signed-in Claude.ai OAuth session via /api/oauth/usage: ${parts.join("; ")}.` +
+        `${oauthFromCache ? "Cached" : "Live"} signed-in Claude.ai OAuth usage ` +
+        `(measured ${oauthMeasuredAt}) via /api/oauth/usage: ${parts.join("; ")}.` +
+        `${oauthFailure ? ` ${oauthFailure}` : ""}` +
         `${missingNote} Same local-login pattern as Cursor/Codex (no browser scrape).` +
         tokenNote,
       usage: null,
       limit: null,
       unit: "mixed (see components)",
       resetDate: oauth.resetDate,
-      lastUpdate: now.toISOString(),
+      lastUpdate: oauthMeasuredAt,
       coverageStart: transcript.ok ? transcript.totals.firstSeenAt : null,
       breakdown: transcript.ok
         ? {

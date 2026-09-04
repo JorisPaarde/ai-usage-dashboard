@@ -35,6 +35,7 @@ import * as openai from "../collector/adapters/openai-buzz.js";
 import * as ollama from "../collector/adapters/ollama.js";
 import * as claudeCode from "../collector/adapters/claude-code.js";
 import * as cursorAgent from "../collector/adapters/cursor-agent.js";
+import { poolsFromSnapshot, verdictForPool } from "../collector/lib/routing.js";
 import { EventEmitter } from "node:events";
 import { readFile, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
@@ -62,6 +63,7 @@ const CURSOR_GROK_FIXTURE = path.join(
 async function withMissingCursorLocalState(fn) {
   const prevDb = process.env.CURSOR_STATE_DB;
   const prevJson = process.env.CURSOR_STORAGE_JSON;
+  const prevClaudeCredentials = process.env.CLAUDE_CREDENTIALS_PATH;
   process.env.CURSOR_STATE_DB = path.join(
     ROOT,
     "test",
@@ -74,6 +76,12 @@ async function withMissingCursorLocalState(fn) {
     "fixtures",
     "missing-cursor-storage.json",
   );
+  process.env.CLAUDE_CREDENTIALS_PATH = path.join(
+    ROOT,
+    "test",
+    "fixtures",
+    "missing-claude-credentials.json",
+  );
   try {
     return await fn();
   } finally {
@@ -81,6 +89,8 @@ async function withMissingCursorLocalState(fn) {
     else process.env.CURSOR_STATE_DB = prevDb;
     if (prevJson === undefined) delete process.env.CURSOR_STORAGE_JSON;
     else process.env.CURSOR_STORAGE_JSON = prevJson;
+    if (prevClaudeCredentials === undefined) delete process.env.CLAUDE_CREDENTIALS_PATH;
+    else process.env.CLAUDE_CREDENTIALS_PATH = prevClaudeCredentials;
   }
 }
 
@@ -681,6 +691,8 @@ describe("adapters", () => {
         assert.equal(token, "sk-ant-oat-TEST-TOKEN-NOT-REAL");
         return { ok: true, json: fixture };
       },
+      readOauthCache: async () => null,
+      writeOauthCache: async () => {},
       now: new Date("2026-09-02T12:00:00.000Z"),
     });
     assert.equal(r.status, "measured");
@@ -708,6 +720,8 @@ describe("adapters", () => {
         })}\n`,
       readToken: async () => "sk-ant-oat-TEST",
       queryOauth: async () => ({ ok: false, status: 429 }),
+      readOauthCache: async () => null,
+      writeOauthCache: async () => {},
       now: new Date("2026-09-02T12:00:00.000Z"),
     });
     assert.equal(r.status, "measured");
@@ -715,6 +729,133 @@ describe("adapters", () => {
     assert.equal(r.usage, 120);
     assert.equal(r.unit, "tokens");
     assert.match(r.reason, /429/);
+  });
+
+  it("claude-code reuses one OAuth reading for two collects within an hour", async () => {
+    const fixture = JSON.parse(await readFile(
+      path.join(ROOT, "test", "fixtures", "claude-oauth-usage.json"),
+      "utf8",
+    ));
+    let cache = null;
+    let calls = 0;
+    const options = {
+      listFiles: async () => [],
+      readToken: async () => "sk-ant-oat-FIXTURE",
+      queryOauth: async () => {
+        calls += 1;
+        return { ok: true, json: fixture };
+      },
+      readOauthCache: async () => cache,
+      writeOauthCache: async (value) => {
+        cache = structuredClone(value);
+      },
+    };
+    const measuredAt = "2026-09-02T12:00:00.000Z";
+    const first = await claudeCode.collect({
+      ...options,
+      now: new Date(measuredAt),
+    });
+    const second = await claudeCode.collect({
+      ...options,
+      now: new Date("2026-09-02T12:45:00.000Z"),
+    });
+
+    assert.equal(calls, 1);
+    assert.equal(first.lastUpdate, measuredAt);
+    assert.equal(second.lastUpdate, measuredAt);
+    assert.match(second.reason, /^Cached/);
+
+    const routing = poolsFromSnapshot({
+      generatedAt: "2026-09-02T12:45:00.000Z",
+      sources: [second],
+    });
+    assert.equal(routing.pools.claude.percent, 14);
+    assert.equal(routing.pools.claude.collectionMode, "automatic");
+    assert.equal(routing.pools.claude.measuredAt, measuredAt);
+  });
+
+  it("claude-code respects Retry-After and stays unknown after a 429 without cache", async () => {
+    let cache = null;
+    let calls = 0;
+    const options = {
+      listFiles: async () => [],
+      readToken: async () => "sk-ant-oat-FIXTURE",
+      queryOauth: async () => {
+        calls += 1;
+        return { ok: false, status: 429, retryAfter: "7200" };
+      },
+      readOauthCache: async () => cache,
+      writeOauthCache: async (value) => {
+        cache = structuredClone(value);
+      },
+    };
+    const first = await claudeCode.collect({
+      ...options,
+      now: new Date("2026-09-02T12:00:00.000Z"),
+    });
+    const second = await claudeCode.collect({
+      ...options,
+      now: new Date("2026-09-02T13:01:00.000Z"),
+    });
+
+    assert.equal(calls, 1);
+    assert.equal(cache.retryAfter, "2026-09-02T14:00:00.000Z");
+    assert.equal(first.status, "unknown");
+    assert.equal(second.status, "unknown");
+    const withManualSeed = applyOverride(normalizeSource(second), {
+      id: "claude-code",
+      supplements: true,
+      status: "measured",
+      collectionMode: "manual",
+      lastUpdate: "2026-09-01T10:00:00.000Z",
+      reason: "stale fixture seed",
+      components: [
+        {
+          id: "session",
+          label: "Session window",
+          role: "capacity",
+          usage: 0,
+          limit: 100,
+          unit: "% of session limit",
+        },
+      ],
+    });
+    const fact = poolsFromSnapshot({ sources: [withManualSeed] }).pools.claude;
+    assert.equal(withManualSeed.status, "unknown");
+    assert.equal(withManualSeed.components, null);
+    assert.equal(fact.percent, null);
+    assert.equal(verdictForPool(fact, new Date("2026-09-02T13:01:00.000Z")).verdict, "unknown");
+  });
+
+  it("claude-code serves the last successful reading on 429 without refreshing its age", async () => {
+    const fixture = JSON.parse(await readFile(
+      path.join(ROOT, "test", "fixtures", "claude-oauth-usage.json"),
+      "utf8",
+    ));
+    const measuredAt = "2026-09-02T10:00:00.000Z";
+    let cache = {
+      version: 1,
+      oauth: claudeCode.parseOauthUsage(fixture),
+      measuredAt,
+      lastAttemptAt: measuredAt,
+      retryAfter: null,
+    };
+    const result = await claudeCode.collect({
+      listFiles: async () => [],
+      readToken: async () => "sk-ant-oat-FIXTURE",
+      queryOauth: async () => ({ ok: false, status: 429, retryAfter: "3600" }),
+      readOauthCache: async () => cache,
+      writeOauthCache: async (value) => {
+        cache = structuredClone(value);
+      },
+      now: new Date("2026-09-02T11:01:00.000Z"),
+    });
+
+    assert.equal(result.status, "measured");
+    assert.equal(result.lastUpdate, measuredAt);
+    assert.match(result.reason, /^Cached/);
+    assert.match(result.reason, /429/);
+    assert.equal(cache.measuredAt, measuredAt);
   });
 
   it("readClaudeOauthToken reads accessToken only", async () => {
@@ -840,19 +981,21 @@ describe("overrides path", () => {
 
 describe("collector", () => {
   it("builds a valid honest snapshot", async () => {
-    const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
-      overrides: [],
+    await withMissingCursorLocalState(async () => {
+      const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
+        overrides: [],
+      });
+      assert.equal(validateSnapshot(snap).ok, true);
+      assert.equal(snap.version, "1.6.1");
+      assert.equal(snap.sources.length, 5);
+      for (const s of snap.sources) {
+        assertHonestSource(s);
+        if (s.status === "unknown") assert.equal(s.usage, null);
+      }
+      const enrichSrc = snap.sources.find((s) => s.id === "enrich-labs");
+      assert.equal(enrichSrc.limit, 200);
+      assert.equal(enrichSrc.pace.weeklyTarget, 50);
     });
-    assert.equal(validateSnapshot(snap).ok, true);
-    assert.equal(snap.version, "1.6.1");
-    assert.equal(snap.sources.length, 5);
-    for (const s of snap.sources) {
-      assertHonestSource(s);
-      if (s.status === "unknown") assert.equal(s.usage, null);
-    }
-    const enrichSrc = snap.sources.find((s) => s.id === "enrich-labs");
-    assert.equal(enrichSrc.limit, 200);
-    assert.equal(enrichSrc.pace.weeklyTarget, 50);
   });
 
   it("normalizeSource keeps enrich weekly target", () => {
@@ -1205,11 +1348,13 @@ describe("collector", () => {
   });
 
   it("defaults Cursor usageUrl to the spending page", async () => {
-    const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
-      overrides: [],
+    await withMissingCursorLocalState(async () => {
+      const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
+        overrides: [],
+      });
+      const cursor = snap.sources.find((s) => s.id === "cursor-agent");
+      assert.equal(cursor.usageUrl, "https://cursor.com/dashboard/spending");
     });
-    const cursor = snap.sources.find((s) => s.id === "cursor-agent");
-    assert.equal(cursor.usageUrl, "https://cursor.com/dashboard/spending");
   });
 
   it("rejects http usageUrl and malformed components", () => {

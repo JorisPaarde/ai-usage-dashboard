@@ -266,6 +266,24 @@ export function mergeOverrideOntoAutomatic(base, override, now = new Date()) {
  * @param {Date} [now]
  */
 export function applyOverride(base, override, now = new Date()) {
+  if (
+    base.id === "claude-code" &&
+    /OAuth usage (?:API|backoff|response)|OAuth token/i.test(base.reason || "")
+  ) {
+    const kept = normalizeSource({
+      ...base,
+      name: override.name || base.name,
+      budget: override.budget || base.budget,
+      usageUrl:
+        override.usageUrl !== undefined ? override.usageUrl : base.usageUrl,
+    });
+    kept.reason =
+      `${kept.reason} Manual plan percentages were not used after an OAuth failure; ` +
+      "the capacity pool stays unknown unless a cached automatic reading exists.";
+    assertHonestSource(kept);
+    return kept;
+  }
+
   if (isAutomaticMeasurement(base)) {
     return mergeOverrideOntoAutomatic(base, override, now);
   }
