@@ -1,159 +1,204 @@
+/**
+ * OpenRouter — official usage APIs, no browser scrape.
+ *
+ * Keys (never published):
+ *   OPENROUTER_API_KEY          inference or management key
+ *   OPENROUTER_MANAGEMENT_KEY   optional; preferred for /credits and /activity
+ *
+ * Routes (all GET, read-only, no model call):
+ *   /api/v1/key        any key — lifetime usage and optional per-key cap
+ *   /api/v1/credits    management key — total purchased vs used (USD)
+ *   /api/v1/activity   management key — daily USD history (last 30 UTC days)
+ *
+ * Ground-truth page: https://openrouter.ai/workspaces/default
+ */
 import { unknown } from "../lib/adapter-result.js";
+import { jsonGet, envKey } from "../lib/json-get.js";
+import { compactHistory } from "../lib/pace.js";
 
-/**
- * OpenRouter usage via its public API.
- *
- * Unlike the signed-in desktop tools (Codex, Cursor, Claude) there is no local
- * meter to read; OpenRouter is a credit account. The read-only API endpoints
- * below expose spend, which is the same figure the provider's billing page
- * shows:
- *
- *   GET /api/v1/credits  -> { data: { total_credits, total_usage } }
- *   GET /api/v1/auth/key -> { data: { usage, usage_daily, usage_weekly,
- *                                     usage_monthly, ... } }
- *
- * Both calls are GETs that cost no tokens — safe for a 15-minute schedule.
- *
- * OpenRouter is pay-per-token with no hard limit by default, so there is no
- * "capacity" percentage to derive: the source reports spend (usage) against the
- * credited balance (limit). That keeps it honest — a prepaid credit account is
- * measured by consumption against balance, not by a fake % of an unset limit.
- */
+export const SOURCE_ID = "openrouter";
+export const DEFAULT_BASE = "https://openrouter.ai/api/v1";
+export const USAGE_URL = "https://openrouter.ai/workspaces/default";
 
-const API_BASE = "https://openrouter.ai/api/v1";
-const REQUEST_TIMEOUT_MS = 15000;
-
-/**
- * Read the current OpenRouter usage + balance.
- * Resolves null when the key is missing, the API is unreachable, or the
- * response is not the expected shape (in which case we must not guess).
- *
- * @param {object} [opts]
- * @param {string} [opts.apiKey]    e.g. from process.env.OPENROUTER_API_KEY
- * @param {typeof fetch} [opts.fetchImpl]
- * @param {number} [opts.timeoutMs]
- * @returns {Promise<object|null>} normalized reading or null
- */
-export async function readOpenRouterUsage({
-  apiKey = process.env.OPENROUTER_API_KEY,
-  fetchImpl = fetch,
-  timeoutMs = REQUEST_TIMEOUT_MS,
-} = {}) {
-  if (!apiKey) return null;
-
-  const headers = { Authorization: `Bearer ${apiKey}` };
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const [creditsRes, keyRes] = await Promise.all([
-      fetchImpl(`${API_BASE}/credits`, {
-        headers,
-        signal: controller.signal,
-      }),
-      fetchImpl(`${API_BASE}/auth/key`, {
-        headers,
-        signal: controller.signal,
-      }),
-    ]);
-    if (!creditsRes.ok || !keyRes.ok) return null;
-
-    const [credits, key] = await Promise.all([
-      creditsRes.json(),
-      keyRes.json(),
-    ]);
-    const c = credits?.data;
-    const k = key?.data;
-    if (typeof c?.total_credits !== "number") return null;
-
-    return {
-      totalCredits: c.total_credits,
-      totalUsage: typeof c.total_usage === "number" ? c.total_usage : null,
-      usage: typeof k?.usage === "number" ? k.usage : null,
-      usageDaily: typeof k?.usage_daily === "number" ? k.usage_daily : null,
-      usageWeekly: typeof k?.usage_weekly === "number" ? k.usage_weekly : null,
-      usageMonthly: typeof k?.usage_monthly === "number" ? k.usage_monthly : null,
-    };
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
+function finiteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 /**
- * Collect OpenRouter usage into an AdapterResult.
- * @param {object} [opts]
- * @returns {Promise<object>}
+ * Sum activity rows into YYYY-MM-DD → USD. Model names, endpoint ids,
+ * providers, and workspace ids stay out of the published snapshot.
+ * @param {unknown} payload
+ * @returns {Array<{date: string, usage: number}>}
  */
-export async function collect({ now = new Date(), ...rest } = {}) {
-  const reading = await readOpenRouterUsage(rest);
-  if (!reading) {
-    return unknown(
-      "openrouter",
-      "No OPENROUTER_API_KEY, or the OpenRouter API did not return the expected usage payload. Unavailable rather than guessed.",
-      { lastUpdate: now.toISOString() },
-    );
+export function historyFromActivity(payload) {
+  const rows = Array.isArray(payload?.data) ? payload.data : [];
+  /** @type {Map<string, number>} */
+  const byDate = new Map();
+  for (const row of rows) {
+    if (!row || typeof row !== "object") continue;
+    const date = row.date;
+    const usage = finiteNumber(row.usage);
+    if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+    if (usage == null) continue;
+    byDate.set(date, (byDate.get(date) || 0) + usage);
   }
+  return compactHistory(
+    [...byDate.entries()].map(([date, usage]) => ({ date, usage })),
+  );
+}
 
-  const issue = (msg) =>
-    unknown("openrouter", msg, { lastUpdate: now.toISOString() });
+/**
+ * @param {unknown} payload GET /credits body
+ * @returns {{ usage: number, limit: number } | null}
+ */
+export function creditsMeter(payload) {
+  const data = payload && typeof payload === "object" ? payload.data : null;
+  if (!data || typeof data !== "object") return null;
+  const usage = finiteNumber(data.total_usage);
+  const limit = finiteNumber(data.total_credits);
+  if (usage == null || limit == null || limit <= 0) return null;
+  return { usage, limit };
+}
 
-  // Total credits is our limit (balance); usage is the $ spent crediting that
-  // balance. Both needed for a percentage; otherwise report spend-only.
-  if (typeof reading.totalCredits !== "number" || reading.totalCredits <= 0) {
-    return issue(
-      "OpenRouter reported no credited balance — no limit to measure against.",
-    );
-  }
-
-  const usage = reading.totalUsage;
-  if (typeof usage !== "number" || usage < 0) {
-    return issue(
-      "OpenRouter reported usage but no valid $ figure — reporting unknown.",
-    );
-  }
-
+/**
+ * Per-key spending cap. `usage` on the key is lifetime spend, not the cap
+ * window, so the cap itself is `limit - limit_remaining`.
+ * @param {unknown} payload GET /key body
+ * @returns {{ usage: number, limit: number, reset: string|null } | null}
+ */
+export function keyLimitMeter(payload) {
+  const data = payload && typeof payload === "object" ? payload.data : null;
+  if (!data || typeof data !== "object") return null;
+  const limit = finiteNumber(data.limit);
+  const remaining = finiteNumber(data.limit_remaining);
+  if (limit == null || limit <= 0 || remaining == null) return null;
   return {
-    id: "openrouter",
-    status: "measured",
-    collectionMode: "automatic",
-    reason: buildReason(reading),
-    usage,
-    limit: reading.totalCredits,
-    unit: "$ spend vs credited balance",
-    lastUpdate: now.toISOString(),
-    resetDate: null, // rollover is continuous; no provider reset window
-    // daily/weekly/monthly spend live in `breakdown`; normaliseSource zeroes
-    // pace.daily/monthly by product convention, so don't set them here.
-    history: [],
-    coverageStart: null,
-    breakdown: {
-      totalCredits: reading.totalCredits,
-      usage: reading.usage,
-      usageDaily: reading.usageDaily,
-      usageWeekly: reading.usageWeekly,
-      usageMonthly: reading.usageMonthly,
-    },
-    usageUrl: "https://openrouter.ai/settings/usage",
+    usage: Math.max(0, limit - remaining),
+    limit,
+    reset: typeof data.limit_reset === "string" ? data.limit_reset : null,
   };
 }
 
-function buildReason(r) {
-  const parts = ["OpenRouter credit account, read live from the API."];
-  if (typeof r.usageMonthly === "number") {
-    parts.push(`Monthly spend $${fmt(r.usageMonthly)}.`);
-  }
-  if (typeof r.totalUsage === "number") {
-    parts.push(`Total $${fmt(r.totalUsage)} credited against $${fmt(r.totalCredits)} balance.`);
-  }
-  if (typeof r.usageDaily === "number") {
-    parts.push(`Today $${fmt(r.usageDaily)}.`);
-  }
-  return parts.join(" ");
+function resolveKeys(env) {
+  return {
+    apiKey: envKey("OPENROUTER_API_KEY", env),
+    managementKey:
+      envKey("OPENROUTER_MANAGEMENT_KEY", env) || envKey("OPENROUTER_API_KEY", env),
+  };
 }
 
-function fmt(n) {
-  return Number.isFinite(n) && Math.round(n * 1000) / 1000 === n
-    ? String(n)
-    : Number(n.toFixed(3));
+/**
+ * @param {{
+ *   now?: Date,
+ *   env?: NodeJS.ProcessEnv,
+ *   fetchImpl?: typeof fetch,
+ *   baseUrl?: string,
+ * }} [opts]
+ */
+export async function collect({
+  now = new Date(),
+  env = process.env,
+  fetchImpl = globalThis.fetch,
+  baseUrl = env.OPENROUTER_API_BASE || DEFAULT_BASE,
+} = {}) {
+  const { apiKey, managementKey } = resolveKeys(env);
+  if (!apiKey && !managementKey) {
+    return unknown(
+      SOURCE_ID,
+      "No OpenRouter API key on this host (set OPENROUTER_API_KEY or OPENROUTER_MANAGEMENT_KEY in ~/.config/ai-usage-dashboard/env). Official GET /api/v1/credits + /api/v1/key; no browser scrape. No usage fabricated.",
+      { collectionMode: "unavailable", unit: "USD" },
+    );
+  }
+
+  const origin = String(baseUrl).replace(/\/$/, "");
+  const get = (path, token) => jsonGet(`${origin}${path}`, { token, fetchImpl });
+
+  const creditsRes = managementKey ? await get("/credits", managementKey) : { ok: false };
+  const keyRes = apiKey ? await get("/key", apiKey) : { ok: false };
+  const credits = creditsRes.ok ? creditsMeter(creditsRes.json) : null;
+  const keyLimit = keyRes.ok ? keyLimitMeter(keyRes.json) : null;
+
+  if (creditsRes.status === 401 || keyRes.status === 401) {
+    return unknown(
+      SOURCE_ID,
+      "OpenRouter rejected the local API key (HTTP 401). Key never published. No usage fabricated.",
+      { collectionMode: "unavailable", unit: "USD" },
+    );
+  }
+
+  /** @type {object[]} */
+  const components = [];
+  if (credits) {
+    components.push({
+      id: "credits",
+      label: "Account credits",
+      role: "capacity",
+      usage: credits.usage,
+      limit: credits.limit,
+      unit: "USD",
+      resetDate: null,
+    });
+  }
+  if (keyLimit) {
+    components.push({
+      id: "key-limit",
+      label: "Key spending cap",
+      role: "capped",
+      usage: keyLimit.usage,
+      limit: keyLimit.limit,
+      unit: "USD",
+      resetDate: keyLimit.reset,
+    });
+  }
+
+  const headline = keyLimit || credits;
+  if (!headline) {
+    const keyFailed = !keyRes.ok;
+    const creditsDenied = creditsRes.status === 403;
+    const why = keyFailed
+      ? "OpenRouter /api/v1/key was unreachable or returned no numeric usage."
+      : creditsDenied
+        ? "This key cannot read /api/v1/credits (management key required) and the inference key has no spending cap, so there is no usage/limit pair."
+        : "OpenRouter returned no usage/limit pair (no account credits and no per-key cap).";
+    return unknown(
+      SOURCE_ID,
+      `${why} No usage fabricated.`,
+      { collectionMode: "unavailable", unit: "USD" },
+    );
+  }
+
+  let history = [];
+  if (managementKey && creditsRes.ok) {
+    const activityRes = await get("/activity", managementKey);
+    if (activityRes.ok) history = historyFromActivity(activityRes.json);
+  }
+
+  const remaining = headline.limit - headline.usage;
+  const creditsNote = credits
+    ? `account ${credits.usage} / ${credits.limit} USD used`
+    : "";
+  const capNote = keyLimit
+    ? `key cap ${keyLimit.usage} / ${keyLimit.limit} USD used`
+    : "";
+  const parts = [creditsNote, capNote].filter(Boolean);
+
+  return {
+    id: SOURCE_ID,
+    status: "measured",
+    collectionMode: "automatic",
+    reason:
+      `Live from OpenRouter ${parts.join("; ")} (${remaining.toFixed(2)} USD remaining on the headline meter). ` +
+      "Read-only GET /api/v1/credits and/or /api/v1/key (no model call). Same figures as openrouter.ai/workspaces/default.",
+    usage: headline.usage,
+    limit: headline.limit,
+    unit: "USD",
+    resetDate: keyLimit?.reset ?? null,
+    lastUpdate: now.toISOString(),
+    coverageStart: null,
+    breakdown: null,
+    components: components.length ? components : null,
+    usageUrl: USAGE_URL,
+    pace: { daily: null, monthly: null, weeklyTarget: null },
+    history,
+  };
 }

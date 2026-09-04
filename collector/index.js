@@ -16,6 +16,7 @@ import * as claudeCode from "./adapters/claude-code.js";
 import * as ollama from "./adapters/ollama.js";
 import * as enrichLabs from "./adapters/enrich-labs.js";
 import * as openrouter from "./adapters/openrouter.js";
+import * as sail from "./adapters/sail-research.js";
 import {
   SOURCE_IDS,
   emptySource,
@@ -96,6 +97,7 @@ const ADAPTERS = {
   ollama,
   "enrich-labs": enrichLabs,
   openrouter,
+  sail,
 };
 
 const SECRET_RE =
@@ -375,7 +377,7 @@ export async function collectSnapshot(now = new Date(), opts = {}) {
     sources.push(src);
   }
   const snapshot = {
-    version: "1.6.1",
+    version: "1.7.0",
     generatedAt: now.toISOString(),
     timezone: "Europe/Amsterdam",
     scheduleNote:

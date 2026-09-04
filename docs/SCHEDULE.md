@@ -19,6 +19,8 @@ A run is only worth scheduling if it re-measures something. Per source:
 | Claude Code | Prefer `GET /api/oauth/usage` with the local Claude.ai OAuth token from `~/.claude/.credentials.json`; always also sum tokens from `~/.claude/projects/**/*.jsonl` | Yes when OAuth works; tokens always when transcripts exist |
 | Ollama | timing counters in the local `ollama.log` | Yes |
 | Cursor | `GetCurrentPeriodUsage` (+ optional `GetSandUsageStatus`) with the signed-in IDE Bearer token from `state.vscdb` | Yes — live from the account when Cursor is signed in locally |
+| OpenRouter | Official `GET /api/v1/credits` + `/api/v1/key` (+ `/activity` history) with `OPENROUTER_API_KEY` / `OPENROUTER_MANAGEMENT_KEY` | Yes when keys are present in `~/.config/ai-usage-dashboard/env` |
+| Sail Research | Official `GET /v2/usage/summary?range=period` (+ `/breakdown` history) with `SAIL_API_KEY` | Yes when the key is present in `~/.config/ai-usage-dashboard/env` |
 | Enrich Labs / Helena | none verified — not enrich.so wallets | No — manual override until [issue #10](https://github.com/JorisPaarde/ai-usage-dashboard/issues/10) |
 
 All routes read **numeric counters only**. Prompts, responses, credit balances
@@ -81,6 +83,11 @@ use enrich.so `/wallets/balance` — that is a different product. Until issue #1
 lands, those values live in `~/.config/ai-usage-dashboard/local-overrides.json`
 as hand-entered readings. Every scheduled run stamps them with **how old** they
 are, and marks them `STALE:` past 12 hours.
+
+OpenRouter and Sail Research **do** have documented Usage APIs. Put the keys in
+`~/.config/ai-usage-dashboard/env` (see [`docs/env.example`](env.example) and
+[`docs/PREPAID.md`](PREPAID.md)). Until that file exists on the Mac, those cards
+stay unavailable and routing treats them as paid last-resort.
 
 An override never overwrites a source the collector measures directly. If it
 carries a genuinely different metric it must say `"supplements": true`.

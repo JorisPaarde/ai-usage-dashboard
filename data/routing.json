@@ -63,6 +63,19 @@
       "unmetered": true,
       "reason": "Local runtime; no quota. Measured means usable."
     },
+    "sail": {
+      "pool": "sail",
+      "agent": "sail-worker",
+      "sourceId": "sail",
+      "percent": null,
+      "capped": [],
+      "measuredAt": null,
+      "maxAgeMinutes": 15,
+      "collectionMode": "unavailable",
+      "unmetered": false,
+      "reason": "Prepaid credits, flex window. Last resort until a live meter exists. No Sail API key on this host (set SAIL_API_KEY in ~/.config/ai-usage-dashboard/env). Official GET /v2/usage/summary; no browser scrape. No usage fabricated.",
+      "paid": true
+    },
     "openrouter": {
       "pool": "openrouter",
       "agent": "or-worker",
@@ -70,23 +83,11 @@
       "percent": null,
       "capped": [],
       "measuredAt": "2026-09-09T18:57:03.463Z",
-      "maxAgeMinutes": 60,
+      "maxAgeMinutes": 15,
       "collectionMode": "unavailable",
       "unmetered": false,
-      "reason": "No OPENROUTER_API_KEY, or the OpenRouter API did not return the expected usage payload. Unavailable rather than guessed."
-    },
-    "sail": {
-      "pool": "sail",
-      "agent": "sail-worker",
-      "sourceId": null,
-      "percent": null,
-      "capped": [],
-      "measuredAt": null,
-      "maxAgeMinutes": null,
-      "collectionMode": "unavailable",
-      "unmetered": true,
-      "paid": true,
-      "reason": "Prepaid credits, flex window. No meter in the dashboard; eligible as last resort only."
+      "reason": "Prepaid credits, pay per token. Last resort until a live meter exists. No OPENROUTER_API_KEY, or the OpenRouter API did not return the expected usage payload. Unavailable rather than guessed.",
+      "paid": true
     }
   }
 }

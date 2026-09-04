@@ -7,6 +7,7 @@ export const SOURCE_IDS = [
   "ollama",
   "enrich-labs",
   "openrouter",
+  "sail",
 ];
 
 export const SOURCE_META = {
@@ -39,8 +40,13 @@ export const SOURCE_META = {
   },
   openrouter: {
     name: "OpenRouter",
-    unit: "$ spend",
-    usageUrl: "https://openrouter.ai/settings/usage",
+    unit: "USD",
+    usageUrl: "https://openrouter.ai/workspaces/default",
+  },
+  sail: {
+    name: "Sail Research",
+    unit: "USD",
+    usageUrl: "https://app.sailresearch.com/usage",
   },
 };
 
@@ -188,7 +194,7 @@ export function validateRoutingBucket(raw, label) {
 }
 
 /**
- * Top-level routing metric — not a sixth SOURCE_IDS entry.
+ * Top-level routing metric — not a SOURCE_IDS entry.
  * Entire object is null when the routing log is missing/unreadable.
  *
  * A percentage may only be published when `runtimeEvidence` names the proof that
