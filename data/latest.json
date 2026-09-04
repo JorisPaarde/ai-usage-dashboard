@@ -1,6 +1,6 @@
 {
   "version": "1.6.1",
-  "generatedAt": "2026-09-04T07:17:10.535Z",
+  "generatedAt": "2026-09-04T07:32:19.745Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
       "resetDate": "2026-09-04T11:48:21.000Z",
-      "lastUpdate": "2026-09-04T07:17:10.535Z",
+      "lastUpdate": "2026-09-04T07:32:19.745Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -52,7 +52,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-04T07:17:10.535Z",
+      "lastUpdate": "2026-09-04T07:32:19.745Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -106,7 +106,7 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "12399818 tokens this month (12277136 prompt/cache + 122682 output) across 136 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Anthropic OAuth usage API rate-limited this collect (HTTP 429); will retry next interval. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual override added meter(s) the automatic path lacked: session, usage-credits, weekly-all-models (STALE: manual fill 24 hour(s) old.). Source stays automatic.",
+      "reason": "12399818 tokens this month (12277136 prompt/cache + 122682 output) across 136 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Anthropic OAuth usage API rate-limited this collect (HTTP 429); will retry next interval. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual override added meter(s) the automatic path lacked: session, usage-credits, weekly-all-models (STALE: manual fill 25 hour(s) old.). Source stays automatic.",
       "usage": 12399818,
       "limit": null,
       "unit": "tokens",
@@ -179,7 +179,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-04T07:17:10.535Z",
+      "lastUpdate": "2026-09-04T07:32:19.745Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 4722,
@@ -205,7 +205,7 @@
       "name": "Enrich Labs / Helena",
       "status": "measured",
       "collectionMode": "manual",
-      "reason": "Read from the signed-in Enrich Labs workspace profile at 2026-09-03T06:55:23Z: 28 of 200 credits used (14%), 172 remaining, resets 2026-10-01. Breakdown: 15 social posts and 13 chat/task executions; all other categories 0. STALE: Manual reading 24 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
+      "reason": "Read from the signed-in Enrich Labs workspace profile at 2026-09-03T06:55:23Z: 28 of 200 credits used (14%), 172 remaining, resets 2026-10-01. Breakdown: 15 social posts and 13 chat/task executions; all other categories 0. STALE: Manual reading 25 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
       "usage": 28,
       "limit": 200,
       "unit": "credits",
