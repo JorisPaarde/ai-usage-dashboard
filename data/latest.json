@@ -1,5 +1,5 @@
 {
-  "version": "1.6.1",
+  "version": "1.7.0",
   "generatedAt": "2026-09-04T11:24:13.468Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
@@ -200,6 +200,50 @@
         "monthly": 200,
         "weeklyPaceMax": 50
       }
+    },
+    {
+      "id": "openrouter",
+      "name": "OpenRouter",
+      "status": "unknown",
+      "collectionMode": "unavailable",
+      "reason": "No OpenRouter API key on this host (set OPENROUTER_API_KEY or OPENROUTER_MANAGEMENT_KEY in ~/.config/ai-usage-dashboard/env). Official GET /api/v1/credits + /api/v1/key; no browser scrape. No usage fabricated.",
+      "usage": null,
+      "limit": null,
+      "unit": "USD",
+      "resetDate": null,
+      "lastUpdate": null,
+      "coverageStart": null,
+      "breakdown": null,
+      "components": null,
+      "usageUrl": "https://openrouter.ai/workspaces/default",
+      "pace": {
+        "daily": null,
+        "monthly": null,
+        "weeklyTarget": null
+      },
+      "history": []
+    },
+    {
+      "id": "sail",
+      "name": "Sail Research",
+      "status": "unknown",
+      "collectionMode": "unavailable",
+      "reason": "No Sail API key on this host (set SAIL_API_KEY in ~/.config/ai-usage-dashboard/env). Official GET /v2/usage/summary; no browser scrape. No usage fabricated.",
+      "usage": null,
+      "limit": null,
+      "unit": "USD",
+      "resetDate": null,
+      "lastUpdate": null,
+      "coverageStart": null,
+      "breakdown": null,
+      "components": null,
+      "usageUrl": "https://app.sailresearch.com/usage",
+      "pace": {
+        "daily": null,
+        "monthly": null,
+        "weeklyTarget": null
+      },
+      "history": []
     }
   ]
 }

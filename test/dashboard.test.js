@@ -82,6 +82,12 @@ async function withMissingCursorLocalState(fn) {
     "fixtures",
     "missing-claude-credentials.json",
   );
+  const prevOpenrouter = process.env.OPENROUTER_API_KEY;
+  const prevOpenrouterMgmt = process.env.OPENROUTER_MANAGEMENT_KEY;
+  const prevSail = process.env.SAIL_API_KEY;
+  delete process.env.OPENROUTER_API_KEY;
+  delete process.env.OPENROUTER_MANAGEMENT_KEY;
+  delete process.env.SAIL_API_KEY;
   try {
     return await fn();
   } finally {
@@ -91,11 +97,17 @@ async function withMissingCursorLocalState(fn) {
     else process.env.CURSOR_STORAGE_JSON = prevJson;
     if (prevClaudeCredentials === undefined) delete process.env.CLAUDE_CREDENTIALS_PATH;
     else process.env.CLAUDE_CREDENTIALS_PATH = prevClaudeCredentials;
+    if (prevOpenrouter === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = prevOpenrouter;
+    if (prevOpenrouterMgmt === undefined) delete process.env.OPENROUTER_MANAGEMENT_KEY;
+    else process.env.OPENROUTER_MANAGEMENT_KEY = prevOpenrouterMgmt;
+    if (prevSail === undefined) delete process.env.SAIL_API_KEY;
+    else process.env.SAIL_API_KEY = prevSail;
   }
 }
 
 describe("schema", () => {
-  it("requires all five sources and unknown reasons", () => {
+  it("requires every SOURCE_IDS entry and unknown reasons", () => {
     const snap = {
       version: "1.1.0",
       generatedAt: "2026-08-31T10:00:00.000Z",
@@ -993,8 +1005,8 @@ describe("collector", () => {
         overrides: [],
       });
       assert.equal(validateSnapshot(snap).ok, true);
-      assert.equal(snap.version, "1.6.1");
-      assert.equal(snap.sources.length, 5);
+      assert.equal(snap.version, "1.7.0");
+      assert.equal(snap.sources.length, SOURCE_IDS.length);
       for (const s of snap.sources) {
         assertHonestSource(s);
         if (s.status === "unknown") assert.equal(s.usage, null);
@@ -1002,6 +1014,14 @@ describe("collector", () => {
       const enrichSrc = snap.sources.find((s) => s.id === "enrich-labs");
       assert.equal(enrichSrc.limit, 200);
       assert.equal(enrichSrc.pace.weeklyTarget, 50);
+      const orSrc = snap.sources.find((s) => s.id === "openrouter");
+      assert.equal(orSrc.status, "unknown");
+      assert.equal(orSrc.usage, null);
+      assert.equal(orSrc.usageUrl, "https://openrouter.ai/workspaces/default");
+      const sailSrc = snap.sources.find((s) => s.id === "sail");
+      assert.equal(sailSrc.status, "unknown");
+      assert.equal(sailSrc.usage, null);
+      assert.equal(sailSrc.usageUrl, "https://app.sailresearch.com/usage");
     });
   });
 
@@ -1507,6 +1527,12 @@ describe("public seed", () => {
     );
     const claude = snap.sources.find((s) => s.id === "claude-code");
     assert.equal(claude.usageUrl, "https://claude.ai/new#settings/usage");
+    const openrouter = snap.sources.find((s) => s.id === "openrouter");
+    assert.equal(openrouter.usageUrl, "https://openrouter.ai/workspaces/default");
+    assert.equal(openrouter.usage, null);
+    const sail = snap.sources.find((s) => s.id === "sail");
+    assert.equal(sail.usageUrl, "https://app.sailresearch.com/usage");
+    assert.equal(sail.usage, null);
     assert.match(
       await readFile(path.join(ROOT, "site", "dashboard.js"), "utf8"),
       /source-link/,
@@ -1522,8 +1548,8 @@ describe("public seed", () => {
     assert.match(html, /btn-update/);
     assert.match(html, /mac-badge/);
     assert.match(html, /last-updated/);
-    assert.match(html, /dashboard\.js\?v=1\.6\.1/);
-    assert.match(html, /styles\.css\?v=1\.6\.1/);
+    assert.match(html, /dashboard\.js\?v=1\.7\.0/);
+    assert.match(html, /styles\.css\?v=1\.7\.0/);
     assert.match(html, /Laatst bijgewerkt:/);
     assert.doesNotMatch(js, /meta\.textContent = `Snapshot /);
     assert.doesNotMatch(js, /Dagtempo|Maandtempo/);

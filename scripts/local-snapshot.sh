@@ -20,6 +20,14 @@ trap 'rmdir "$LOCK"' EXIT INT TERM
 
 cd "$ROOT"
 
+ENV_FILE="${AI_USAGE_ENV_FILE:-$HOME/.config/ai-usage-dashboard/env}"
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+  set +a
+fi
+
 echo "=== local snapshot run $(date -u +%Y-%m-%dT%H:%M:%SZ) in $ROOT ==="
 
 if ! command -v node >/dev/null 2>&1; then

@@ -66,28 +66,28 @@
     "sail": {
       "pool": "sail",
       "agent": "sail-worker",
-      "sourceId": null,
+      "sourceId": "sail",
       "percent": null,
       "capped": [],
       "measuredAt": null,
-      "maxAgeMinutes": null,
+      "maxAgeMinutes": 15,
       "collectionMode": "unavailable",
-      "unmetered": true,
-      "paid": true,
-      "reason": "Prepaid credits, flex window. No meter in the dashboard; eligible as last resort only."
+      "unmetered": false,
+      "reason": "Prepaid credits, flex window. Last resort until a live meter exists. No Sail API key on this host (set SAIL_API_KEY in ~/.config/ai-usage-dashboard/env). Official GET /v2/usage/summary; no browser scrape. No usage fabricated.",
+      "paid": true
     },
     "openrouter": {
       "pool": "openrouter",
       "agent": "or-worker",
-      "sourceId": null,
+      "sourceId": "openrouter",
       "percent": null,
       "capped": [],
       "measuredAt": null,
-      "maxAgeMinutes": null,
+      "maxAgeMinutes": 15,
       "collectionMode": "unavailable",
-      "unmetered": true,
-      "paid": true,
-      "reason": "Prepaid credits, pay per token. No meter in the dashboard; eligible as last resort only."
+      "unmetered": false,
+      "reason": "Prepaid credits, pay per token. Last resort until a live meter exists. No OpenRouter API key on this host (set OPENROUTER_API_KEY or OPENROUTER_MANAGEMENT_KEY in ~/.config/ai-usage-dashboard/env). Official GET /api/v1/credits + /api/v1/key; no browser scrape. No usage fabricated.",
+      "paid": true
     }
   }
 }

@@ -1,6 +1,6 @@
 # Plan: unattended AI usage app
 
-**Version:** 1.4.1 · **Branch/PR:** `cursor/unattended-usage-app-46b4` / #13  
+**Version:** 1.7.0 · **Branch/PR:** `cursor/openrouter-sail-usage-1715`  
 **Live host:** GitHub Pages (`data/latest.json` only) · **Collect host:** Mac LaunchAgent
 
 ## Product rule
@@ -24,6 +24,7 @@ Cursor cloud agents may **plan, backlog, and implement**. Once shipped, **collec
 | #8 LaunchAgent sole publisher | **Shipped** — docs + workflow guard |
 | #9 UI live/stale | **Shipped** |
 | #10 Enrich/Helena | **Hard stop documented** (`docs/ENRICH.md`) — manual override only |
+| OpenRouter + Sail | **Shipped in code** — official Usage APIs when keys live in `~/.config/ai-usage-dashboard/env`; stay last-resort `paid` until a usage/limit pair exists |
 | #11 Routing | **Held** — compact unavailable card until runtime evidence |
 | #12 No agent in collect | **Shipped** — script comments + PLAN + SCHEDULE |
 

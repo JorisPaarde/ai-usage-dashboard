@@ -73,17 +73,30 @@ export const POOLS = Object.freeze({
     maxAgeMinutes: 60,
     agent: "LocalAI guy",
   },
+  sail: {
+    sourceId: "sail",
+    componentIds: ["period"],
+    maxAgeMinutes: 15,
+    agent: "sail-worker",
+    paidFallback: true,
+    note: "Prepaid credits, flex window.",
+  },
+  openrouter: {
+    sourceId: "openrouter",
+    componentIds: ["credits", "key-limit"],
+    maxAgeMinutes: 15,
+    agent: "or-worker",
+    paidFallback: true,
+    note: "Prepaid credits, pay per token.",
+  },
 });
 
 /**
- * Prepaid pools with no meter in the dashboard. They are never called `ok`
- * from a measurement because there is none; they are eligible as a last
- * resort, and the kill switch is not topping up their credits.
+ * @deprecated Prepaid pools now live in POOLS with `paidFallback`. Kept as an
+ * empty table so older imports do not throw; poolsFromSnapshot no longer
+ * iterates it.
  */
-export const PAID_POOLS = Object.freeze({
-  sail: { agent: "sail-worker", note: "Prepaid credits, flex window." },
-  openrouter: { agent: "or-worker", note: "Prepaid credits, pay per token." },
-});
+export const PAID_POOLS = Object.freeze({});
 
 function pct(usage, limit) {
   if (typeof usage !== "number" || !Number.isFinite(usage)) return null;
@@ -160,7 +173,13 @@ export function poolFromSource(name, config, source) {
   };
 
   if (!source) {
-    return { ...base, reason: `No source ${config.sourceId} in snapshot.` };
+    return {
+      ...base,
+      paid: Boolean(config.paidFallback),
+      reason: config.paidFallback
+        ? `${config.note || "Prepaid pool."} No source ${config.sourceId} in snapshot; last resort until a live meter exists.`
+        : `No source ${config.sourceId} in snapshot.`,
+    };
   }
   base.collectionMode = source.collectionMode || "unavailable";
   base.measuredAt = source.lastUpdate ?? null;
@@ -168,9 +187,11 @@ export function poolFromSource(name, config, source) {
   if (source.status !== "measured") {
     return {
       ...base,
-      reason:
-        source.reason ||
-        `Source ${config.sourceId} is ${source.status}; no percentage derived.`,
+      paid: Boolean(config.paidFallback),
+      reason: config.paidFallback
+        ? `${config.note || "Prepaid pool."} Last resort until a live meter exists. ${source.reason || "unmeasured"}`
+        : source.reason ||
+          `Source ${config.sourceId} is ${source.status}; no percentage derived.`,
     };
   }
 
@@ -208,6 +229,16 @@ export function poolFromSource(name, config, source) {
 
   const capped = cappedMeters(source.components);
   if (percent == null) {
+    if (config.paidFallback) {
+      return {
+        ...base,
+        capped,
+        paid: true,
+        reason:
+          `${config.note || "Prepaid pool."} Measured, but no usage/limit pair ` +
+          "to turn into a percentage — last resort until a live meter exists.",
+      };
+    }
     return {
       ...base,
       capped,
@@ -245,21 +276,6 @@ export function poolsFromSnapshot(snapshot) {
   const pools = {};
   for (const [name, config] of Object.entries(POOLS)) {
     pools[name] = poolFromSource(name, config, byId.get(config.sourceId));
-  }
-  for (const [name, config] of Object.entries(PAID_POOLS)) {
-    pools[name] = {
-      pool: name,
-      agent: config.agent,
-      sourceId: null,
-      percent: null,
-      capped: [],
-      measuredAt: null,
-      maxAgeMinutes: null,
-      collectionMode: "unavailable",
-      unmetered: true,
-      paid: true,
-      reason: `${config.note} No meter in the dashboard; eligible as last resort only.`,
-    };
   }
   return {
     snapshotGeneratedAt: snapshot?.generatedAt ?? null,
