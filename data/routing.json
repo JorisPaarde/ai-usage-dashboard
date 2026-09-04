@@ -1,0 +1,93 @@
+{
+  "snapshotGeneratedAt": "2026-09-04T08:32:58.550Z",
+  "thresholds": {
+    "okBelowPercent": 80,
+    "fullAtPercent": 95
+  },
+  "note": "Facts only. Verdicts are computed at read time by verdictForPool(); a stored verdict would age inside this file.",
+  "pools": {
+    "claude": {
+      "pool": "claude",
+      "agent": "Claude-agent",
+      "sourceId": "claude-code",
+      "percent": 8,
+      "capped": [],
+      "measuredAt": "2026-09-04T08:11:18.287Z",
+      "maxAgeMinutes": 15,
+      "collectionMode": "automatic",
+      "unmetered": false,
+      "reason": "Highest of session, weekly-all-models."
+    },
+    "openai": {
+      "pool": "openai",
+      "agent": "Codex-agent",
+      "sourceId": "openai-buzz",
+      "percent": 34,
+      "capped": [],
+      "measuredAt": "2026-09-04T08:32:58.550Z",
+      "maxAgeMinutes": 15,
+      "collectionMode": "automatic",
+      "unmetered": false,
+      "reason": "Source usage against its own limit."
+    },
+    "cursor": {
+      "pool": "cursor",
+      "agent": "Cursor Builder",
+      "sourceId": "cursor-agent",
+      "percent": 35.2,
+      "capped": [
+        {
+          "id": "on-demand",
+          "percent": 98.1
+        },
+        {
+          "id": "grok-bot",
+          "percent": 94.9
+        }
+      ],
+      "measuredAt": "2026-09-04T08:32:58.550Z",
+      "maxAgeMinutes": 60,
+      "collectionMode": "automatic",
+      "unmetered": false,
+      "reason": "Highest capacity meter; capped meters reported separately."
+    },
+    "local": {
+      "pool": "local",
+      "agent": "LocalAI guy",
+      "sourceId": "ollama",
+      "percent": null,
+      "capped": [],
+      "measuredAt": "2026-09-04T08:32:58.550Z",
+      "maxAgeMinutes": 60,
+      "collectionMode": "automatic",
+      "unmetered": true,
+      "reason": "Local runtime; no quota. Measured means usable."
+    },
+    "sail": {
+      "pool": "sail",
+      "agent": "sail-worker",
+      "sourceId": null,
+      "percent": null,
+      "capped": [],
+      "measuredAt": null,
+      "maxAgeMinutes": null,
+      "collectionMode": "unavailable",
+      "unmetered": true,
+      "paid": true,
+      "reason": "Prepaid credits, flex window. No meter in the dashboard; eligible as last resort only."
+    },
+    "openrouter": {
+      "pool": "openrouter",
+      "agent": "or-worker",
+      "sourceId": null,
+      "percent": null,
+      "capped": [],
+      "measuredAt": null,
+      "maxAgeMinutes": null,
+      "collectionMode": "unavailable",
+      "unmetered": true,
+      "paid": true,
+      "reason": "Prepaid credits, pay per token. No meter in the dashboard; eligible as last resort only."
+    }
+  }
+}

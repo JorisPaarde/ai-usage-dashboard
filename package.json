@@ -12,6 +12,8 @@
     "build": "node scripts/build.js",
     "app": "node scripts/local-app-server.js",
     "test": "node --test test/*.test.js",
-    "check": "node --test test/*.test.js && node scripts/build.js"
+    "check": "node --test test/*.test.js && node scripts/build.js",
+    "routing": "node scripts/write-routing.js",
+    "route": "node scripts/route.js"
   }
 }
