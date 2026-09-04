@@ -107,7 +107,7 @@ describe("capacity facts", () => {
     assert.match(fact.reason, /unreachable/);
   });
 
-  it("builds every pool, including the unmetered paid ones", () => {
+  it("builds every pool, including prepaid last-resort when unmetered", () => {
     const facts = poolsFromSnapshot({
       generatedAt: NOW.toISOString(),
       sources: [cursorSource()],
@@ -118,6 +118,44 @@ describe("capacity facts", () => {
     );
     assert.equal(facts.pools.sail.paid, true);
     assert.equal(facts.pools.sail.percent, null);
+    assert.equal(facts.pools.openrouter.paid, true);
+    assert.equal(facts.pools.sail.sourceId, "sail");
+    assert.equal(facts.pools.openrouter.sourceId, "openrouter");
+  });
+
+  it("meters OpenRouter from credits/key-limit and drops paid last-resort", () => {
+    const fact = poolFromSource("openrouter", POOLS.openrouter, {
+      id: "openrouter",
+      status: "measured",
+      collectionMode: "automatic",
+      lastUpdate: FRESH,
+      usage: 25.75,
+      limit: 100.5,
+      components: [
+        { id: "credits", usage: 25.75, limit: 100.5, role: "capacity" },
+        { id: "key-limit", usage: 42, limit: 50, role: "capped" },
+      ],
+    });
+    assert.equal(fact.percent, 84);
+    assert.equal(fact.paid, undefined);
+    assert.equal(verdictForPool(fact, NOW).verdict, "low");
+  });
+
+  it("meters Sail from the billing-period component", () => {
+    const fact = poolFromSource("sail", POOLS.sail, {
+      id: "sail",
+      status: "measured",
+      collectionMode: "automatic",
+      lastUpdate: FRESH,
+      usage: 10.54,
+      limit: 17.92,
+      components: [
+        { id: "period", usage: 10.54, limit: 17.92, role: "capacity" },
+      ],
+    });
+    assert.equal(fact.percent, 58.8);
+    assert.equal(fact.paid, undefined);
+    assert.equal(verdictForPool(fact, NOW).verdict, "ok");
   });
 
   it("stores no verdict in the fact file", () => {

@@ -1,8 +1,8 @@
 # AI Usage Dashboard
 
 Operational static dashboard for **OpenAI/Buzz**, **Cursor Agent**, **Claude Code**,
-**Ollama**, and **Enrich Labs / Helena**. Vanilla HTML/CSS/JS front end; Node
-standard-library collector. No npm dependencies.
+**Ollama**, **Enrich Labs / Helena**, **OpenRouter**, and **Sail Research**. Vanilla
+HTML/CSS/JS front end; Node standard-library collector. No npm dependencies.
 
 See [`PLAN.md`](PLAN.md) for the unattended-collect roadmap and backlog issues.
 
@@ -43,8 +43,10 @@ Optional on-demand UI: `./scripts/install-local-app.sh` → open
 
 Most vendors do not expose public usage meters. Unavailable sources stay
 unavailable — never fabricated. Claude plan % uses local OAuth when present;
-Enrich Labs / Helena is a documented hard stop (`docs/ENRICH.md`) unless a
-manual override is supplied.
+OpenRouter and Sail Research use official Usage APIs when
+`OPENROUTER_API_KEY` / `SAIL_API_KEY` are present in
+`~/.config/ai-usage-dashboard/env`; Enrich Labs / Helena is a documented hard
+stop (`docs/ENRICH.md`) unless a manual override is supplied.
 
 ## What you see
 
@@ -56,9 +58,11 @@ daily history. No dagtempo/maandtempo. Enrich budget **200**/maand (max
 ## Collector
 
 Isolated adapters in `collector/adapters/`. Output: `data/latest.json`. No LLM
-calls. Cursor/Codex/Claude/Ollama use local signed-in meters. Codex
-`app-server` is read-only for OpenAI rate limits (no model, no tokens) — it is
-**not** in the Update button path.
+calls. Cursor/Codex/Claude/Ollama use local signed-in meters. OpenRouter and
+Sail Research use official Usage APIs when keys are present (see
+[`docs/PREPAID.md`](docs/PREPAID.md)). Codex `app-server` is read-only for
+OpenAI rate limits (no model, no tokens) — it is **not** in the Update button
+path.
 
 ## Schedule
 
@@ -78,4 +82,4 @@ No ping endpoint and no secrets on the page.
 
 ## Version
 
-`1.6.1`
+`1.7.0`
