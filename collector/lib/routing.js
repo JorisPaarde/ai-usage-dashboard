@@ -82,16 +82,39 @@ function pct(usage, limit) {
   return Math.round((usage / limit) * 1000) / 10;
 }
 
+/**
+ * Highest percentage among the accepted components, plus the provenance of the
+ * ones that contributed.
+ *
+ * Provenance matters more than it looks. A source can report
+ * `collectionMode: "automatic"` with `lastUpdate` set to this collect while the
+ * individual plan meters were filled from a hand-typed override — that is what
+ * happens when the Claude OAuth token is rejected and the seed fills the gap.
+ * Reading only the source would call a day-old 0% a fresh measurement.
+ */
 function maxPercent(components, accept) {
   let best = null;
+  /** @type {string[]} */
+  const manualIds = [];
+  /** @type {string[]} */
+  const filledAts = [];
   for (const c of components || []) {
     if (!c || typeof c.id !== "string") continue;
     if (!accept(c)) continue;
     const p = pct(c.usage, c.limit);
     if (p == null) continue;
     best = best == null ? p : Math.max(best, p);
+    if (c.filledFrom === "manual") {
+      manualIds.push(c.id);
+      if (typeof c.filledAt === "string" && c.filledAt) filledAts.push(c.filledAt);
+    }
   }
-  return best;
+  // The oldest contributing fill decides the pool's age: a percentage is only
+  // as fresh as the weakest number behind it.
+  const oldestFill = filledAts.length
+    ? filledAts.reduce((a, b) => (new Date(a) < new Date(b) ? a : b))
+    : null;
+  return { percent: best, manualIds, oldestFill };
 }
 
 function cappedMeters(components) {
@@ -148,16 +171,28 @@ export function poolFromSource(name, config, source) {
   }
 
   let percent = null;
+  let manualIds = [];
+  let oldestFill = null;
   if (config.componentIds) {
     const wanted = new Set(config.componentIds);
-    percent = maxPercent(source.components, (c) => wanted.has(c.id));
+    ({ percent, manualIds, oldestFill } = maxPercent(source.components, (c) =>
+      wanted.has(c.id),
+    ));
   } else if (config.componentRole) {
-    percent = maxPercent(
+    ({ percent, manualIds, oldestFill } = maxPercent(
       source.components,
       (c) => c.role === config.componentRole,
-    );
+    ));
   } else if (config.useSourceUsage) {
     percent = pct(source.usage, source.limit);
+  }
+
+  if (manualIds.length) {
+    // Downgrade the pool to what it really is: a hand-typed reading, aged from
+    // when it was typed, not from when the collector last ran.
+    base.collectionMode = "manual";
+    base.measuredAt = oldestFill;
+    base.filledFrom = manualIds;
   }
 
   const capped = cappedMeters(source.components);
@@ -174,11 +209,14 @@ export function poolFromSource(name, config, source) {
     ...base,
     percent,
     capped,
-    reason: config.componentIds
-      ? `Highest of ${config.componentIds.join(", ")}.`
-      : config.componentRole
-        ? `Highest capacity meter; capped meters reported separately.`
-        : "Source usage against its own limit.",
+    reason: manualIds.length
+      ? `Hand-typed meter(s) ${manualIds.join(", ")} behind this number; ` +
+        `aged from the fill${oldestFill ? ` at ${oldestFill}` : " (no timestamp)"}, not from the collect.`
+      : config.componentIds
+        ? `Highest of ${config.componentIds.join(", ")}.`
+        : config.componentRole
+          ? `Highest capacity meter; capped meters reported separately.`
+          : "Source usage against its own limit.",
   };
 }
 

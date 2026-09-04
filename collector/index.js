@@ -190,7 +190,17 @@ export function mergeOverrideOntoAutomatic(base, override, now = new Date()) {
     for (const c of overrideComponents) {
       if (!c || typeof c.id !== "string" || !c.id) continue;
       if (byId.has(c.id)) continue;
-      byId.set(c.id, c);
+      // Stamp provenance on the component itself. The source stays
+      // collectionMode "automatic" because the adapter did measure something
+      // this run, and its lastUpdate is this collect — so a consumer reading
+      // only the source cannot tell that these particular meters are a
+      // hand-typed seed from yesterday. Carrying the fill's own age here is
+      // what lets the capacity router refuse to treat them as fresh.
+      byId.set(c.id, {
+        ...c,
+        filledFrom: "manual",
+        filledAt: override.lastUpdate ?? null,
+      });
       filledIds.push(c.id);
     }
   }

@@ -409,3 +409,56 @@ describe("quota detection", () => {
     }
   });
 });
+
+describe("provenance: a hand-typed meter is not a measurement", () => {
+  // Reproduces the live 2026-09-04 state: the Claude OAuth token was rejected,
+  // so the adapter published transcript tokens (a real measurement) while the
+  // plan percentages came from a 26-hour-old manual fill. The source therefore
+  // reads status "measured", collectionMode "automatic", and lastUpdate = this
+  // collect — while its session % is a day old and was, in reality, 82%.
+  const FILLED_AT = "2026-09-03T07:00:00.000Z"; // 26 h before NOW
+  const source = {
+    id: "claude-code",
+    status: "measured",
+    collectionMode: "automatic",
+    lastUpdate: "2026-09-04T08:59:00.000Z", // one minute old
+    usage: 13778301,
+    limit: null,
+    components: [
+      { id: "session", usage: 0, limit: 100, filledFrom: "manual", filledAt: FILLED_AT },
+      { id: "weekly-all-models", usage: 8, limit: 100, filledFrom: "manual", filledAt: FILLED_AT },
+      { id: "usage-credits", usage: 0, limit: 50, filledFrom: "manual", filledAt: FILLED_AT },
+    ],
+  };
+
+  it("ages the pool from the fill, not from the collect", () => {
+    const fact = poolFromSource("claude", POOLS.claude, source);
+    assert.equal(fact.measuredAt, FILLED_AT);
+    assert.equal(fact.collectionMode, "manual");
+    assert.deepEqual(fact.filledFrom, ["session", "weekly-all-models"]);
+  });
+
+  it("refuses to call it ok, however fresh the snapshot is", () => {
+    const fact = poolFromSource("claude", POOLS.claude, source);
+    const v = verdictForPool(fact, NOW);
+    assert.equal(v.verdict, "low");
+    assert.match(v.reason, /past its 15 min limit/);
+  });
+
+  it("keeps a genuinely measured pool automatic", () => {
+    const fact = poolFromSource("cursor", POOLS.cursor, cursorSource());
+    assert.equal(fact.collectionMode, "automatic");
+    assert.equal(fact.measuredAt, FRESH);
+    assert.equal("filledFrom" in fact, false);
+  });
+
+  it("treats a fill with no timestamp as stale rather than fresh", () => {
+    const noStamp = {
+      ...source,
+      components: source.components.map((c) => ({ ...c, filledAt: null })),
+    };
+    const fact = poolFromSource("claude", POOLS.claude, noStamp);
+    assert.equal(fact.measuredAt, null);
+    assert.equal(verdictForPool(fact, NOW).verdict, "low");
+  });
+});
