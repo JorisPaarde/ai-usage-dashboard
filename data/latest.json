@@ -1,6 +1,6 @@
 {
   "version": "1.6.1",
-  "generatedAt": "2026-09-04T12:55:11.301Z",
+  "generatedAt": "2026-09-04T13:10:20.228Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
       "resetDate": "2026-09-04T15:47:35.000Z",
-      "lastUpdate": "2026-09-04T12:55:11.301Z",
+      "lastUpdate": "2026-09-04T13:10:20.228Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -47,12 +47,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 29.349999999999998%; Other Models 37.418181818181814%; On-demand $73.6/$75; Grok Bot weekly 97.576592%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 29.349999999999998%; Other Models 37.418181818181814%; On-demand $73.6/$75; Grok Bot weekly 97.925088%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-04T12:55:11.301Z",
+      "lastUpdate": "2026-09-04T13:10:20.228Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -87,7 +87,7 @@
           "id": "grok-bot",
           "label": "Grok Bot (weekly)",
           "role": "capped",
-          "usage": 97.576592,
+          "usage": 97.925088,
           "limit": 100,
           "unit": "% of weekly allowance",
           "resetDate": "2026-09-07T18:29:55.366Z"
@@ -106,17 +106,17 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "15365204 tokens this month (15169805 prompt/cache + 195399 output) across 215 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Claude OAuth usage backoff is active until 2026-09-04T13:24:52.520Z, but no successful cached reading exists. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual plan percentages were not used after an OAuth failure; the capacity pool stays unknown unless a cached automatic reading exists.",
-      "usage": 15365204,
+      "reason": "15749843 tokens this month (15545399 prompt/cache + 204444 output) across 223 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Claude OAuth usage backoff is active until 2026-09-04T13:24:52.520Z, but no successful cached reading exists. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual plan percentages were not used after an OAuth failure; the capacity pool stays unknown unless a cached automatic reading exists.",
+      "usage": 15749843,
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-04T12:54:03.594Z",
+      "lastUpdate": "2026-09-04T13:00:19.444Z",
       "coverageStart": "2026-09-01T13:16:40.770Z",
       "breakdown": {
-        "promptTokens": 15169805,
-        "outputTokens": 195399,
-        "generations": 215
+        "promptTokens": 15545399,
+        "outputTokens": 204444,
+        "generations": 223
       },
       "components": null,
       "usageUrl": "https://claude.ai/new#settings/usage",
@@ -140,7 +140,7 @@
         },
         {
           "date": "2026-09-04",
-          "usage": 3401241
+          "usage": 3785880
         }
       ]
     },
@@ -154,7 +154,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-04T12:55:11.301Z",
+      "lastUpdate": "2026-09-04T13:10:20.228Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 4744,
