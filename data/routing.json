@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-09-05T08:36:39.379Z",
+  "snapshotGeneratedAt": "2026-09-05T08:51:47.721Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -24,7 +24,7 @@
       "sourceId": "openai-buzz",
       "percent": 0,
       "capped": [],
-      "measuredAt": "2026-09-05T08:36:39.379Z",
+      "measuredAt": "2026-09-05T08:51:47.721Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -45,7 +45,7 @@
           "percent": 100
         }
       ],
-      "measuredAt": "2026-09-05T08:36:39.379Z",
+      "measuredAt": "2026-09-05T08:51:47.721Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -57,7 +57,7 @@
       "sourceId": "ollama",
       "percent": null,
       "capped": [],
-      "measuredAt": "2026-09-05T08:36:39.379Z",
+      "measuredAt": "2026-09-05T08:51:47.721Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": true,
