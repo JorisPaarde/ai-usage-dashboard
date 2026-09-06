@@ -1,6 +1,6 @@
 {
   "version": "1.6.1",
-  "generatedAt": "2026-09-06T14:17:28.849Z",
+  "generatedAt": "2026-09-06T14:32:37.500Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
       "resetDate": "2026-09-06T17:45:02.000Z",
-      "lastUpdate": "2026-09-06T14:17:28.849Z",
+      "lastUpdate": "2026-09-06T14:32:37.500Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -52,7 +52,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-06T14:17:28.849Z",
+      "lastUpdate": "2026-09-06T14:32:37.500Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -106,7 +106,7 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "18207029 tokens this month (17965847 prompt/cache + 241182 output) across 266 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Claude OAuth token rejected by the usage API; re-auth in Claude Code, then collect again. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual plan percentages were not used after an OAuth failure; the capacity pool stays unknown unless a cached automatic reading exists.",
+      "reason": "18207029 tokens this month (17965847 prompt/cache + 241182 output) across 266 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Claude OAuth usage backoff is active until 2026-09-06T15:17:28.849Z, but no successful cached reading exists. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual plan percentages were not used after an OAuth failure; the capacity pool stays unknown unless a cached automatic reading exists.",
       "usage": 18207029,
       "limit": null,
       "unit": "tokens",
@@ -158,7 +158,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-06T14:17:28.849Z",
+      "lastUpdate": "2026-09-06T14:32:37.500Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 4744,
@@ -184,7 +184,7 @@
       "name": "Enrich Labs / Helena",
       "status": "measured",
       "collectionMode": "manual",
-      "reason": "Read from the signed-in Enrich Labs workspace profile at 2026-09-03T06:55:23Z: 28 of 200 credits used (14%), 172 remaining, resets 2026-10-01. Breakdown: 15 social posts and 13 chat/task executions; all other categories 0. STALE: Manual reading 79 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
+      "reason": "Read from the signed-in Enrich Labs workspace profile at 2026-09-03T06:55:23Z: 28 of 200 credits used (14%), 172 remaining, resets 2026-10-01. Breakdown: 15 social posts and 13 chat/task executions; all other categories 0. STALE: Manual reading 80 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
       "usage": 28,
       "limit": 200,
       "unit": "credits",
