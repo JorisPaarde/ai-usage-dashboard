@@ -1,6 +1,6 @@
 {
   "version": "1.6.1",
-  "generatedAt": "2026-09-06T12:31:23.766Z",
+  "generatedAt": "2026-09-06T12:46:32.632Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
   "routing": {
@@ -25,12 +25,12 @@
       "name": "OpenAI / Buzz",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Codex account: 0% of the 5-hour limit used. The weekly window is 60% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
-      "usage": 0,
+      "reason": "Live from the signed-in Codex account: 7% of the 5-hour limit used. The weekly window is 61% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
+      "usage": 7,
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
-      "resetDate": "2026-09-06T17:31:24.000Z",
-      "lastUpdate": "2026-09-06T12:31:23.766Z",
+      "resetDate": "2026-09-06T17:45:02.000Z",
+      "lastUpdate": "2026-09-06T12:46:32.632Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -52,7 +52,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-06T12:31:23.766Z",
+      "lastUpdate": "2026-09-06T12:46:32.632Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -158,7 +158,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-06T12:31:23.766Z",
+      "lastUpdate": "2026-09-06T12:46:32.632Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 4744,
