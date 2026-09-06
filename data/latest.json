@@ -1,6 +1,6 @@
 {
   "version": "1.6.1",
-  "generatedAt": "2026-09-06T08:13:57.417Z",
+  "generatedAt": "2026-09-06T08:29:05.864Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
       "resetDate": "2026-09-06T12:09:35.000Z",
-      "lastUpdate": "2026-09-06T08:13:57.417Z",
+      "lastUpdate": "2026-09-06T08:29:05.864Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -47,12 +47,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 34.3525%; Other Models 37.418181818181814%; On-demand $75.72/$80; Grok Bot weekly 0.351833%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 34.3525%; Other Models 37.418181818181814%; On-demand $75.72/$80; Grok Bot weekly 0.472563%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-06T08:13:57.417Z",
+      "lastUpdate": "2026-09-06T08:29:05.864Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -87,7 +87,7 @@
           "id": "grok-bot",
           "label": "Grok Bot (weekly)",
           "role": "capped",
-          "usage": 0.351833,
+          "usage": 0.472563,
           "limit": 100,
           "unit": "% of weekly allowance",
           "resetDate": "2026-09-07T18:29:55.366Z"
@@ -106,17 +106,17 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "17479210 tokens this month (17252359 prompt/cache + 226851 output) across 254 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Claude OAuth token rejected by the usage API; re-auth in Claude Code, then collect again. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual plan percentages were not used after an OAuth failure; the capacity pool stays unknown unless a cached automatic reading exists.",
-      "usage": 17479210,
+      "reason": "18049854 tokens this month (17816962 prompt/cache + 232892 output) across 261 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Claude OAuth usage backoff is active until 2026-09-06T09:13:57.417Z, but no successful cached reading exists. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual plan percentages were not used after an OAuth failure; the capacity pool stays unknown unless a cached automatic reading exists.",
+      "usage": 18049854,
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-06T08:13:50.020Z",
+      "lastUpdate": "2026-09-06T08:20:42.451Z",
       "coverageStart": "2026-09-01T13:16:40.770Z",
       "breakdown": {
-        "promptTokens": 17252359,
-        "outputTokens": 226851,
-        "generations": 254
+        "promptTokens": 17816962,
+        "outputTokens": 232892,
+        "generations": 261
       },
       "components": null,
       "usageUrl": "https://claude.ai/new#settings/usage",
@@ -144,7 +144,7 @@
         },
         {
           "date": "2026-09-06",
-          "usage": 1729367
+          "usage": 2300011
         }
       ]
     },
@@ -158,7 +158,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-06T08:13:57.417Z",
+      "lastUpdate": "2026-09-06T08:29:05.864Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 4744,
@@ -184,7 +184,7 @@
       "name": "Enrich Labs / Helena",
       "status": "measured",
       "collectionMode": "manual",
-      "reason": "Read from the signed-in Enrich Labs workspace profile at 2026-09-03T06:55:23Z: 28 of 200 credits used (14%), 172 remaining, resets 2026-10-01. Breakdown: 15 social posts and 13 chat/task executions; all other categories 0. STALE: Manual reading 73 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
+      "reason": "Read from the signed-in Enrich Labs workspace profile at 2026-09-03T06:55:23Z: 28 of 200 credits used (14%), 172 remaining, resets 2026-10-01. Breakdown: 15 social posts and 13 chat/task executions; all other categories 0. STALE: Manual reading 74 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
       "usage": 28,
       "limit": 200,
       "unit": "credits",
