@@ -1,6 +1,6 @@
 {
   "version": "1.6.1",
-  "generatedAt": "2026-09-06T16:48:57.332Z",
+  "generatedAt": "2026-09-06T17:04:06.365Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": 100,
       "unit": "% of 5-hour Codex limit",
       "resetDate": "2026-09-06T17:45:02.000Z",
-      "lastUpdate": "2026-09-06T16:48:57.332Z",
+      "lastUpdate": "2026-09-06T17:04:06.365Z",
       "coverageStart": null,
       "breakdown": null,
       "components": null,
@@ -47,12 +47,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 41.64416666666666%; Other Models 37.418181818181814%; On-demand $75.72/$80; Grok Bot weekly 8.65653%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage + GetSandUsageStatus: Included Cursor Models 41.670833333333334%; Other Models 37.418181818181814%; On-demand $75.72/$80; Grok Bot weekly 9.269376%. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-09-24",
-      "lastUpdate": "2026-09-06T16:48:57.332Z",
+      "lastUpdate": "2026-09-06T17:04:06.365Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -60,7 +60,7 @@
           "id": "included-cursor-models",
           "label": "Included Cursor Models",
           "role": "capacity",
-          "usage": 41.64416666666666,
+          "usage": 41.670833333333334,
           "limit": 100,
           "unit": "% of included allowance",
           "resetDate": "2026-09-24"
@@ -87,7 +87,7 @@
           "id": "grok-bot",
           "label": "Grok Bot (weekly)",
           "role": "capped",
-          "usage": 8.65653,
+          "usage": 9.269376,
           "limit": 100,
           "unit": "% of weekly allowance",
           "resetDate": "2026-09-07T18:29:55.366Z"
@@ -158,7 +158,7 @@
       "limit": null,
       "unit": "tokens",
       "resetDate": null,
-      "lastUpdate": "2026-09-06T16:48:57.332Z",
+      "lastUpdate": "2026-09-06T17:04:06.365Z",
       "coverageStart": "2026-08-28T10:43:29.198+02:00",
       "breakdown": {
         "promptTokens": 4744,
