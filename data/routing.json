@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-09-06T15:48:21.907Z",
+  "snapshotGeneratedAt": "2026-09-06T16:03:30.424Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -24,7 +24,7 @@
       "sourceId": "openai-buzz",
       "percent": 7,
       "capped": [],
-      "measuredAt": "2026-09-06T15:48:21.907Z",
+      "measuredAt": "2026-09-06T16:03:30.424Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -34,7 +34,7 @@
       "pool": "cursor",
       "agent": "Cursor Builder",
       "sourceId": "cursor-agent",
-      "percent": 37.4,
+      "percent": 38.2,
       "capped": [
         {
           "id": "on-demand",
@@ -42,10 +42,10 @@
         },
         {
           "id": "grok-bot",
-          "percent": 4.6
+          "percent": 5.3
         }
       ],
-      "measuredAt": "2026-09-06T15:48:21.907Z",
+      "measuredAt": "2026-09-06T16:03:30.424Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -57,7 +57,7 @@
       "sourceId": "ollama",
       "percent": null,
       "capped": [],
-      "measuredAt": "2026-09-06T15:48:21.907Z",
+      "measuredAt": "2026-09-06T16:03:30.424Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": true,
