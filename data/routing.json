@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-09-07T18:58:19.901Z",
+  "snapshotGeneratedAt": "2026-09-08T05:14:11.221Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -22,13 +22,13 @@
       "pool": "openai",
       "agent": "Codex-agent",
       "sourceId": "openai-buzz",
-      "percent": null,
+      "percent": 0,
       "capped": [],
-      "measuredAt": null,
+      "measuredAt": "2026-09-08T05:14:11.221Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
-      "reason": "Local override applied from data/local-overrides.json (credentials never published). Manual reading with no recorded timestamp; this run did not re-measure it."
+      "reason": "Source usage against its own limit."
     },
     "cursor": {
       "pool": "cursor",
@@ -45,7 +45,7 @@
           "percent": 0
         }
       ],
-      "measuredAt": "2026-09-07T18:58:19.901Z",
+      "measuredAt": "2026-09-08T05:14:11.221Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -57,7 +57,7 @@
       "sourceId": "ollama",
       "percent": null,
       "capped": [],
-      "measuredAt": "2026-09-07T18:58:19.901Z",
+      "measuredAt": "2026-09-08T05:14:11.221Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": true,
