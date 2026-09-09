@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-09-09T18:43:22.953Z",
+  "snapshotGeneratedAt": "2026-09-09T18:57:03.463Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -24,7 +24,7 @@
       "sourceId": "openai-buzz",
       "percent": 0,
       "capped": [],
-      "measuredAt": "2026-09-09T18:43:22.953Z",
+      "measuredAt": "2026-09-09T18:57:03.463Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -45,7 +45,7 @@
           "percent": 29.9
         }
       ],
-      "measuredAt": "2026-09-09T18:43:22.953Z",
+      "measuredAt": "2026-09-09T18:57:03.463Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -57,7 +57,7 @@
       "sourceId": "ollama",
       "percent": null,
       "capped": [],
-      "measuredAt": "2026-09-09T18:43:22.953Z",
+      "measuredAt": "2026-09-09T18:57:03.463Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": true,
@@ -67,13 +67,13 @@
       "pool": "openrouter",
       "agent": "or-worker",
       "sourceId": "openrouter",
-      "percent": 5.4,
+      "percent": null,
       "capped": [],
-      "measuredAt": "2026-09-09T18:43:22.953Z",
+      "measuredAt": "2026-09-09T18:57:03.463Z",
       "maxAgeMinutes": 60,
-      "collectionMode": "automatic",
+      "collectionMode": "unavailable",
       "unmetered": false,
-      "reason": "Source usage against its own limit."
+      "reason": "No OPENROUTER_API_KEY, or the OpenRouter API did not return the expected usage payload. Unavailable rather than guessed."
     },
     "sail": {
       "pool": "sail",
