@@ -11,6 +11,28 @@
       "lastUpdate": "2026-09-02T09:34:17.833Z",
       "resetDate": "2026-10-01",
       "usageUrl": "https://www.enrichlabs.ai/login"
+    },
+    {
+      "id": "openrouter",
+      "status": "measured",
+      "collectionMode": "manual",
+      "usage": 12.5,
+      "limit": 50,
+      "unit": "USD",
+      "reason": "Manual reading from https://openrouter.ai/workspaces/default. Prefer OPENROUTER_API_KEY in ~/.config/ai-usage-dashboard/env.",
+      "lastUpdate": "2026-09-04T10:00:00.000Z",
+      "usageUrl": "https://openrouter.ai/workspaces/default"
+    },
+    {
+      "id": "sail",
+      "status": "measured",
+      "collectionMode": "manual",
+      "usage": 10.5,
+      "limit": 20,
+      "unit": "USD",
+      "reason": "Manual reading from https://app.sailresearch.com/usage. Prefer SAIL_API_KEY in ~/.config/ai-usage-dashboard/env.",
+      "lastUpdate": "2026-09-04T10:00:00.000Z",
+      "usageUrl": "https://app.sailresearch.com/usage"
     }
   ]
 }

@@ -1,13 +1,9 @@
-import { describe, it, mock } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import {
-  collect,
-  readOpenRouterUsage,
-} from "../collector/adapters/openrouter.js";
+import { collect } from "../collector/adapters/openrouter.js";
 
-function jsonResponse(body, ok = true, status = ok ? 200 : 500) {
+function jsonResponse(body, status = 200) {
   return {
-    ok,
     status,
     json: async () => body,
   };
@@ -16,30 +12,23 @@ function jsonResponse(body, ok = true, status = ok ? 200 : 500) {
 function mockFetch(credits, key) {
   const calls = [];
   const fetchFn = async (url) => {
-    calls.push(url);
-    if (url.endsWith("/credits")) return jsonResponse(credits);
-    if (url.endsWith("/auth/key")) return jsonResponse(key);
-    return jsonResponse({}, false, 404);
+    calls.push(String(url));
+    if (String(url).includes("/credits")) return jsonResponse(credits);
+    if (String(url).includes("/key")) return jsonResponse(key);
+    return jsonResponse({}, 404);
   };
   fetchFn.calls = calls;
   return fetchFn;
 }
 
-describe("openrouter adapter", () => {
-  it("parses credits + key into a measured source", async () => {
+describe("openrouter adapter (main-compat)", () => {
+  it("parses credits into a measured source", async () => {
     const credits = { data: { total_credits: 25, total_usage: 0.988 } };
-    const key = {
-      data: {
-        usage: 0.735,
-        usage_daily: 0.01,
-        usage_weekly: 0.01,
-        usage_monthly: 0.735,
-      },
-    };
+    const key = { data: { limit: null, usage: 0.735, usage_monthly: 0.735 } };
     const fetchImpl = mockFetch(credits, key);
     const now = new Date("2026-09-09T12:00:00.000Z");
     const result = await collect({
-      apiKey: "sk-or-test",
+      env: { OPENROUTER_API_KEY: "sk-or-test" },
       fetchImpl,
       now,
     });
@@ -49,32 +38,36 @@ describe("openrouter adapter", () => {
     assert.equal(result.collectionMode, "automatic");
     assert.equal(result.usage, 0.988);
     assert.equal(result.limit, 25);
-    assert.equal(result.breakdown.usageMonthly, 0.735);
-    assert.equal(result.breakdown.usageDaily, 0.01);
     assert.equal(result.lastUpdate, now.toISOString());
-    assert.equal(fetchImpl.calls.length, 2);
-    assert.ok(fetchImpl.calls[0].endsWith("/credits"));
-    assert.ok(fetchImpl.calls[1].endsWith("/auth/key"));
+    assert.ok(fetchImpl.calls.some((u) => u.includes("/credits")));
+    assert.doesNotMatch(JSON.stringify(result), /sk-or-test/);
   });
 
   it("reports unavailable (not guessed) when the API fails", async () => {
-    const fetchImpl = async () => jsonResponse({}, false, 500);
-    const result = await collect({ apiKey: "sk-or-test", fetchImpl });
+    const fetchImpl = async () => jsonResponse({}, 500);
+    const result = await collect({
+      env: { OPENROUTER_API_KEY: "sk-or-test" },
+      fetchImpl,
+    });
     assert.equal(result.status, "unknown");
     assert.equal(result.collectionMode, "unavailable");
     assert.equal(result.usage, null);
-    assert.match(result.reason, /unavailable|OPENROUTER|could not/i);
+    assert.match(result.reason, /unavailable|OPENROUTER|No usage fabricated/i);
   });
 
-  it("returns null (no measurement) without an API key", async () => {
-    const result = await readOpenRouterUsage({ apiKey: "" });
-    assert.equal(result, null);
+  it("stays unknown without an API key", async () => {
+    const result = await collect({ env: { OPENROUTER_API_KEY: "" } });
+    assert.equal(result.status, "unknown");
+    assert.equal(result.usage, null);
   });
 
-  it("reports unknown when credits are missing/invalid", async () => {
-    const credits = { data: {} }; // no total_credits
+  it("reports unknown when credits are missing/invalid and the key is uncapped", async () => {
+    const credits = { data: {} };
     const key = { data: { usage_monthly: 1 } };
-    const result = await collect({ apiKey: "k", fetchImpl: mockFetch(credits, key) });
+    const result = await collect({
+      env: { OPENROUTER_API_KEY: "k" },
+      fetchImpl: mockFetch(credits, key),
+    });
     assert.equal(result.status, "unknown");
   });
 });
