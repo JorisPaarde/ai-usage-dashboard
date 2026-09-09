@@ -1,8 +1,8 @@
 # AI Usage Dashboard
 
 Operational static dashboard for **OpenAI/Buzz**, **Cursor Agent**, **Claude Code**,
-**Ollama**, and **Enrich Labs / Helena**. Vanilla HTML/CSS/JS front end; Node
-standard-library collector. No npm dependencies.
+**Ollama**, **Enrich Labs / Helena**, and **OpenRouter**. Vanilla HTML/CSS/JS
+front end; Node standard-library collector. No npm dependencies.
 
 See [`PLAN.md`](PLAN.md) for the unattended-collect roadmap and backlog issues.
 

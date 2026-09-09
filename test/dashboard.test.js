@@ -95,7 +95,7 @@ async function withMissingCursorLocalState(fn) {
 }
 
 describe("schema", () => {
-  it("requires all five sources and unknown reasons", () => {
+  it("requires all sources and unknown reasons", () => {
     const snap = {
       version: "1.1.0",
       generatedAt: "2026-08-31T10:00:00.000Z",
@@ -994,7 +994,7 @@ describe("collector", () => {
       });
       assert.equal(validateSnapshot(snap).ok, true);
       assert.equal(snap.version, "1.6.1");
-      assert.equal(snap.sources.length, 5);
+      assert.equal(snap.sources.length, SOURCE_IDS.length);
       for (const s of snap.sources) {
         assertHonestSource(s);
         if (s.status === "unknown") assert.equal(s.usage, null);

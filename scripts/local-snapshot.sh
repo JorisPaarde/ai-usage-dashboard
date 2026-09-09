@@ -9,6 +9,16 @@ set -eu
 PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export PATH
 
+# Secrets for the OpenRouter adapter come from the user's Hermes env file, not
+# from git (this repo never contains the key). launchd has no login-shell env,
+# so we source it here. Never echo it; the key must not reach logs or the
+# published snapshot (SECRET_RE in schema.js enforces that on write).
+if [ -f "$HOME/.hermes/.env" ]; then
+  # shellcheck disable=SC1091
+  . "$HOME/.hermes/.env"
+  export OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-}"
+fi
+
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 LOCK="$ROOT/.local-snapshot.lock"
 
