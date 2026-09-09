@@ -73,6 +73,12 @@ export const POOLS = Object.freeze({
     maxAgeMinutes: 60,
     agent: "LocalAI guy",
   },
+  openrouter: {
+    sourceId: "openrouter",
+    useSourceUsage: true,
+    maxAgeMinutes: 60,
+    agent: "or-worker",
+  },
 });
 
 /**
@@ -82,7 +88,6 @@ export const POOLS = Object.freeze({
  */
 export const PAID_POOLS = Object.freeze({
   sail: { agent: "sail-worker", note: "Prepaid credits, flex window." },
-  openrouter: { agent: "or-worker", note: "Prepaid credits, pay per token." },
 });
 
 function pct(usage, limit) {

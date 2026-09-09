@@ -15,6 +15,7 @@ import * as cursorAgent from "./adapters/cursor-agent.js";
 import * as claudeCode from "./adapters/claude-code.js";
 import * as ollama from "./adapters/ollama.js";
 import * as enrichLabs from "./adapters/enrich-labs.js";
+import * as openrouter from "./adapters/openrouter.js";
 import {
   SOURCE_IDS,
   emptySource,
@@ -94,6 +95,7 @@ const ADAPTERS = {
   "claude-code": claudeCode,
   ollama,
   "enrich-labs": enrichLabs,
+  openrouter,
 };
 
 const SECRET_RE =

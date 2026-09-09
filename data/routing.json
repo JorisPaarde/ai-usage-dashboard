@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-09-09T18:26:45.590Z",
+  "snapshotGeneratedAt": "2026-09-09T18:36:29.726Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -24,7 +24,7 @@
       "sourceId": "openai-buzz",
       "percent": 0,
       "capped": [],
-      "measuredAt": "2026-09-09T18:26:45.590Z",
+      "measuredAt": "2026-09-09T18:36:29.726Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -45,7 +45,7 @@
           "percent": 29.9
         }
       ],
-      "measuredAt": "2026-09-09T18:26:45.590Z",
+      "measuredAt": "2026-09-09T18:36:29.726Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -57,11 +57,23 @@
       "sourceId": "ollama",
       "percent": null,
       "capped": [],
-      "measuredAt": "2026-09-09T18:26:45.590Z",
+      "measuredAt": "2026-09-09T18:36:29.726Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": true,
       "reason": "Local runtime; no quota. Measured means usable."
+    },
+    "openrouter": {
+      "pool": "openrouter",
+      "agent": "or-worker",
+      "sourceId": "openrouter",
+      "percent": 4,
+      "capped": [],
+      "measuredAt": "2026-09-09T18:36:29.726Z",
+      "maxAgeMinutes": 60,
+      "collectionMode": "automatic",
+      "unmetered": false,
+      "reason": "Source usage against its own limit."
     },
     "sail": {
       "pool": "sail",
@@ -75,19 +87,6 @@
       "unmetered": true,
       "paid": true,
       "reason": "Prepaid credits, flex window. No meter in the dashboard; eligible as last resort only."
-    },
-    "openrouter": {
-      "pool": "openrouter",
-      "agent": "or-worker",
-      "sourceId": null,
-      "percent": null,
-      "capped": [],
-      "measuredAt": null,
-      "maxAgeMinutes": null,
-      "collectionMode": "unavailable",
-      "unmetered": true,
-      "paid": true,
-      "reason": "Prepaid credits, pay per token. No meter in the dashboard; eligible as last resort only."
     }
   }
 }

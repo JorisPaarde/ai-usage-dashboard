@@ -6,6 +6,7 @@ export const SOURCE_IDS = [
   "claude-code",
   "ollama",
   "enrich-labs",
+  "openrouter",
 ];
 
 export const SOURCE_META = {
@@ -35,6 +36,11 @@ export const SOURCE_META = {
     name: "Enrich Labs / Helena",
     unit: "credits",
     usageUrl: "https://www.enrichlabs.ai/login",
+  },
+  openrouter: {
+    name: "OpenRouter",
+    unit: "$ spend",
+    usageUrl: "https://openrouter.ai/settings/usage",
   },
 };
 
