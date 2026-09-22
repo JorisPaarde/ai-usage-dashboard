@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-09-09T18:57:03.463Z",
+  "snapshotGeneratedAt": "2026-09-22T18:33:13.642Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -22,9 +22,9 @@
       "pool": "openai",
       "agent": "Codex-agent",
       "sourceId": "openai-buzz",
-      "percent": 0,
+      "percent": 3,
       "capped": [],
-      "measuredAt": "2026-09-09T18:57:03.463Z",
+      "measuredAt": "2026-09-22T18:33:13.642Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -34,18 +34,18 @@
       "pool": "cursor",
       "agent": "Cursor Builder",
       "sourceId": "cursor-agent",
-      "percent": 41.9,
+      "percent": 53.4,
       "capped": [
         {
           "id": "on-demand",
-          "percent": 94.7
+          "percent": 100.4
         },
         {
           "id": "grok-bot",
-          "percent": 29.9
+          "percent": 8.7
         }
       ],
-      "measuredAt": "2026-09-09T18:57:03.463Z",
+      "measuredAt": "2026-09-22T18:33:13.642Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -57,7 +57,7 @@
       "sourceId": "ollama",
       "percent": null,
       "capped": [],
-      "measuredAt": "2026-09-09T18:57:03.463Z",
+      "measuredAt": "2026-09-22T18:33:13.642Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": true,
@@ -82,11 +82,11 @@
       "sourceId": "openrouter",
       "percent": null,
       "capped": [],
-      "measuredAt": "2026-09-09T18:57:03.463Z",
+      "measuredAt": null,
       "maxAgeMinutes": 15,
       "collectionMode": "unavailable",
       "unmetered": false,
-      "reason": "Prepaid credits, pay per token. Last resort until a live meter exists. No OPENROUTER_API_KEY, or the OpenRouter API did not return the expected usage payload. Unavailable rather than guessed.",
+      "reason": "Prepaid credits, pay per token. Last resort until a live meter exists. No OpenRouter API key on this host (set OPENROUTER_API_KEY or OPENROUTER_MANAGEMENT_KEY in ~/.config/ai-usage-dashboard/env). Official GET /api/v1/credits + /api/v1/key; no browser scrape. No usage fabricated.",
       "paid": true
     }
   }
