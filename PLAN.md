@@ -1,6 +1,6 @@
 # Plan: unattended AI usage app
 
-**Version:** 1.8.0 · **Collect host:** Linux box (`scripts/box-snapshot.sh`)  
+**Version:** 1.8.1 · **Collect host:** Linux box (`scripts/box-snapshot.sh`)  
 **Live host:** GitHub Pages (`data/latest.json` only)
 
 ## Product rule

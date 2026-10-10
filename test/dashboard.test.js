@@ -32,41 +32,64 @@ import * as openai from "../collector/adapters/openai-buzz.js";
 import * as claudeCode from "../collector/adapters/claude-code.js";
 import { poolsFromSnapshot, verdictForPool } from "../collector/lib/routing.js";
 import { EventEmitter } from "node:events";
-import { readFile, writeFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+const HERMETIC_ENV_KEYS = [
+  "CLAUDE_CREDENTIALS_PATH",
+  "CLAUDE_CODE_OAUTH_TOKEN",
+  "CLAUDE_PROJECTS_DIR",
+  "CLAUDE_OAUTH_CACHE_PATH",
+  "CODEX_SESSIONS_DIR",
+  "OPENROUTER_API_KEY",
+  "OPENROUTER_MANAGEMENT_KEY",
+  "SAIL_API_KEY",
+  "HOME",
+  "PATH",
+];
+
 /**
- * Keep collectSnapshot override tests hermetic: stub Claude credentials and
- * prepaid API keys so automatic collectors stay unavailable unless mocked.
+ * Keep collectSnapshot override tests hermetic: clear host secrets, point
+ * HOME/Codex/Claude paths at a throwaway tree, and drop user bins that may
+ * hold `codex` so a live box cannot replace fixture overrides.
  */
 async function withMissingLocalCollectorSecrets(fn) {
-  const prevClaudeCredentials = process.env.CLAUDE_CREDENTIALS_PATH;
-  process.env.CLAUDE_CREDENTIALS_PATH = path.join(
-    ROOT,
-    "test",
-    "fixtures",
-    "missing-claude-credentials.json",
+  const prev = Object.fromEntries(
+    HERMETIC_ENV_KEYS.map((key) => [key, process.env[key]]),
   );
-  const prevOpenrouter = process.env.OPENROUTER_API_KEY;
-  const prevOpenrouterMgmt = process.env.OPENROUTER_MANAGEMENT_KEY;
-  const prevSail = process.env.SAIL_API_KEY;
+  const tmp = await mkdtemp(path.join(os.tmpdir(), "ai-usage-hermetic-"));
+  process.env.HOME = tmp;
+  process.env.CLAUDE_CREDENTIALS_PATH = path.join(
+    tmp,
+    ".claude",
+    ".credentials.json",
+  );
+  process.env.CLAUDE_PROJECTS_DIR = path.join(tmp, ".claude", "projects");
+  process.env.CLAUDE_OAUTH_CACHE_PATH = path.join(
+    tmp,
+    ".config",
+    "ai-usage-dashboard",
+    "claude-oauth-usage.json",
+  );
+  process.env.CODEX_SESSIONS_DIR = path.join(tmp, ".codex", "sessions");
+  delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
   delete process.env.OPENROUTER_API_KEY;
   delete process.env.OPENROUTER_MANAGEMENT_KEY;
   delete process.env.SAIL_API_KEY;
+  // Keep system binaries; omit ~/.local/bin and other user paths with `codex`.
+  process.env.PATH = "/usr/local/bin:/usr/bin:/bin";
   try {
     return await fn();
   } finally {
-    if (prevClaudeCredentials === undefined) delete process.env.CLAUDE_CREDENTIALS_PATH;
-    else process.env.CLAUDE_CREDENTIALS_PATH = prevClaudeCredentials;
-    if (prevOpenrouter === undefined) delete process.env.OPENROUTER_API_KEY;
-    else process.env.OPENROUTER_API_KEY = prevOpenrouter;
-    if (prevOpenrouterMgmt === undefined) delete process.env.OPENROUTER_MANAGEMENT_KEY;
-    else process.env.OPENROUTER_MANAGEMENT_KEY = prevOpenrouterMgmt;
-    if (prevSail === undefined) delete process.env.SAIL_API_KEY;
-    else process.env.SAIL_API_KEY = prevSail;
+    for (const key of HERMETIC_ENV_KEYS) {
+      if (prev[key] === undefined) delete process.env[key];
+      else process.env[key] = prev[key];
+    }
+    await rm(tmp, { recursive: true, force: true });
   }
 }
 
@@ -342,8 +365,10 @@ describe("adapters", () => {
     assert.equal(components[0].role, "capacity");
     assert.equal(components[0].usage, 15);
     assert.equal(components[0].limit, 100);
+    assert.equal(components[0].unit, "% of 5-hour Codex limit");
     assert.equal(components[1].id, "weekly");
     assert.equal(components[1].usage, 2);
+    assert.equal(components[1].unit, "% of weekly Codex limit");
 
     // Ids follow windowDurationMins, not primary/secondary order.
     const swapped = openai.componentsFromLimits({
@@ -355,6 +380,15 @@ describe("adapters", () => {
     assert.equal(swapped[0].usage, 9);
     assert.equal(swapped[1].id, "five-hour");
     assert.equal(swapped[1].usage, 22);
+
+    // Unknown windows are omitted (no generic id that could become "Codex Codex").
+    const other = openai.componentsFromLimits({
+      observedAt: "2026-08-31T13:13:25.000Z",
+      primary: { usedPercent: 40, windowMinutes: 60, resetsAt: 1788199791 },
+      secondary: { usedPercent: 2, windowMinutes: 10080, resetsAt: 1788786591 },
+    });
+    assert.equal(other.length, 1);
+    assert.equal(other[0].id, "weekly");
   });
 
   it("openai falls back to the log when the live read fails", async () => {
@@ -861,6 +895,8 @@ describe("adapters", () => {
 
   it("readClaudeOauthToken reads accessToken only", async () => {
     const token = await claudeCode.readClaudeOauthToken({
+      // Empty env: host CLAUDE_CODE_OAUTH_TOKEN must not win over the fixture.
+      env: {},
       credentialsPath: "unused",
       readText: async () =>
         JSON.stringify({
@@ -928,7 +964,7 @@ describe("collector", () => {
         overrides: [],
       });
       assert.equal(validateSnapshot(snap).ok, true);
-      assert.equal(snap.version, "1.8.0");
+      assert.equal(snap.version, "1.8.1");
       assert.equal(snap.sources.length, SOURCE_IDS.length);
       for (const s of snap.sources) {
         assertHonestSource(s);
@@ -1288,6 +1324,99 @@ describe("collector", () => {
     });
   });
 
+  it("stays hermetic when HOME has Codex data and CLAUDE_CODE_OAUTH_TOKEN is set", async () => {
+    const hostileHome = await mkdtemp(path.join(os.tmpdir(), "ai-usage-hostile-"));
+    const sessionsDir = path.join(hostileHome, ".codex", "sessions", "2026");
+    await mkdir(sessionsDir, { recursive: true });
+    const hostileLine = JSON.stringify({
+      timestamp: "2026-08-31T09:00:00.000Z",
+      type: "event_msg",
+      payload: {
+        type: "token_count",
+        rate_limits: {
+          primary: {
+            used_percent: 12,
+            window_minutes: 300,
+            resets_at: 1788176638,
+          },
+          secondary: {
+            used_percent: 4,
+            window_minutes: 10080,
+            resets_at: 1788763438,
+          },
+        },
+      },
+    });
+    await writeFile(
+      path.join(sessionsDir, "rollout-hostile.jsonl"),
+      `${hostileLine}\n`,
+    );
+    const prevHome = process.env.HOME;
+    const prevToken = process.env.CLAUDE_CODE_OAUTH_TOKEN;
+    const prevCodex = process.env.CODEX_SESSIONS_DIR;
+    process.env.HOME = hostileHome;
+    process.env.CODEX_SESSIONS_DIR = path.join(hostileHome, ".codex", "sessions");
+    process.env.CLAUDE_CODE_OAUTH_TOKEN = "sk-ant-oat-HOSTILE-ENV-TOKEN";
+    try {
+      const fromEnv = await claudeCode.readClaudeOauthToken({
+        env: process.env,
+        credentialsPath: path.join(hostileHome, "missing.json"),
+        readText: async () => {
+          throw new Error("credentials must not be read when env token is set");
+        },
+      });
+      assert.equal(fromEnv, "sk-ant-oat-HOSTILE-ENV-TOKEN");
+
+      const fromFile = await claudeCode.readClaudeOauthToken({
+        env: {},
+        credentialsPath: "unused",
+        readText: async () =>
+          JSON.stringify({
+            claudeAiOauth: { accessToken: "sk-ant-oat-ABC", refreshToken: "nope" },
+          }),
+      });
+      assert.equal(fromFile, "sk-ant-oat-ABC");
+
+      await withMissingLocalCollectorSecrets(async () => {
+        assert.equal(process.env.CLAUDE_CODE_OAUTH_TOKEN, undefined);
+        assert.match(process.env.CODEX_SESSIONS_DIR || "", /ai-usage-hermetic-/);
+        const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
+          overrides: [
+            {
+              id: "openai-buzz",
+              status: "measured",
+              usage: null,
+              limit: null,
+              reason: "hermetic override",
+              lastUpdate: "2026-08-31T08:00:00.000Z",
+              components: [
+                {
+                  id: "five-hour",
+                  label: "5-hour",
+                  role: "capacity",
+                  usage: 15,
+                  limit: 100,
+                  unit: "% of 5-hour Codex limit",
+                },
+              ],
+            },
+          ],
+        });
+        const openaiSrc = snap.sources.find((s) => s.id === "openai-buzz");
+        assert.equal(openaiSrc.components[0].usage, 15);
+        assert.doesNotMatch(JSON.stringify(snap), /sk-ant-oat-HOSTILE/);
+      });
+    } finally {
+      if (prevHome === undefined) delete process.env.HOME;
+      else process.env.HOME = prevHome;
+      if (prevToken === undefined) delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
+      else process.env.CLAUDE_CODE_OAUTH_TOKEN = prevToken;
+      if (prevCodex === undefined) delete process.env.CODEX_SESSIONS_DIR;
+      else process.env.CODEX_SESSIONS_DIR = prevCodex;
+      await rm(hostileHome, { recursive: true, force: true });
+    }
+  });
+
   it("rejects unknown component roles", () => {
     assert.equal(
       validateLocalOverrides({
@@ -1426,7 +1555,7 @@ describe("public seed", () => {
     const snap = JSON.parse(raw);
     assert.equal(validateSnapshot(snap).ok, true);
     assert.doesNotThrow(() => assertPublishableSnapshot(snap));
-    assert.equal(snap.version, "1.8.0");
+    assert.equal(snap.version, "1.8.1");
     assert.equal(snap.sources.length, SOURCE_IDS.length);
     for (const s of snap.sources) {
       if (s.status === "unknown") assert.equal(s.usage, null);
@@ -1479,8 +1608,8 @@ describe("public seed", () => {
     assert.match(html, /btn-update/);
     assert.match(html, /mac-badge/);
     assert.match(html, /last-updated/);
-    assert.match(html, /dashboard\.js\?v=1\.8\.0/);
-    assert.match(html, /styles\.css\?v=1\.8\.0/);
+    assert.match(html, /dashboard\.js\?v=1\.8\.1/);
+    assert.match(html, /styles\.css\?v=1\.8\.1/);
     assert.match(html, /Laatst bijgewerkt:/);
     assert.doesNotMatch(js, /meta\.textContent = `Snapshot /);
     assert.doesNotMatch(js, /Dagtempo|Maandtempo/);
@@ -1508,9 +1637,9 @@ describe("public seed", () => {
     assert.match(js, /badge-live/);
     assert.match(js, /collectionLabel/);
     assert.match(js, /handleUpdateClick/);
-    assert.match(js, /isLocalAppHost/);
-    assert.match(js, /Never uses Codex/);
+    assert.doesNotMatch(js, /isLocalAppHost|triggerLocalCollect|\/api\/collect/);
     assert.doesNotMatch(js, /codex exec/i);
+    assert.match(js, /Tegoed · USD over/);
     assert.match(js, /Aangehouden — geen runtime-bewijs/);
     assert.match(js, /data-freshness/);
     assert.match(js, /MAC_ONLINE_MINUTES\s*=\s*20/);

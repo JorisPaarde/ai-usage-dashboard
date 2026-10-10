@@ -12,7 +12,6 @@ See [`PLAN.md`](PLAN.md) for the unattended-collect roadmap and backlog issues.
 npm test
 npm run build
 npm run collect   # local adapters (+ optional overrides) → data/latest.json
-npm run app       # optional: http://127.0.0.1:8787/ with on-demand collect button
 ```
 
 Serve `dist/` as static files. For GitHub Pages, push to `main`/`master` — see
@@ -20,10 +19,9 @@ Serve `dist/` as static files. For GitHub Pages, push to `main`/`master` — see
 
 ## “Alles updaten” button
 
-| Where | What it does |
-| --- | --- |
-| **GitHub Pages** | Re-fetches published `data/latest.json` (cache-bust) and redraws. Does **not** re-measure vendors. |
-| **Local app** (`npm run app`) | Same refresh, plus `POST /api/collect` when a local collect helper is available. |
+On GitHub Pages the button re-fetches published `data/latest.json` (cache-bust)
+and redraws. It does **not** re-measure vendors. Measurement runs only on the
+box cron (`scripts/box-snapshot.sh`).
 
 Never uses Codex, Grok, cloud agents, or browser bots as the Update button path.
 
@@ -31,9 +29,11 @@ Never uses Codex, Grok, cloud agents, or browser bots as the Update button path.
 
 1. On the Linux box (signed in to Codex/Claude/`gh`): clone this repo and ensure
    `gh auth status` succeeds.
-2. Owner-managed cron runs `scripts/box-snapshot.sh`: collect → commit
+2. Put prepaid keys in `~/.config/ai-usage-dashboard/env` (`chmod 600`); the
+   snapshot script sources it when present.
+3. Owner-managed cron runs `scripts/box-snapshot.sh`: collect → commit
    `data/latest.json` only when it changed → `git push` via existing `gh` login.
-3. GitHub Pages rebuilds from that commit. Hosted runners **never** measure
+4. GitHub Pages rebuilds from that commit. Hosted runners **never** measure
    authenticated usage.
 
 ## Why the page shows “unavailable”
@@ -77,4 +77,4 @@ No ping endpoint and no secrets on the page.
 
 ## Version
 
-`1.8.0`
+`1.8.1`

@@ -9,17 +9,20 @@
 # Cron is set up by the server owner — this script does not install cron.
 set -euo pipefail
 
-PATH="/usr/local/bin:/usr/bin:/bin${PATH:+:$PATH}"
+# codex often lives in ~/.local/bin; cron PATH is otherwise minimal.
+PATH="${HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin${PATH:+:$PATH}"
 export PATH
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-LOCK="$ROOT/.box-snapshot.lock"
+LOCKFILE="$ROOT/.box-snapshot.lock"
 
-if ! mkdir "$LOCK" 2>/dev/null; then
+# flock releases on exit (including SIGKILL of this process after reboot leaves
+# no stale mkdir-lock directory).
+exec 9>"$LOCKFILE"
+if ! flock -n 9; then
   echo "Another box snapshot run is active; skipping."
   exit 0
 fi
-trap 'rmdir "$LOCK" 2>/dev/null || true' EXIT INT TERM
 
 cd "$ROOT"
 
@@ -57,6 +60,10 @@ if ! command -v gh >/dev/null 2>&1; then
   echo "gh is required (HTTPS credential helper for git push)." >&2
   exit 1
 fi
+if ! command -v flock >/dev/null 2>&1; then
+  echo "flock is required for the snapshot lock." >&2
+  exit 1
+fi
 
 # Fail clearly when the box is not logged in to GitHub.
 if ! gh auth status >/dev/null 2>&1; then
@@ -80,8 +87,10 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   exit 1
 fi
 
+# Dedicated meter checkout: hard-reset to origin/main so a rejected push cannot
+# leave the tree permanently ahead of / diverged from remote.
 git fetch origin main
-git merge --ff-only origin/main
+git reset --hard origin/main
 
 if ! npm run collect || ! npm run routing; then
   echo "snapshot generation failed; restoring generated outputs." >&2

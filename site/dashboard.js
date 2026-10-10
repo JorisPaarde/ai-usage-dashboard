@@ -231,7 +231,7 @@ function renderGlancePrimary(src) {
     return renderPrimary({
       value: fmtNum(src.usage),
       empty: false,
-      sub: "Account balance · USD remaining",
+      sub: "Tegoed · USD over",
       bar: null,
     });
   }
@@ -658,11 +658,6 @@ async function loadJson(url) {
   return res.json();
 }
 
-function isLocalAppHost() {
-  const host = location.hostname;
-  return host === "127.0.0.1" || host === "localhost" || host === "[::1]";
-}
-
 function setActionStatus(text, tone = "") {
   const el = document.getElementById("action-status");
   if (!el) return;
@@ -721,101 +716,18 @@ async function renderDashboard(opts = {}) {
 }
 
 /**
- * Same-origin local collect only (local app server). Never called from github.io.
- * Never invokes Codex, Grok, or any AI agent — only box-snapshot / local helpers.
- */
-async function triggerLocalCollect() {
-  const healthRes = await fetch("/api/health", { cache: "no-store" });
-  if (!healthRes.ok) {
-    throw new Error("Lokale collect-API niet bereikbaar.");
-  }
-  const health = await healthRes.json();
-  if (!health?.collect) {
-    throw new Error("Deze host biedt geen collect aan.");
-  }
-  const res = await fetch("/api/collect", {
-    method: "POST",
-    headers: { Accept: "application/json" },
-    body: "{}",
-  });
-  let body = null;
-  try {
-    body = await res.json();
-  } catch {
-    body = null;
-  }
-  if (!res.ok || !body?.ok) {
-    throw new Error(body?.message || `Collect mislukt (HTTP ${res.status}).`);
-  }
-  return body;
-}
-
-async function waitForNewerSnapshot(previousGeneratedAt, attempts = 24) {
-  for (let i = 0; i < attempts; i += 1) {
-    await new Promise((r) => setTimeout(r, 2500));
-    try {
-      const snap = await loadJson(`./data/latest.json?t=${Date.now()}`);
-      if (
-        snap?.generatedAt &&
-        snap.generatedAt !== previousGeneratedAt
-      ) {
-        return snap;
-      }
-    } catch {
-      /* keep polling */
-    }
-  }
-  return null;
-}
-
-/**
- * "Alles updaten"
- * - On GitHub Pages: re-fetch published latest.json only (no vendor re-measure).
- * - On local app (127.0.0.1): also POST /api/collect when a collect helper is available.
- * Never uses Codex, Grok, cloud agents, or browser bots.
+ * "Alles updaten" — re-fetch published latest.json only (no vendor re-measure).
+ * Measurement runs on the box cron (`scripts/box-snapshot.sh`), never from Pages.
  */
 async function handleUpdateClick() {
   setUpdateBusy(true);
   setActionStatus("Bezig…", "busy");
-  const previous = document.getElementById("snapshot-meta")?.dataset.generatedAt || "";
-
   try {
-    if (isLocalAppHost()) {
-      try {
-        const result = await triggerLocalCollect();
-        setActionStatus(
-          `${result.message || "Collect gestart."} Wacht op nieuwe snapshot…`,
-          "busy",
-        );
-        const newer = await waitForNewerSnapshot(previous);
-        await renderDashboard();
-        if (newer) {
-          setActionStatus("Alles bijgewerkt (lokale collect).", "ok");
-        } else {
-          setActionStatus(
-            "Collect gestart; snapshot nog niet vernieuwd — probeer zo opnieuw of wacht op de box-cron.",
-            "warn",
-          );
-        }
-        return;
-      } catch (err) {
-        // Fall through to Pages-style refresh if local API is down.
-        setActionStatus(
-          `${err.message || "Lokale collect mislukt."} Ververs snapshot…`,
-          "warn",
-        );
-      }
-    }
-
     await renderDashboard();
-    if (isLocalAppHost()) {
-      setActionStatus("Snapshot ververst (geen lokale collect).", "ok");
-    } else {
-      setActionStatus(
-        "Snapshot ververst. Meters meet de box op cron — deze knop meet niet opnieuw vanaf Pages.",
-        "ok",
-      );
-    }
+    setActionStatus(
+      "Snapshot ververst. Meters meet de box op cron — deze knop meet niet opnieuw vanaf Pages.",
+      "ok",
+    );
   } catch (err) {
     setActionStatus(err.message || "Updaten mislukt.", "err");
   } finally {

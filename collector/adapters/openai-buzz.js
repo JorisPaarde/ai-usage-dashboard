@@ -51,7 +51,8 @@ function normalizeLimits(limits, observedAt) {
 
 /**
  * Map one rate-limit window to a capacity component.
- * Id/label come from windowDurationMins (300 → five-hour, 10080 → weekly).
+ * Only known Codex windows: 300 → five-hour, 10080 → weekly. Anything else
+ * is omitted (no generic fallback).
  * @param {object} bucket
  */
 function componentFromWindow(bucket) {
@@ -59,25 +60,25 @@ function componentFromWindow(bucket) {
   const minutes = bucket.windowMinutes;
   let id;
   let label;
+  let unitLabel;
   if (minutes === 300) {
     id = "five-hour";
     label = "5-hour";
+    unitLabel = "5-hour";
   } else if (minutes === 10080) {
     id = "weekly";
     label = "Weekly";
+    unitLabel = "weekly";
   } else {
-    const wl = windowLabel(minutes);
-    id = wl === "current" ? "window" : wl.replace(/\s+/g, "-");
-    label = wl === "current" ? "Current window" : wl.charAt(0).toUpperCase() + wl.slice(1);
+    return null;
   }
-  const unitLabel = windowLabel(minutes);
   return {
     id,
     label,
     role: "capacity",
     usage: bucket.usedPercent,
     limit: 100,
-    unit: `% of ${unitLabel === "current" ? "Codex" : unitLabel} Codex limit`,
+    unit: `% of ${unitLabel} Codex limit`,
     resetDate: bucket.resetsAt
       ? new Date(bucket.resetsAt * 1000).toISOString()
       : null,
@@ -85,19 +86,16 @@ function componentFromWindow(bucket) {
 }
 
 /**
- * Two capacity bars for the existing dashboard Planruimte layout.
- * Each window's id/label is chosen from its own windowDurationMins.
+ * Capacity bars for the existing dashboard Planruimte layout.
+ * Ids come from each window's own windowDurationMins (300 / 10080 only).
  * @param {object} reading normalizeLimits result
  */
 export function componentsFromLimits(reading) {
   /** @type {object[]} */
   const components = [];
-  const seen = new Set();
   for (const bucket of [reading?.primary, reading?.secondary]) {
     const c = componentFromWindow(bucket);
-    if (!c || seen.has(c.id)) continue;
-    seen.add(c.id);
-    components.push(c);
+    if (c) components.push(c);
   }
   return components;
 }
@@ -196,7 +194,7 @@ export function queryLiveRateLimits({
         id: 1,
         method: "initialize",
         params: {
-          clientInfo: { name: "ai-usage-dashboard", version: "1.8.0" },
+          clientInfo: { name: "ai-usage-dashboard", version: "1.8.1" },
         },
       })}\n${JSON.stringify({ method: "initialized", params: {} })}\n${JSON.stringify(
         { id: 2, method: "account/rateLimits/read", params: {} },

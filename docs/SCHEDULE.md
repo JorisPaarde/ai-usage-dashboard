@@ -48,7 +48,7 @@ calls `GET https://api.anthropic.com/api/oauth/usage` with
 - `seven_day` → Weekly (all models) %
 - `extra_usage` → Usage credits (EUR when present)
 
-When that endpoint returns **401/403** (e.g. a setup token with only
+When that endpoint returns **403** only (e.g. a setup token with only
 `user:inference`), the adapter falls back once: `POST /v1/messages` with
 `max_tokens: 1` to a Haiku model, then reads:
 
@@ -56,7 +56,8 @@ When that endpoint returns **401/403** (e.g. a setup token with only
 - `anthropic-ratelimit-unified-7d-utilization` / `-7d-reset`
 
 Utilization is a 0–1 fraction (×100 for %). Shown as the same two capacity
-bars. Other failures keep the previous behaviour (transcripts / cache / unknown).
+bars. HTTP **401** and other failures keep the previous behaviour (transcripts /
+cache / unknown) — no Haiku probe.
 
 The oauth/usage endpoint rate-limits aggressively; on HTTP 429 the adapter keeps
 transcript token totals and retries next interval. Token never enters the
@@ -69,12 +70,16 @@ recorded `resets_at` has passed and the provider has written nothing since, the
 OpenAI source reports **unavailable with the reason**, rather than republishing
 a spent number against an allowance the provider has already reset.
 
-### Prepaid meters
+### Prepaid meters and the env file
 
-OpenRouter and Sail Research have documented Usage APIs. Put the keys in
-`~/.config/ai-usage-dashboard/env` (see [`docs/env.example`](env.example) and
-[`docs/PREPAID.md`](PREPAID.md)). OpenRouter's headline is the **account
-balance** from `/credits`; a per-key spending cap stays secondary when present.
+Put `OPENROUTER_API_KEY` (and optionally `OPENROUTER_MANAGEMENT_KEY` /
+`SAIL_API_KEY` / `CLAUDE_CODE_OAUTH_TOKEN`) in
+`~/.config/ai-usage-dashboard/env` with mode **600**. See
+[`docs/env.example`](env.example) and [`docs/PREPAID.md`](PREPAID.md).
+
+`scripts/box-snapshot.sh` sources that file when it exists (`set -a; . "$ENV_FILE"`)
+before collect. OpenRouter's headline is the **account balance** from `/credits`;
+a per-key spending cap stays secondary when present.
 
 An override never overwrites a source the collector measures directly. If it
 carries a genuinely different metric it must say `"supplements": true`.
@@ -86,12 +91,17 @@ Real figures appear only when the collector runs on the box that can see them.
 
 `scripts/box-snapshot.sh` (must run on a clean `main` checkout):
 
-1. Checks `gh auth status` (fails clearly if not logged in)
-2. `git fetch` + `git merge --ff-only origin/main`
-3. Loads `CLAUDE_CODE_OAUTH_TOKEN` from `~/.claude-oauth-token` when unset
-4. Runs `npm run collect` + `npm run routing`, then `npm run check`
-5. Commits `data/latest.json` + `data/routing.json` only when they changed
-6. `git push` via the existing `gh` HTTPS credential helper
+1. Prepends `$HOME/.local/bin` to `PATH` (where `codex` often lives under cron)
+2. Takes an exclusive `flock -n` on `.box-snapshot.lock` (no stale mkdir-lock
+   after SIGKILL/reboot)
+3. Sources `~/.config/ai-usage-dashboard/env` when present
+4. Checks `gh auth status` (fails clearly if not logged in)
+5. After the clean-tree check: `git fetch origin main && git reset --hard origin/main`
+   (dedicated checkout — a rejected push must not jam the meter permanently)
+6. Loads `CLAUDE_CODE_OAUTH_TOKEN` from `~/.claude-oauth-token` when unset
+7. Runs `npm run collect` + `npm run routing`, then `npm run check`
+8. Commits `data/latest.json` + `data/routing.json` only when they changed
+9. `git push` via the existing `gh` HTTPS credential helper
 
 One-time on the box: `gh auth login` and `gh auth setup-git` (not done by the
 cron script). No separate GitHub token env var. The server owner installs cron;
