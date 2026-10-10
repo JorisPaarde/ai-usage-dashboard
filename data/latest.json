@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "generatedAt": "2026-10-10T18:56:32.329Z",
+  "generatedAt": "2026-10-10T19:16:28.537Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Split meter: Linux box cron (scripts/box-snapshot.sh) measures box sources and merges data/mac-sources.json; Mac LaunchAgent (scripts/mac-snapshot.sh) publishes Cursor Agent + Grok Bot. LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-10T22:00:31.000Z",
-      "lastUpdate": "2026-10-10T18:56:32.329Z",
+      "lastUpdate": "2026-10-10T19:16:28.537Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -66,12 +66,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 58.69466666666666%; Other Models 9.08%; On-demand $6.61/$90. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 58.82666666666667%; Other Models 9.08%; On-demand $6.61/$90. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-11-02",
-      "lastUpdate": "2026-10-10T18:54:37.546Z",
+      "lastUpdate": "2026-10-10T19:09:44.914Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -79,7 +79,7 @@
           "id": "included-cursor-models",
           "label": "Included Cursor Models",
           "role": "capacity",
-          "usage": 58.69466666666666,
+          "usage": 58.82666666666667,
           "limit": 100,
           "unit": "% of included allowance",
           "resetDate": "2026-11-02"
@@ -110,19 +110,19 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-10T18:54:37.546Z"
+      "measuredAt": "2026-10-10T19:09:44.914Z"
     },
     {
       "id": "grok-bot",
       "name": "Grok Bot",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 7.595572%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
+      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 7.919256%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-16T13:26:13.409Z",
-      "lastUpdate": "2026-10-10T18:54:37.546Z",
+      "lastUpdate": "2026-10-10T19:09:44.914Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -130,7 +130,7 @@
           "id": "included",
           "label": "Included",
           "role": "capacity",
-          "usage": 7.595572,
+          "usage": 7.919256,
           "limit": 100,
           "unit": "% of weekly allowance",
           "resetDate": "2026-10-16T13:26:13.409Z"
@@ -143,7 +143,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-10T18:54:37.546Z"
+      "measuredAt": "2026-10-10T19:09:44.914Z"
     },
     {
       "id": "claude-code",
@@ -205,7 +205,7 @@
       "limit": null,
       "unit": "USD",
       "resetDate": null,
-      "lastUpdate": "2026-10-10T18:56:32.329Z",
+      "lastUpdate": "2026-10-10T19:16:28.537Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
