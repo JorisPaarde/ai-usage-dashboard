@@ -1,6 +1,6 @@
 {
   "version": "1.8.1",
-  "generatedAt": "2026-10-10T17:40:14.673Z",
+  "generatedAt": "2026-10-10T17:40:41.324Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Linux box cron runs scripts/box-snapshot.sh (collector → push data/latest.json). LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-10T22:00:31.000Z",
-      "lastUpdate": "2026-10-10T17:40:14.673Z",
+      "lastUpdate": "2026-10-10T17:40:41.324Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -121,7 +121,7 @@
       "limit": null,
       "unit": "USD",
       "resetDate": null,
-      "lastUpdate": "2026-10-10T17:40:14.673Z",
+      "lastUpdate": "2026-10-10T17:40:41.324Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
