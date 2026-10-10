@@ -61,6 +61,14 @@ export const POOLS = Object.freeze({
     maxAgeMinutes: 15,
     agent: "Codex-agent",
   },
+  cursor: {
+    sourceId: "cursor-agent",
+    // Capacity meters only — Cursor's capped on-demand spend is excluded so a
+    // hot on-demand bar cannot mark the Cursor pool "full".
+    componentRole: "capacity",
+    maxAgeMinutes: 60,
+    agent: "Cursor Builder",
+  },
   sail: {
     sourceId: "sail",
     componentIds: ["period"],

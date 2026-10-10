@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 /**
- * Local snapshot collector — isolated adapters, JSON output only.
+ * Snapshot collector — isolated adapters, JSON output only.
  * Never fabricates usage for unavailable sources.
- * Optional local overrides (gitignored) supply authenticated desktop/browser
- * readings; the override file itself is never published to dist/.
+ *
+ * Box mode (default): measures BOX_SOURCE_IDS, merges data/mac-sources.json
+ * into the published latest.json (Mac sources keep their own measuredAt;
+ * older than MAC_STALE_HOURS → marked stale, not deleted).
+ *
+ * Mac mode (--mac): measures MAC_SOURCE_IDS only → data/mac-sources.json.
  */
 import { mkdir, writeFile, readFile, access } from "node:fs/promises";
 import os from "node:os";
@@ -11,16 +15,23 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import * as openaiBuzz from "./adapters/openai-buzz.js";
+import * as cursorAgent from "./adapters/cursor-agent.js";
+import * as grokBot from "./adapters/grok-bot.js";
 import * as claudeCode from "./adapters/claude-code.js";
 import * as openrouter from "./adapters/openrouter.js";
 import * as sail from "./adapters/sail-research.js";
 import {
   SOURCE_IDS,
+  BOX_SOURCE_IDS,
+  MAC_SOURCE_IDS,
   emptySource,
   validateSnapshot,
   assertHonestSource,
   assertPublishableSnapshot,
   validateLocalOverrides,
+  validateComponents,
+  STATUSES,
+  COLLECTION_MODES,
 } from "./lib/schema.js";
 import { compactHistory } from "./lib/pace.js";
 
@@ -28,6 +39,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const OUT_DIR = path.join(ROOT, "data");
 const OUT_FILE = path.join(OUT_DIR, "latest.json");
+export const MAC_SOURCES_FILE = path.join(OUT_DIR, "mac-sources.json");
+
+/** Mac sources older than this (relative to box collect time) are marked stale. */
+export const MAC_STALE_HOURS = 2;
+
+const SNAPSHOT_VERSION = "1.9.0";
 
 /**
  * The local-share metric is on hold. The routing log's `local` flag was set from
@@ -49,12 +66,8 @@ const ROUTING_HOLD = Object.freeze({
 
 /**
  * Overrides are gitignored, so every checkout keeps its own copy and they drift
- * apart. A collect run from a checkout holding an older copy then republishes
- * those older readings into the tracked snapshot — the seed silently regresses
- * even though nobody edited it.
- *
- * Prefer one shared file per machine so all checkouts, and the scheduler, read
- * the same seed. The in-repo path stays last for backwards compatibility.
+ * apart. Prefer one shared file per machine so all checkouts, and the scheduler,
+ * read the same seed. The in-repo path stays last for backwards compatibility.
  */
 export const SHARED_OVERRIDES_FILE = path.join(
   os.homedir(),
@@ -85,11 +98,16 @@ async function fileExists(p) {
   }
 }
 
-const ADAPTERS = {
+const BOX_ADAPTERS = {
   "openai-buzz": openaiBuzz,
   "claude-code": claudeCode,
   openrouter,
   sail,
+};
+
+const MAC_ADAPTERS = {
+  "cursor-agent": cursorAgent,
+  "grok-bot": grokBot,
 };
 
 const SECRET_RE =
@@ -101,13 +119,16 @@ const SECRET_RE =
  */
 export function normalizeSource(result) {
   const src = emptySource(result);
-  // pace.daily / pace.monthly removed from the product — do not compute or show them.
   src.pace = {
     daily: null,
     monthly: null,
     weeklyTarget: src.pace?.weeklyTarget ?? null,
   };
   src.history = compactHistory(src.history || []);
+  if (result && result.stale === true) src.stale = true;
+  if (result && typeof result.measuredAt === "string") {
+    src.measuredAt = result.measuredAt;
+  }
   assertHonestSource(src);
   return src;
 }
@@ -121,9 +142,7 @@ export function isAutomaticMeasurement(source) {
 }
 
 /**
- * Describe how old a hand-entered reading is at collect time. A scheduled run
- * re-publishes manual values without re-measuring them, so the age must be
- * visible rather than hidden behind a fresh `generatedAt`.
+ * Describe how old a hand-entered reading is at collect time.
  * @param {string|null|undefined} lastUpdate
  * @param {Date} now
  * @param {{ filledMeter?: boolean }} [opts]
@@ -155,8 +174,6 @@ export function manualFreshnessNote(lastUpdate, now = new Date(), opts = {}) {
 /**
  * When the adapter already measured this run, a local override must never flip
  * the source back to manual or replace live meters with a stale scrape.
- * Missing component ids (e.g. Claude usage-credits when OAuth omitted them)
- * may still be filled from the override.
  * @param {object} base automatic measurement
  * @param {object} override
  * @param {Date} [now]
@@ -172,18 +189,10 @@ export function mergeOverrideOntoAutomatic(base, override, now = new Date()) {
   }
   /** @type {string[]} */
   const filledIds = [];
-  // Only a declared supplement may add meters the automatic path lacked.
-  // A non-supplement override is presentation-only (name / budget / usageUrl).
   if (override.supplements) {
     for (const c of overrideComponents) {
       if (!c || typeof c.id !== "string" || !c.id) continue;
       if (byId.has(c.id)) continue;
-      // Stamp provenance on the component itself. The source stays
-      // collectionMode "automatic" because the adapter did measure something
-      // this run, and its lastUpdate is this collect — so a consumer reading
-      // only the source cannot tell that these particular meters are a
-      // hand-typed seed from yesterday. Carrying the fill's own age here is
-      // what lets the capacity router refuse to treat them as fresh.
       byId.set(c.id, {
         ...c,
         filledFrom: "manual",
@@ -197,8 +206,6 @@ export function mergeOverrideOntoAutomatic(base, override, now = new Date()) {
   const mergedComponents =
     byId.size > 0 ? [...byId.values()] : base.components ?? null;
 
-  // Headline usage/limit stay with the automatic reading. Overrides never
-  // replace OAuth/plan components wholesale, and never demote collectionMode.
   const kept = normalizeSource({
     ...base,
     name: override.name || base.name,
@@ -223,8 +230,6 @@ export function mergeOverrideOntoAutomatic(base, override, now = new Date()) {
       `${kept.reason} Manual override filled missing meter(s) only: ${filledIds.join(", ")} ` +
       `(${manualFreshnessNote(override.lastUpdate, now, { filledMeter: true })}). Source stays automatic from this collect.`;
   } else if (filledIds.length && !hasBaseComponents) {
-    // Automatic tokens-only + override components for plan meters that OAuth
-    // could not return this run — still automatic; components are supplements.
     kept.reason =
       `${kept.reason} Manual override added meter(s) the automatic path lacked: ` +
       `${filledIds.join(", ")} (${manualFreshnessNote(override.lastUpdate, now, { filledMeter: true })}). ` +
@@ -235,20 +240,12 @@ export function mergeOverrideOntoAutomatic(base, override, now = new Date()) {
     kept.reason = `${kept.reason} A manual override added no new meters; automatic reading kept.`;
   }
 
-  // Never append whole-source STALE / "no local meter" copy when we measured live.
   assertHonestSource(kept);
   return kept;
 }
 
 /**
  * Apply a validated local override onto an adapter-normalized source.
- * Only sanitized aggregate fields flow into the published snapshot.
- *
- * A manual override never silently replaces a real automatic reading of the
- * same thing — that is how a scheduled run ends up republishing hand-typed
- * numbers as if it had measured them. When the adapter measured this run,
- * overrides may only fill *missing* component meters (see
- * mergeOverrideOntoAutomatic); they cannot flip collectionMode to manual.
  * @param {object} base
  * @param {object} override
  * @param {Date} [now]
@@ -340,40 +337,275 @@ export async function loadLocalOverrides(filePath) {
 }
 
 /**
- * Run all adapters and build a snapshot object.
+ * Validate data/mac-sources.json shape (not a full snapshot).
+ * @param {unknown} payload
+ * @returns {{ ok: boolean, errors: string[] }}
+ */
+export function validateMacSourcesPayload(payload) {
+  const errors = [];
+  if (!payload || typeof payload !== "object") {
+    return { ok: false, errors: ["mac-sources must be an object"] };
+  }
+  const p = /** @type {Record<string, unknown>} */ (payload);
+  if (typeof p.measuredAt !== "string" || !p.measuredAt) {
+    errors.push("mac-sources.measuredAt must be a non-empty string");
+  }
+  if (!Array.isArray(p.sources)) {
+    return { ok: false, errors: [...errors, "mac-sources.sources must be an array"] };
+  }
+  const ids = new Set();
+  for (const raw of p.sources) {
+    if (!raw || typeof raw !== "object") {
+      errors.push("each mac source must be an object");
+      continue;
+    }
+    const src = /** @type {Record<string, unknown>} */ (raw);
+    if (!MAC_SOURCE_IDS.includes(/** @type {string} */ (src.id))) {
+      errors.push(`unknown or non-Mac source id in mac-sources: ${src.id}`);
+      continue;
+    }
+    if (ids.has(src.id)) errors.push(`duplicate mac source id: ${src.id}`);
+    ids.add(src.id);
+    if (!STATUSES.has(/** @type {string} */ (src.status))) {
+      errors.push(`${src.id}: invalid status`);
+    }
+    if (!COLLECTION_MODES.has(/** @type {string} */ (src.collectionMode))) {
+      errors.push(`${src.id}: invalid collectionMode`);
+    }
+    if (src.status === "unknown" && (!src.reason || typeof src.reason !== "string")) {
+      errors.push(`${src.id}: unknown status requires a reason string`);
+    }
+    errors.push(...validateComponents(src.components, /** @type {string} */ (src.id)));
+    try {
+      assertHonestSource({
+        id: src.id,
+        status: src.status || "unknown",
+        usage: src.usage ?? null,
+        lastUpdate: src.lastUpdate ?? null,
+        reason: src.reason || "mac-source",
+      });
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : String(e));
+    }
+  }
+  return { ok: errors.length === 0, errors };
+}
+
+/**
+ * Load mac-sources.json. Missing / invalid → null (caller inserts unknowns).
+ * @param {string} [filePath]
+ */
+export async function loadMacSources(
+  filePath = process.env.AI_USAGE_MAC_SOURCES_PATH || MAC_SOURCES_FILE,
+) {
+  try {
+    await access(filePath);
+  } catch {
+    return null;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(await readFile(filePath, "utf8"));
+  } catch {
+    return null;
+  }
+  if (SECRET_RE.test(JSON.stringify(parsed))) {
+    throw new Error(
+      "mac-sources.json looks like it contains secrets (fail closed); refusing merge.",
+    );
+  }
+  const check = validateMacSourcesPayload(parsed);
+  if (!check.ok) return null;
+  return parsed;
+}
+
+/**
+ * Age of a Mac reading in hours, or null when unreadable.
+ * @param {string|null|undefined} measuredAt
+ * @param {Date} now
+ */
+export function macSourceAgeHours(measuredAt, now = new Date()) {
+  if (!measuredAt) return null;
+  const t = new Date(measuredAt);
+  if (Number.isNaN(t.getTime())) return null;
+  return Math.max(0, (now.getTime() - t.getTime()) / 3600000);
+}
+
+/**
+ * Placeholder when the Mac has not published a source yet.
+ * @param {string} id
+ */
+export function missingMacSource(id) {
+  return normalizeSource(
+    emptySource({
+      id,
+      status: "unknown",
+      collectionMode: "unavailable",
+      reason:
+        "Waiting for Mac LaunchAgent (scripts/mac-snapshot.sh) to publish data/mac-sources.json. No figures fabricated.",
+    }),
+  );
+}
+
+/**
+ * Merge Mac sources into a box-built source list. Keeps each Mac source's own
+ * measuredAt / lastUpdate. If older than MAC_STALE_HOURS, marks stale (not deleted).
+ *
+ * @param {object[]} boxSources
+ * @param {{ measuredAt?: string, sources?: object[] }|null} macPayload
  * @param {Date} [now]
- * @param {{ overrides?: object[] }} [opts]
+ * @returns {object[]}
+ */
+export function mergeMacSources(boxSources, macPayload, now = new Date()) {
+  const byId = new Map(
+    (Array.isArray(boxSources) ? boxSources : []).map((s) => [s.id, s]),
+  );
+  const macById = new Map(
+    (Array.isArray(macPayload?.sources) ? macPayload.sources : []).map((s) => [
+      s.id,
+      s,
+    ]),
+  );
+  const fileMeasuredAt =
+    typeof macPayload?.measuredAt === "string" ? macPayload.measuredAt : null;
+
+  for (const id of MAC_SOURCE_IDS) {
+    const raw = macById.get(id);
+    if (!raw) {
+      byId.set(id, missingMacSource(id));
+      continue;
+    }
+    const measuredAt =
+      (typeof raw.measuredAt === "string" && raw.measuredAt) ||
+      (typeof raw.lastUpdate === "string" && raw.lastUpdate) ||
+      fileMeasuredAt;
+    const ageHours = macSourceAgeHours(measuredAt, now);
+    const stale =
+      ageHours == null ? true : ageHours >= MAC_STALE_HOURS;
+    let src = normalizeSource({
+      ...raw,
+      id,
+      measuredAt: measuredAt || null,
+      lastUpdate: raw.lastUpdate || measuredAt || null,
+      stale,
+    });
+    if (stale) {
+      const ageLabel =
+        ageHours == null
+          ? "unreadable age"
+          : ageHours < 1
+            ? `${Math.round(ageHours * 60)} minute(s) old`
+            : `${Math.round(ageHours)} hour(s) old`;
+      const prefix = `STALE (Mac meter ${ageLabel}, threshold ${MAC_STALE_HOURS}h).`;
+      if (!/\bSTALE\b/.test(src.reason || "")) {
+        src.reason = `${prefix} ${src.reason || ""}`.trim();
+      }
+      src.stale = true;
+    } else {
+      delete src.stale;
+    }
+    byId.set(id, src);
+  }
+
+  return SOURCE_IDS.map((id) => {
+    if (byId.has(id)) return byId.get(id);
+    if (MAC_SOURCE_IDS.includes(id)) return missingMacSource(id);
+    throw new Error(`mergeMacSources: missing box source ${id}`);
+  });
+}
+
+/**
+ * Run adapters for a subset of source ids.
+ * @param {string[]} ids
+ * @param {Record<string, {collect: Function}>} adapters
+ * @param {Date} now
+ * @param {Map<string, object>} overrideById
+ */
+async function collectIds(ids, adapters, now, overrideById) {
+  const sources = [];
+  for (const id of ids) {
+    const adapter = adapters[id];
+    if (!adapter) {
+      throw new Error(`No adapter registered for source ${id}`);
+    }
+    const result = await adapter.collect({ now });
+    let src = normalizeSource(result);
+    const ov = overrideById.get(id);
+    if (ov) {
+      src = applyOverride(src, ov, now);
+    }
+    sources.push(src);
+  }
+  return sources;
+}
+
+/**
+ * Run box adapters and merge Mac sources into a full snapshot.
+ * @param {Date} [now]
+ * @param {{ overrides?: object[], macSources?: object|null }} [opts]
  */
 export async function collectSnapshot(now = new Date(), opts = {}) {
   const overrideList =
     opts.overrides !== undefined ? opts.overrides : await loadLocalOverrides();
   const byId = new Map(overrideList.map((o) => [o.id, o]));
 
-  const sources = [];
-  for (const id of SOURCE_IDS) {
-    const adapter = ADAPTERS[id];
-    const result = await adapter.collect({ now });
-    let src = normalizeSource(result);
-    const ov = byId.get(id);
-    if (ov) {
-      src = applyOverride(src, ov, now);
-    }
-    sources.push(src);
-  }
+  const boxSources = await collectIds(BOX_SOURCE_IDS, BOX_ADAPTERS, now, byId);
+  const macPayload =
+    opts.macSources !== undefined
+      ? opts.macSources
+      : await loadMacSources();
+  const sources = mergeMacSources(boxSources, macPayload, now);
+
   const snapshot = {
-    version: "1.8.1",
+    version: SNAPSHOT_VERSION,
     generatedAt: now.toISOString(),
     timezone: "Europe/Amsterdam",
     scheduleNote:
-      "Linux box cron runs scripts/box-snapshot.sh (collector → push data/latest.json). LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
-    // Fizz Claude Backup owns populating this from routing-log.jsonl. Held at
-    // unavailable-with-reason: the routing log still carries legacy `local:true`
-    // rows whose "local" claim came from an agent label, not from runtime proof.
+      "Split meter: Linux box cron (scripts/box-snapshot.sh) measures box sources and merges data/mac-sources.json; Mac LaunchAgent (scripts/mac-snapshot.sh) publishes Cursor Agent + Grok Bot. LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
     routing: ROUTING_HOLD,
     sources,
   };
   assertPublishableSnapshot(snapshot);
   return snapshot;
+}
+
+/**
+ * Run Mac-only adapters → mac-sources payload (not a full snapshot).
+ * @param {Date} [now]
+ * @param {{ overrides?: object[] }} [opts]
+ */
+export async function collectMacSourcesSnapshot(now = new Date(), opts = {}) {
+  const overrideList =
+    opts.overrides !== undefined ? opts.overrides : await loadLocalOverrides();
+  const byId = new Map(
+    overrideList
+      .filter((o) => MAC_SOURCE_IDS.includes(o.id))
+      .map((o) => [o.id, o]),
+  );
+
+  const sources = await collectIds(MAC_SOURCE_IDS, MAC_ADAPTERS, now, byId);
+  const measuredAt = now.toISOString();
+  for (const src of sources) {
+    src.measuredAt = measuredAt;
+    if (!src.lastUpdate) src.lastUpdate = measuredAt;
+  }
+
+  const payload = {
+    version: SNAPSHOT_VERSION,
+    measuredAt,
+    timezone: "Europe/Amsterdam",
+    sources,
+  };
+  const check = validateMacSourcesPayload(payload);
+  if (!check.ok) {
+    throw new Error(`Invalid mac-sources payload: ${check.errors.join("; ")}`);
+  }
+  if (SECRET_RE.test(JSON.stringify(payload))) {
+    throw new Error(
+      "Refusing to write mac-sources that look like they contain secrets",
+    );
+  }
+  return payload;
 }
 
 export async function writeSnapshot(snapshot, outFile = OUT_FILE) {
@@ -387,7 +619,33 @@ export async function writeSnapshot(snapshot, outFile = OUT_FILE) {
   return outFile;
 }
 
+export async function writeMacSources(payload, outFile = MAC_SOURCES_FILE) {
+  const check = validateMacSourcesPayload(payload);
+  if (!check.ok) {
+    throw new Error(`Invalid mac-sources payload: ${check.errors.join("; ")}`);
+  }
+  const text = `${JSON.stringify(payload, null, 2)}\n`;
+  if (SECRET_RE.test(text)) {
+    throw new Error(
+      "Refusing to write mac-sources that look like they contain secrets",
+    );
+  }
+  await mkdir(path.dirname(outFile), { recursive: true });
+  await writeFile(outFile, text, "utf8");
+  return outFile;
+}
+
 async function main() {
+  const macMode =
+    process.argv.includes("--mac") ||
+    process.env.AI_USAGE_COLLECT_MODE === "mac";
+  if (macMode) {
+    const payload = await collectMacSourcesSnapshot();
+    const dest = await writeMacSources(payload);
+    // eslint-disable-next-line no-console
+    console.log(`Wrote ${dest}`);
+    return;
+  }
   const snapshot = await collectSnapshot();
   const dest = await writeSnapshot(snapshot);
   // eslint-disable-next-line no-console

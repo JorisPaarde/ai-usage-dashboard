@@ -14,6 +14,7 @@ export const POOL_QUALITY = Object.freeze({
   sail: ["cheap", "normal"],
   claude: ["cheap", "normal", "max"],
   openai: ["cheap", "normal", "max"],
+  cursor: ["cheap", "normal", "max"],
   openrouter: ["cheap", "normal", "max"],
 });
 
@@ -25,11 +26,11 @@ export const QUALITIES = Object.freeze(["cheap", "normal", "max"]);
  * always preferred, even when it is only `low`.
  */
 export const LANES = Object.freeze({
-  code: ["openai", "claude", "openrouter"],
-  review: ["claude", "openai", "openrouter"],
-  research: ["claude", "openai", "openrouter"],
-  classify: ["openai", "openrouter"],
-  digest: ["claude", "openrouter"],
+  code: ["openai", "claude", "cursor", "openrouter"],
+  review: ["claude", "openai", "cursor", "openrouter"],
+  research: ["claude", "openai", "cursor", "openrouter"],
+  classify: ["openai", "cursor", "openrouter"],
+  digest: ["claude", "cursor", "openrouter"],
   bulk: ["sail", "openrouter"],
 });
 

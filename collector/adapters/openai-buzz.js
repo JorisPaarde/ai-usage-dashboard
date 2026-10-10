@@ -194,7 +194,7 @@ export function queryLiveRateLimits({
         id: 1,
         method: "initialize",
         params: {
-          clientInfo: { name: "ai-usage-dashboard", version: "1.8.1" },
+          clientInfo: { name: "ai-usage-dashboard", version: "1.9.0" },
         },
       })}\n${JSON.stringify({ method: "initialized", params: {} })}\n${JSON.stringify(
         { id: 2, method: "account/rateLimits/read", params: {} },

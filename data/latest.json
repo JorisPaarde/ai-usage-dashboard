@@ -1,8 +1,8 @@
 {
-  "version": "1.8.1",
+  "version": "1.9.0",
   "generatedAt": "2026-10-10T17:40:41.324Z",
   "timezone": "Europe/Amsterdam",
-  "scheduleNote": "Linux box cron runs scripts/box-snapshot.sh (collector → push data/latest.json). LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
+  "scheduleNote": "Split meter: Linux box cron (scripts/box-snapshot.sh) measures box sources and merges data/mac-sources.json; Mac LaunchAgent (scripts/mac-snapshot.sh) publishes Cursor Agent + Grok Bot. LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
   "routing": {
     "today": {
       "local": 0,
@@ -54,6 +54,50 @@
         }
       ],
       "usageUrl": "https://chatgpt.com/#settings/Usage",
+      "pace": {
+        "daily": null,
+        "monthly": null,
+        "weeklyTarget": null
+      },
+      "history": []
+    },
+    {
+      "id": "cursor-agent",
+      "name": "Cursor Agent",
+      "status": "unknown",
+      "collectionMode": "unavailable",
+      "reason": "Waiting for Mac LaunchAgent (scripts/mac-snapshot.sh) to publish data/mac-sources.json. No figures fabricated.",
+      "usage": null,
+      "limit": null,
+      "unit": "mixed (see components)",
+      "resetDate": null,
+      "lastUpdate": null,
+      "coverageStart": null,
+      "breakdown": null,
+      "components": null,
+      "usageUrl": "https://cursor.com/dashboard/spending",
+      "pace": {
+        "daily": null,
+        "monthly": null,
+        "weeklyTarget": null
+      },
+      "history": []
+    },
+    {
+      "id": "grok-bot",
+      "name": "Grok Bot",
+      "status": "unknown",
+      "collectionMode": "unavailable",
+      "reason": "Waiting for Mac LaunchAgent (scripts/mac-snapshot.sh) to publish data/mac-sources.json. No figures fabricated.",
+      "usage": null,
+      "limit": null,
+      "unit": "mixed (see components)",
+      "resetDate": null,
+      "lastUpdate": null,
+      "coverageStart": null,
+      "breakdown": null,
+      "components": null,
+      "usageUrl": "https://cursor.com/dashboard",
       "pace": {
         "daily": null,
         "monthly": null,

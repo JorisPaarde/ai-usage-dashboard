@@ -47,24 +47,24 @@ describe("build", () => {
     await access(path.join(DIST, "styles.css"));
     await access(path.join(DIST, "dashboard.js"));
     await access(path.join(DIST, "app.js"));
-    await access(path.join(DIST, "d", "1.8.1.js"));
+    await access(path.join(DIST, "d", "1.9.0.js"));
     await access(path.join(DIST, "go.html"));
     const indexHtml = await readFile(path.join(DIST, "index.html"), "utf8");
-    assert.match(indexHtml, /d\/1\.8\.1\.js/);
-    assert.match(indexHtml, /styles\.css\?v=1\.8\.1/);
+    assert.match(indexHtml, /d\/1\.9\.0\.js/);
+    assert.match(indexHtml, /styles\.css\?v=1\.9\.0/);
     assert.match(indexHtml, /Laatst bijgewerkt:/);
     assert.match(indexHtml, /mac-badge/);
     assert.match(indexHtml, /Alles updaten/);
     assert.doesNotMatch(indexHtml, /src="\.\/app\.js"/);
     const goHtml = await readFile(path.join(DIST, "go.html"), "utf8");
     assert.match(goHtml, /Laatst bijgewerkt:/);
-    assert.match(goHtml, /d\/1\.8\.1\.js/);
+    assert.match(goHtml, /d\/1\.9\.0\.js/);
     const latest = await readFile(path.join(DIST, "data", "latest.json"), "utf8");
     const meta = JSON.parse(
       await readFile(path.join(DIST, "data", "build-meta.json"), "utf8"),
     );
-    assert.equal(JSON.parse(latest).version, "1.8.1");
-    assert.equal(meta.version, "1.8.1");
+    assert.equal(JSON.parse(latest).version, "1.9.0");
+    assert.equal(meta.version, "1.9.0");
     // The built site must not ship a local percentage while the metric is held.
     assert.ok(JSON.parse(latest).routing);
     assert.equal(JSON.parse(latest).routing.today.percent, null);
@@ -119,19 +119,40 @@ describe("build", () => {
     assert.match(collectYml, /npm run check/);
   });
 
-  it("local Mac app helpers are retired", async () => {
+  it("local Mac app helpers are retired; mac-snapshot LaunchAgent is present", async () => {
     await assert.rejects(() =>
       access(path.join(ROOT, "scripts", "local-app-server.js")),
     );
     await assert.rejects(() =>
       access(path.join(ROOT, "scripts", "install-local-app.sh")),
     );
+    await access(path.join(ROOT, "scripts", "mac-snapshot.sh"));
+    await access(
+      path.join(
+        ROOT,
+        "docs",
+        "nl.jpwebcreation.ai-usage-dashboard.plist.example",
+      ),
+    );
     const pkg = JSON.parse(
       await readFile(path.join(ROOT, "package.json"), "utf8"),
     );
     assert.equal(pkg.scripts.app, undefined);
+    assert.equal(pkg.scripts["collect:mac"], "node collector/index.js --mac");
     const readme = await readFile(path.join(ROOT, "README.md"), "utf8");
     assert.doesNotMatch(readme, /npm run app|local-app-server|\/api\/collect/);
+    assert.match(readme, /mac-snapshot\.sh/);
+    const macSh = await readFile(
+      path.join(ROOT, "scripts", "mac-snapshot.sh"),
+      "utf8",
+    );
+    assert.match(macSh, /mkdir "\$LOCK"/);
+    assert.match(macSh, /npm run collect:mac/);
+    assert.match(macSh, /npm run check/);
+    assert.match(macSh, /git add data\/mac-sources\.json/);
+    assert.doesNotMatch(macSh, /git add data\/latest\.json/);
+    assert.match(macSh, /git reset --hard origin\/main/);
+    assert.match(macSh, /git rebase origin\/main/);
   });
 
   it("box snapshot pushes via gh auth without a token env var", async () => {

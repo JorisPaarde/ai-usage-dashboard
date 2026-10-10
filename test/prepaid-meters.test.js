@@ -206,14 +206,15 @@ describe("Sail Research adapter", () => {
 });
 
 describe("source registry", () => {
-  it("includes OpenRouter and Sail in SOURCE_IDS", () => {
+  it("includes OpenRouter, Sail, Cursor, and Grok Bot in SOURCE_IDS", () => {
     assert.ok(SOURCE_IDS.includes("openrouter"));
     assert.ok(SOURCE_IDS.includes("sail"));
     assert.ok(SOURCE_IDS.includes("openai-buzz"));
     assert.ok(SOURCE_IDS.includes("claude-code"));
-    assert.equal(SOURCE_IDS.length, 4);
+    assert.ok(SOURCE_IDS.includes("cursor-agent"));
+    assert.ok(SOURCE_IDS.includes("grok-bot"));
+    assert.equal(SOURCE_IDS.length, 6);
     assert.equal(SOURCE_IDS.includes("enrich-labs"), false);
-    assert.equal(SOURCE_IDS.includes("cursor-agent"), false);
     assert.equal(SOURCE_IDS.includes("ollama"), false);
   });
 });

@@ -1,7 +1,21 @@
 /** Snapshot schema helpers — no external deps. */
 
+/** Sources measured on the Linux box (scripts/box-snapshot.sh). */
+export const BOX_SOURCE_IDS = [
+  "openai-buzz",
+  "claude-code",
+  "openrouter",
+  "sail",
+];
+
+/** Sources measured on the Mac (scripts/mac-snapshot.sh → data/mac-sources.json). */
+export const MAC_SOURCE_IDS = ["cursor-agent", "grok-bot"];
+
+/** Full published snapshot order (box + merged Mac sources). */
 export const SOURCE_IDS = [
   "openai-buzz",
+  "cursor-agent",
+  "grok-bot",
   "claude-code",
   "openrouter",
   "sail",
@@ -12,6 +26,16 @@ export const SOURCE_META = {
     name: "OpenAI (ChatGPT/Codex)",
     unit: "mixed (see components)",
     usageUrl: "https://chatgpt.com/#settings/Usage",
+  },
+  "cursor-agent": {
+    name: "Cursor Agent",
+    unit: "mixed (see components)",
+    usageUrl: "https://cursor.com/dashboard/spending",
+  },
+  "grok-bot": {
+    name: "Grok Bot",
+    unit: "mixed (see components)",
+    usageUrl: "https://cursor.com/dashboard",
   },
   "claude-code": {
     name: "Claude Code",
