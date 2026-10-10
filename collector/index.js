@@ -11,10 +11,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import * as openaiBuzz from "./adapters/openai-buzz.js";
-import * as cursorAgent from "./adapters/cursor-agent.js";
 import * as claudeCode from "./adapters/claude-code.js";
-import * as ollama from "./adapters/ollama.js";
-import * as enrichLabs from "./adapters/enrich-labs.js";
 import * as openrouter from "./adapters/openrouter.js";
 import * as sail from "./adapters/sail-research.js";
 import {
@@ -24,8 +21,6 @@ import {
   assertHonestSource,
   assertPublishableSnapshot,
   validateLocalOverrides,
-  ENRICH_MONTHLY_BUDGET,
-  ENRICH_WEEKLY_PACE_MAX,
 } from "./lib/schema.js";
 import { compactHistory } from "./lib/pace.js";
 
@@ -92,10 +87,7 @@ async function fileExists(p) {
 
 const ADAPTERS = {
   "openai-buzz": openaiBuzz,
-  "cursor-agent": cursorAgent,
   "claude-code": claudeCode,
-  ollama,
-  "enrich-labs": enrichLabs,
   openrouter,
   sail,
 };
@@ -115,14 +107,6 @@ export function normalizeSource(result) {
     monthly: null,
     weeklyTarget: src.pace?.weeklyTarget ?? null,
   };
-  if (src.id === "enrich-labs") {
-    src.limit = src.limit ?? ENRICH_MONTHLY_BUDGET;
-    src.budget = {
-      monthly: ENRICH_MONTHLY_BUDGET,
-      weeklyPaceMax: ENRICH_WEEKLY_PACE_MAX,
-    };
-    src.pace.weeklyTarget = ENRICH_WEEKLY_PACE_MAX;
-  }
   src.history = compactHistory(src.history || []);
   assertHonestSource(src);
   return src;
@@ -377,11 +361,11 @@ export async function collectSnapshot(now = new Date(), opts = {}) {
     sources.push(src);
   }
   const snapshot = {
-    version: "1.7.0",
+    version: "1.8.1",
     generatedAt: now.toISOString(),
     timezone: "Europe/Amsterdam",
     scheduleNote:
-      "Local LaunchAgent collects + publishes every 15 minutes (LLM-free, no cloud agent). Pages \"Alles updaten\" only re-fetches published latest.json. Mac-online badge uses generatedAt age (~20 min). On-demand re-measure: local app only — never Codex/Grok/agent.",
+      "Linux box cron runs scripts/box-snapshot.sh (collector → push data/latest.json). LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
     // Fizz Claude Backup owns populating this from routing-log.jsonl. Held at
     // unavailable-with-reason: the routing log still carries legacy `local:true`
     // rows whose "local" claim came from an agent label, not from runtime proof.

@@ -22,46 +22,13 @@
       "pool": "openai",
       "agent": "Codex-agent",
       "sourceId": "openai-buzz",
-      "percent": 3,
+      "percent": 4,
       "capped": [],
       "measuredAt": "2026-09-22T18:33:13.642Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
-      "reason": "Source usage against its own limit."
-    },
-    "cursor": {
-      "pool": "cursor",
-      "agent": "Cursor Builder",
-      "sourceId": "cursor-agent",
-      "percent": 53.4,
-      "capped": [
-        {
-          "id": "on-demand",
-          "percent": 100.4
-        },
-        {
-          "id": "grok-bot",
-          "percent": 8.7
-        }
-      ],
-      "measuredAt": "2026-09-22T18:33:13.642Z",
-      "maxAgeMinutes": 60,
-      "collectionMode": "automatic",
-      "unmetered": false,
-      "reason": "Highest capacity meter; capped meters reported separately."
-    },
-    "local": {
-      "pool": "local",
-      "agent": "LocalAI guy",
-      "sourceId": "ollama",
-      "percent": null,
-      "capped": [],
-      "measuredAt": "2026-09-22T18:33:13.642Z",
-      "maxAgeMinutes": 60,
-      "collectionMode": "automatic",
-      "unmetered": true,
-      "reason": "Local runtime; no quota. Measured means usable."
+      "reason": "Highest of five-hour, weekly."
     },
     "sail": {
       "pool": "sail",

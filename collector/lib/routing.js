@@ -57,21 +57,9 @@ export const POOLS = Object.freeze({
   },
   openai: {
     sourceId: "openai-buzz",
-    useSourceUsage: true,
+    componentIds: ["five-hour", "weekly"],
     maxAgeMinutes: 15,
     agent: "Codex-agent",
-  },
-  cursor: {
-    sourceId: "cursor-agent",
-    componentRole: "capacity",
-    maxAgeMinutes: 60,
-    agent: "Cursor Builder",
-  },
-  local: {
-    sourceId: "ollama",
-    unmetered: true,
-    maxAgeMinutes: 60,
-    agent: "LocalAI guy",
   },
   sail: {
     sourceId: "sail",

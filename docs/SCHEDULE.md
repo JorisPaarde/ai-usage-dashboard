@@ -1,13 +1,13 @@
 # Collection schedule (Europe/Amsterdam)
 
 **Policy:** Cursor cloud agents may plan and implement. Steady-state
-**collect + publish is ordinary automation only** (LaunchAgent / cron /
-signed-in local CLIs / official APIs). No Grok Bot, cloud agent, or
-browser-bot in the measurement loop. See [`PLAN.md`](../PLAN.md) and
+**collect + publish is ordinary automation only** (box cron / signed-in local
+CLIs / official APIs). No Grok Bot, cloud agent, or browser-bot in the
+measurement loop. See [`PLAN.md`](../PLAN.md) and
 [issue #12](https://github.com/JorisPaarde/ai-usage-dashboard/issues/12).
 
-The local collector runs every **15 minutes**. Open dashboards soft-refresh
-every **5 minutes**.
+The box collector runs on a cron interval set by the server owner (typically
+every **15 minutes**). Open dashboards soft-refresh every **5 minutes**.
 
 ## What each scheduled run actually measures
 
@@ -15,41 +15,27 @@ A run is only worth scheduling if it re-measures something. Per source:
 
 | Source | Route | Re-measured each run? |
 | --- | --- | --- |
-| OpenAI / Buzz | `account/rateLimits/read` on the local `codex app-server`, falling back to `~/.codex/sessions/**` | Yes — live from the account |
-| Claude Code | Prefer `GET /api/oauth/usage` with the local Claude.ai OAuth token from `~/.claude/.credentials.json`; always also sum tokens from `~/.claude/projects/**/*.jsonl` | Yes when OAuth works; tokens always when transcripts exist |
-| Ollama | timing counters in the local `ollama.log` | Yes |
-| Cursor | `GetCurrentPeriodUsage` (+ optional `GetSandUsageStatus`) with the signed-in IDE Bearer token from `state.vscdb` | Yes — live from the account when Cursor is signed in locally |
-| OpenRouter | Official `GET /api/v1/credits` + `/api/v1/key` (+ `/activity` history) with `OPENROUTER_API_KEY` / `OPENROUTER_MANAGEMENT_KEY` | Yes when keys are present in `~/.config/ai-usage-dashboard/env` |
+| OpenAI (ChatGPT/Codex) | `account/rateLimits/read` on the local `codex app-server` (5 h + weekly bars); session-log fallback when app-server is down | Yes — live from the account when Codex is signed in |
+| Claude Code | Prefer `GET /api/oauth/usage` with `CLAUDE_CODE_OAUTH_TOKEN` (or `~/.claude/.credentials.json`); on HTTP **403** only, one Haiku `max_tokens=1` Messages call (Claude Code OAuth headers + system prompt) and read `anthropic-ratelimit-unified-5h/7d-*` headers from a **2xx** response; always also sum tokens from `~/.claude/projects/**/*.jsonl` when present | Yes when OAuth or header probe works; tokens when transcripts exist |
+| OpenRouter | Official `GET /api/v1/credits` (account balance = total_credits − total_usage as headline) + `/api/v1/key` secondary; optional `/activity` history | Yes when keys are present in `~/.config/ai-usage-dashboard/env` |
 | Sail Research | Official `GET /v2/usage/summary?range=period` (+ `/breakdown` history) with `SAIL_API_KEY` | Yes when the key is present in `~/.config/ai-usage-dashboard/env` |
-| Enrich Labs / Helena | none verified — not enrich.so wallets | No — manual override until [issue #10](https://github.com/JorisPaarde/ai-usage-dashboard/issues/10) |
+
+Removed from the product (formerly Mac-only): Cursor Agent, Ollama, Enrich Labs / Helena.
 
 All routes read **numeric counters only**. Prompts, responses, credit balances
 that are account-private beyond the published meter, plan tiers, and
 account/installation identifiers are never parsed into the snapshot. The
 publish step fails closed on secret- or email-looking values.
 
-### The live Cursor read costs nothing
-
-Cursor's IDE stores a session access token in its local `state.vscdb` (SQLite
-`ItemTable` key `cursorAuth/accessToken`). The collector reads that token and
-POSTs `{}` to `aiserver.v1.DashboardService/GetCurrentPeriodUsage` on
-`api2.cursor.sh` (Connect protocol). That returns Included Cursor Models %,
-Other Models %, and On-demand USD from `planUsage` / `spendLimitUsage`. An
-optional `GetSandUsageStatus` call fills the separate Grok Bot weekly meter when
-the account has one. No browser scrape — same local-login idea as Codex. The
-token is never written into `data/latest.json`, logs, or reasons.
-
-Override the state DB / storage JSON paths with `CURSOR_STATE_DB` and
-`CURSOR_STORAGE_JSON`, or the API origin with `CURSOR_API_BASE`.
-
 ### The live OpenAI read costs nothing
 
 `codex app-server` is a local JSON-RPC process that reuses the existing login.
 `account/rateLimits/read` is read-only, starts no model, and consumes no
-tokens — safe to call on a 15-minute schedule.
+tokens — safe to call on a schedule. Publishes two capacity bars (5-hour and
+weekly) with reset times for the existing dashboard layout.
 
-Override the search paths with `CODEX_SESSIONS_DIR`, `CLAUDE_PROJECTS_DIR`,
-`CLAUDE_CREDENTIALS_PATH`, and `OLLAMA_LOG_PATH`.
+Override the search paths with `CODEX_SESSIONS_DIR` and `CLAUDE_PROJECTS_DIR` /
+`CLAUDE_CREDENTIALS_PATH`.
 
 ### The live Claude plan read (local OAuth)
 
@@ -62,11 +48,20 @@ calls `GET https://api.anthropic.com/api/oauth/usage` with
 - `seven_day` → Weekly (all models) %
 - `extra_usage` → Usage credits (EUR when present)
 
-The endpoint rate-limits aggressively; on HTTP 429 the adapter keeps transcript
-token totals and retries next interval. Token never enters the snapshot.
+When that endpoint returns **403** only (e.g. a setup token with only
+`user:inference`), the adapter falls back once: `POST /v1/messages` with
+`max_tokens: 1` to a Haiku model, then reads:
 
-Transcript token counters remain the fallback / supporting breakdown. They do
-**not** invent plan percentages.
+- `anthropic-ratelimit-unified-5h-utilization` / `-5h-reset`
+- `anthropic-ratelimit-unified-7d-utilization` / `-7d-reset`
+
+Utilization is a 0–1 fraction (×100 for %). Shown as the same two capacity
+bars. HTTP **401** and other failures keep the previous behaviour (transcripts /
+cache / unknown) — no Haiku probe.
+
+The oauth/usage endpoint rate-limits aggressively; on HTTP 429 the adapter keeps
+transcript token totals and retries next interval. Token never enters the
+snapshot.
 
 ### Percentages expire with their window
 
@@ -75,43 +70,48 @@ recorded `resets_at` has passed and the provider has written nothing since, the
 OpenAI source reports **unavailable with the reason**, rather than republishing
 a spent number against an allowance the provider has already reset.
 
-### What a local meter cannot reach yet
+### Prepaid meters and the env file
 
-Helena / Enrich Labs workspace credits still have **no verified local meter or
-documented read-only API** for this product (Starter 200 credits/mo). Do **not**
-use enrich.so `/wallets/balance` — that is a different product. Until issue #10
-lands, those values live in `~/.config/ai-usage-dashboard/local-overrides.json`
-as hand-entered readings. Every scheduled run stamps them with **how old** they
-are, and marks them `STALE:` past 12 hours.
+Put `OPENROUTER_API_KEY` (and optionally `OPENROUTER_MANAGEMENT_KEY` /
+`SAIL_API_KEY` / `CLAUDE_CODE_OAUTH_TOKEN`) in
+`~/.config/ai-usage-dashboard/env` with mode **600**. See
+[`docs/env.example`](env.example) and [`docs/PREPAID.md`](PREPAID.md).
 
-OpenRouter and Sail Research **do** have documented Usage APIs. Put the keys in
-`~/.config/ai-usage-dashboard/env` (see [`docs/env.example`](env.example) and
-[`docs/PREPAID.md`](PREPAID.md)). Until that file exists on the Mac, those cards
-stay unavailable and routing treats them as paid last-resort.
+`scripts/box-snapshot.sh` sources that file when it exists (`set -a; . "$ENV_FILE"`)
+before collect. OpenRouter's headline is the **account balance** from `/credits`;
+a per-key spending cap stays secondary when present.
 
 An override never overwrites a source the collector measures directly. If it
 carries a genuinely different metric it must say `"supplements": true`.
 
-## Local / self-hosted collectors (the only live path)
+## Box collector (the only live path)
 
-GitHub-hosted runners **cannot** inspect authenticated desktop or browser apps.
-Real figures appear only when the collector runs on a machine that can see them.
+GitHub-hosted runners **cannot** inspect authenticated desktop or CLI sessions.
+Real figures appear only when the collector runs on the box that can see them.
 
-Run the LaunchAgent from a checkout dedicated to the scheduler. It refuses to
-run against a dirty tree (other than a leftover `data/latest.json` from a prior
-failed collect/check, which it discards so the schedule cannot lock itself
-out).
+`scripts/box-snapshot.sh` (must run on a clean `main` checkout):
 
-```sh
-./scripts/install-launch-agent.sh
-# StartInterval 900s → collect every 15 minutes while the machine is awake
-```
+1. Prepends `$HOME/.local/bin` to `PATH` (where `codex` often lives under cron)
+2. Takes an exclusive `flock -n` on `.box-snapshot.lock` (no stale mkdir-lock
+   after SIGKILL/reboot)
+3. Sources `~/.config/ai-usage-dashboard/env` when present
+4. Checks `gh auth status` (fails clearly if not logged in)
+5. After the clean-tree check: `git fetch origin main && git reset --hard origin/main`
+   (dedicated checkout — a rejected push must not jam the meter permanently)
+6. Loads `CLAUDE_CODE_OAUTH_TOKEN` from `~/.claude-oauth-token` when unset
+7. Runs `npm run collect` + `npm run routing`, then `npm run check`
+8. Commits `data/latest.json` + `data/routing.json` only when they changed
+9. `git push` via the existing `gh` HTTPS credential helper
 
-Optional cron equivalent:
+One-time on the box: `gh auth login` and `gh auth setup-git` (not done by the
+cron script). No separate GitHub token env var. The server owner installs cron;
+this repo does not write crontab entries.
+
+Example cron (owner-managed):
 
 ```cron
 CRON_TZ=Europe/Amsterdam
-*/15 * * * * cd /path/to/ai-usage-dashboard-scheduler && ./scripts/local-snapshot.sh
+*/15 * * * * cd /path/to/ai-usage-dashboard && ./scripts/box-snapshot.sh
 ```
 
 ## GitHub Actions
@@ -120,10 +120,6 @@ CRON_TZ=Europe/Amsterdam
   snapshot. Dumb host.
 - **Validate** (`.github/workflows/collect.yml`): `workflow_dispatch` only —
   runs `npm run check` on the committed public snapshot. **Not a meter.**
-
-Older docs mentioned Amsterdam-gated 09:00 / 16:00 UTC cron collect windows.
-Those are retired: hosted collect cannot see desktop sessions and must not
-claim to. The Amsterdam gate helper remains in-repo for optional local tooling.
 
 ## Where the seed lives
 

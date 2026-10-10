@@ -1,10 +1,10 @@
 name: Validate usage snapshot
 
 # Validates the committed public snapshot only.
-# Hosted runners cannot measure authenticated desktop/browser usage
-# (Cursor, Codex, Claude OAuth, Enrich Labs) or prepaid keys that live in
-# ~/.config/ai-usage-dashboard/env (OpenRouter, Sail Research).
-# Live meters run on the Mac LaunchAgent — see docs/SCHEDULE.md and PLAN.md.
+# Hosted runners cannot measure authenticated CLI usage or prepaid keys that
+# live in ~/.config/ai-usage-dashboard/env (OpenRouter, Sail Research).
+# Live meters run on the Linux box via scripts/box-snapshot.sh —
+# see docs/SCHEDULE.md and PLAN.md.
 #
 # Do not reintroduce a scheduled collect-as-meter job here.
 

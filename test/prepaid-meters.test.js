@@ -77,13 +77,16 @@ describe("OpenRouter adapter", () => {
     });
     assert.equal(r.status, "measured");
     assert.equal(r.collectionMode, "automatic");
-    assert.equal(r.usage, 37.5);
-    assert.equal(r.limit, 50);
+    // Account remaining balance is the headline figure; key cap is secondary.
+    assert.equal(r.usage, 74.75);
+    assert.equal(r.limit, null);
     assert.equal(r.usageUrl, "https://openrouter.ai/workspaces/default");
+    assert.match(r.reason, /account balance 74\.75 USD remaining/);
     const credits = r.components.find((c) => c.id === "credits");
     const cap = r.components.find((c) => c.id === "key-limit");
     assert.equal(credits.usage, 25.75);
     assert.equal(credits.limit, 100.5);
+    assert.equal(credits.label, "Account balance");
     assert.equal(cap.usage, 37.5);
     assert.equal(cap.limit, 50);
     assert.deepEqual(
@@ -107,10 +110,12 @@ describe("OpenRouter adapter", () => {
       }),
     });
     assert.equal(r.status, "measured");
-    assert.equal(r.usage, 5);
-    assert.equal(r.limit, 20);
+    assert.equal(r.usage, 15);
+    assert.equal(r.limit, null);
     assert.equal(r.components.length, 1);
     assert.equal(r.components[0].id, "credits");
+    assert.equal(r.components[0].usage, 5);
+    assert.equal(r.components[0].limit, 20);
   });
 
   it("stays unknown when /credits is forbidden and the key is uncapped", async () => {
@@ -204,6 +209,11 @@ describe("source registry", () => {
   it("includes OpenRouter and Sail in SOURCE_IDS", () => {
     assert.ok(SOURCE_IDS.includes("openrouter"));
     assert.ok(SOURCE_IDS.includes("sail"));
-    assert.equal(SOURCE_IDS.length, 7);
+    assert.ok(SOURCE_IDS.includes("openai-buzz"));
+    assert.ok(SOURCE_IDS.includes("claude-code"));
+    assert.equal(SOURCE_IDS.length, 4);
+    assert.equal(SOURCE_IDS.includes("enrich-labs"), false);
+    assert.equal(SOURCE_IDS.includes("cursor-agent"), false);
+    assert.equal(SOURCE_IDS.includes("ollama"), false);
   });
 });

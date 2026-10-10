@@ -19,8 +19,8 @@ function fmtNum(n) {
 const MANUAL_STALE_HOURS = 12;
 
 /**
- * LaunchAgent publishes about every 15 minutes while the Mac is awake.
- * A snapshot older than this is treated as Mac offline / asleep.
+ * Box cron publishes about every 15 minutes while the host is up.
+ * A snapshot older than this is treated as box offline.
  */
 const MAC_ONLINE_MINUTES = 20;
 
@@ -60,7 +60,7 @@ function collectionBadgeClass(mode) {
 }
 
 /**
- * Honest Mac presence from snapshot age (no separate heartbeat).
+ * Honest box presence from snapshot age (no separate heartbeat).
  * @param {string|null|undefined} generatedAt
  * @param {Date} [now]
  * @returns {{ online: boolean, label: string, title: string, minutes: number|null }}
@@ -69,7 +69,7 @@ function macPresence(generatedAt, now = new Date()) {
   if (!generatedAt) {
     return {
       online: false,
-      label: "Mac offline",
+      label: "Box offline",
       title: "Geen snapshot-tijd beschikbaar",
       minutes: null,
     };
@@ -78,7 +78,7 @@ function macPresence(generatedAt, now = new Date()) {
   if (Number.isNaN(observed.getTime())) {
     return {
       online: false,
-      label: "Mac offline",
+      label: "Box offline",
       title: "Snapshot-tijd onleesbaar",
       minutes: null,
     };
@@ -88,14 +88,14 @@ function macPresence(generatedAt, now = new Date()) {
   if (minutes <= MAC_ONLINE_MINUTES) {
     return {
       online: true,
-      label: "Mac online",
+      label: "Box online",
       title: `Laatste collect ${stamp} (Europe/Amsterdam) · ${Math.round(minutes)} min geleden`,
       minutes,
     };
   }
   return {
     online: false,
-    label: "Mac offline / in slaap",
+    label: "Box offline",
     title: `Laatste collect ${stamp} (Europe/Amsterdam) · ${
       minutes < 120
         ? `${Math.round(minutes)} min`
@@ -203,8 +203,12 @@ function usageLabel(src) {
 /**
  * One home-screen meter. Prefer the hottest capped meter (what bites first),
  * else hottest capacity, else first readable component.
+ *
+ * OpenRouter is special: the glance must show account balance (remaining USD)
+ * from the source headline — never let key-limit win. Key cap stays under Meer.
  */
 function glanceMeter(src) {
+  if (src?.id === "openrouter") return null;
   const comps = Array.isArray(src.components) ? src.components : [];
   if (!comps.length) return null;
   const ranked = (list) =>
@@ -223,6 +227,14 @@ function glanceMeter(src) {
 
 /** Home glance: one large number + tiny label / reset. */
 function renderGlancePrimary(src) {
+  if (src?.id === "openrouter" && src.usage != null && src.limit == null) {
+    return renderPrimary({
+      value: fmtNum(src.usage),
+      empty: false,
+      sub: "Tegoed · USD over",
+      bar: null,
+    });
+  }
   const meter = glanceMeter(src);
   if (meter) {
     const metric = primaryDisplay(meter);
@@ -646,11 +658,6 @@ async function loadJson(url) {
   return res.json();
 }
 
-function isLocalAppHost() {
-  const host = location.hostname;
-  return host === "127.0.0.1" || host === "localhost" || host === "[::1]";
-}
-
 function setActionStatus(text, tone = "") {
   const el = document.getElementById("action-status");
   if (!el) return;
@@ -709,101 +716,18 @@ async function renderDashboard(opts = {}) {
 }
 
 /**
- * Same-origin local collect only (Mac app server). Never called from github.io.
- * Never invokes Codex, Grok, or any AI agent — only LaunchAgent / local-snapshot.
- */
-async function triggerLocalCollect() {
-  const healthRes = await fetch("/api/health", { cache: "no-store" });
-  if (!healthRes.ok) {
-    throw new Error("Lokale collect-API niet bereikbaar.");
-  }
-  const health = await healthRes.json();
-  if (!health?.collect) {
-    throw new Error("Deze host biedt geen collect aan.");
-  }
-  const res = await fetch("/api/collect", {
-    method: "POST",
-    headers: { Accept: "application/json" },
-    body: "{}",
-  });
-  let body = null;
-  try {
-    body = await res.json();
-  } catch {
-    body = null;
-  }
-  if (!res.ok || !body?.ok) {
-    throw new Error(body?.message || `Collect mislukt (HTTP ${res.status}).`);
-  }
-  return body;
-}
-
-async function waitForNewerSnapshot(previousGeneratedAt, attempts = 24) {
-  for (let i = 0; i < attempts; i += 1) {
-    await new Promise((r) => setTimeout(r, 2500));
-    try {
-      const snap = await loadJson(`./data/latest.json?t=${Date.now()}`);
-      if (
-        snap?.generatedAt &&
-        snap.generatedAt !== previousGeneratedAt
-      ) {
-        return snap;
-      }
-    } catch {
-      /* keep polling */
-    }
-  }
-  return null;
-}
-
-/**
- * "Alles updaten"
- * - On GitHub Pages: re-fetch published latest.json only (no vendor re-measure).
- * - On local Mac app (127.0.0.1): also POST /api/collect → LaunchAgent/local-snapshot.
- * Never uses Codex, Grok, cloud agents, or browser bots.
+ * "Alles updaten" — re-fetch published latest.json only (no vendor re-measure).
+ * Measurement runs on the box cron (`scripts/box-snapshot.sh`), never from Pages.
  */
 async function handleUpdateClick() {
   setUpdateBusy(true);
   setActionStatus("Bezig…", "busy");
-  const previous = document.getElementById("snapshot-meta")?.dataset.generatedAt || "";
-
   try {
-    if (isLocalAppHost()) {
-      try {
-        const result = await triggerLocalCollect();
-        setActionStatus(
-          `${result.message || "Collect gestart."} Wacht op nieuwe snapshot…`,
-          "busy",
-        );
-        const newer = await waitForNewerSnapshot(previous);
-        await renderDashboard();
-        if (newer) {
-          setActionStatus("Alles bijgewerkt (lokale collect).", "ok");
-        } else {
-          setActionStatus(
-            "Collect gestart; snapshot nog niet vernieuwd — probeer zo opnieuw of wacht op de LaunchAgent.",
-            "warn",
-          );
-        }
-        return;
-      } catch (err) {
-        // Fall through to Pages-style refresh if local API is down.
-        setActionStatus(
-          `${err.message || "Lokale collect mislukt."} Ververs snapshot…`,
-          "warn",
-        );
-      }
-    }
-
     await renderDashboard();
-    if (isLocalAppHost()) {
-      setActionStatus("Snapshot ververst (geen lokale collect).", "ok");
-    } else {
-      setActionStatus(
-        "Snapshot ververst. Meters meet de Mac elke 15 min — deze knop meet niet opnieuw vanaf Pages.",
-        "ok",
-      );
-    }
+    setActionStatus(
+      "Snapshot ververst. Meters meet de box op cron — deze knop meet niet opnieuw vanaf Pages.",
+      "ok",
+    );
   } catch (err) {
     setActionStatus(err.message || "Updaten mislukt.", "err");
   } finally {
@@ -835,7 +759,7 @@ async function main() {
 if (typeof document !== "undefined") {
   main();
 
-  // Soft refresh of the published snapshot between LaunchAgent runs.
+  // Soft refresh of the published snapshot between box cron runs.
   setInterval(() => {
     renderDashboard().catch(() => {});
   }, 5 * 60 * 1000);

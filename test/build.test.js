@@ -47,24 +47,24 @@ describe("build", () => {
     await access(path.join(DIST, "styles.css"));
     await access(path.join(DIST, "dashboard.js"));
     await access(path.join(DIST, "app.js"));
-    await access(path.join(DIST, "d", "1.7.0.js"));
+    await access(path.join(DIST, "d", "1.8.1.js"));
     await access(path.join(DIST, "go.html"));
     const indexHtml = await readFile(path.join(DIST, "index.html"), "utf8");
-    assert.match(indexHtml, /d\/1\.7\.0\.js/);
-    assert.match(indexHtml, /styles\.css\?v=1\.7\.0/);
+    assert.match(indexHtml, /d\/1\.8\.1\.js/);
+    assert.match(indexHtml, /styles\.css\?v=1\.8\.1/);
     assert.match(indexHtml, /Laatst bijgewerkt:/);
     assert.match(indexHtml, /mac-badge/);
     assert.match(indexHtml, /Alles updaten/);
     assert.doesNotMatch(indexHtml, /src="\.\/app\.js"/);
     const goHtml = await readFile(path.join(DIST, "go.html"), "utf8");
     assert.match(goHtml, /Laatst bijgewerkt:/);
-    assert.match(goHtml, /d\/1\.7\.0\.js/);
+    assert.match(goHtml, /d\/1\.8\.1\.js/);
     const latest = await readFile(path.join(DIST, "data", "latest.json"), "utf8");
     const meta = JSON.parse(
       await readFile(path.join(DIST, "data", "build-meta.json"), "utf8"),
     );
-    assert.equal(JSON.parse(latest).version, "1.7.0");
-    assert.equal(meta.version, "1.7.0");
+    assert.equal(JSON.parse(latest).version, "1.8.1");
+    assert.equal(meta.version, "1.8.1");
     // The built site must not ship a local percentage while the metric is held.
     assert.ok(JSON.parse(latest).routing);
     assert.equal(JSON.parse(latest).routing.today.percent, null);
@@ -118,31 +118,49 @@ describe("build", () => {
     assert.doesNotMatch(collectYml, /npm\s+run\s+collect/);
     assert.match(collectYml, /npm run check/);
   });
-  it("local-app-server never shells to Codex or agents", async () => {
-    const src = await readFile(
-      path.join(ROOT, "scripts", "local-app-server.js"),
-      "utf8",
+
+  it("local Mac app helpers are retired", async () => {
+    await assert.rejects(() =>
+      access(path.join(ROOT, "scripts", "local-app-server.js")),
     );
-    assert.match(src, /NEVER invokes Codex/);
-    assert.match(src, /launchctl/);
-    assert.match(src, /local-snapshot\.sh/);
-    assert.doesNotMatch(src, /spawn\(\s*["']codex["']/);
-    assert.doesNotMatch(src, /codex exec/i);
+    await assert.rejects(() =>
+      access(path.join(ROOT, "scripts", "install-local-app.sh")),
+    );
+    const pkg = JSON.parse(
+      await readFile(path.join(ROOT, "package.json"), "utf8"),
+    );
+    assert.equal(pkg.scripts.app, undefined);
+    const readme = await readFile(path.join(ROOT, "README.md"), "utf8");
+    assert.doesNotMatch(readme, /npm run app|local-app-server|\/api\/collect/);
   });
 
-  it("scheduled snapshots publish routing facts beside every usage snapshot", async () => {
+  it("box snapshot pushes via gh auth without a token env var", async () => {
     const src = await readFile(
-      path.join(ROOT, "scripts", "local-snapshot.sh"),
+      path.join(ROOT, "scripts", "box-snapshot.sh"),
       "utf8",
     );
+    assert.match(src, /set -euo pipefail/);
+    assert.match(src, /\$\{HOME\}\/\.local\/bin/);
+    assert.match(src, /flock -n 9/);
+    assert.match(src, /\.box-snapshot\.lock/);
+    assert.match(src, /gh auth status/);
+    assert.match(src, /git fetch origin main/);
+    assert.match(src, /git reset --hard origin\/main/);
+    assert.doesNotMatch(src, /git merge --ff-only/);
+    assert.doesNotMatch(src, /mkdir "\$LOCK"/);
     assert.match(src, /npm run collect \|\| ! npm run routing/);
+    assert.match(src, /npm run check/);
     assert.match(src, /git add data\/latest\.json data\/routing\.json/);
-    assert.match(src, /for output in data\/latest\.json data\/routing\.json/);
-    assert.match(
-      src,
-      /git restore --source=HEAD --staged --worktree -- data\/latest\.json data\/routing\.json/,
-    );
-    assert.match(src, /AI_USAGE_ENV_FILE|ai-usage-dashboard\/env/);
+    assert.match(src, /git push origin HEAD:main/);
+    assert.match(src, /No snapshot change/);
+    assert.match(src, /CLAUDE_CODE_OAUTH_TOKEN/);
+    assert.match(src, /\.claude-oauth-token/);
+    assert.match(src, /ai-usage-dashboard\/env/);
+    assert.doesNotMatch(src, /AI_USAGE_GH_TOKEN/);
+    assert.doesNotMatch(src, /AI_USAGE_GH_BRANCH/);
+    // One-time setup may be mentioned in comments; must not run on each tick.
+    assert.doesNotMatch(src, /^\s*gh auth setup-git/m);
+    assert.doesNotMatch(src, /x-access-token|Bearer \$\{/);
   });
 
 });

@@ -1,6 +1,6 @@
 # OpenRouter and Sail Research — prepaid meters
 
-**Status:** automated from official Usage APIs on the Mac LaunchAgent.  
+**Status:** automated from official Usage APIs on the Linux box.  
 No browser scrape. Keys never enter `data/latest.json`.
 
 ## OpenRouter
@@ -39,7 +39,7 @@ OPENROUTER_MANAGEMENT_KEY=sk-or-...   # optional
 SAIL_API_KEY=...
 ```
 
-`scripts/local-snapshot.sh` sources that file on every 15-minute tick. Hosted
+`scripts/box-snapshot.sh` sources that file on every cron tick. Hosted
 GitHub Actions runners never see it and must not collect.
 
 Until a run produces a usage/limit pair, routing keeps both pools as **paid

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Fail closed if any GitHub Actions workflow would run the local collector.
- * Hosted runners cannot measure authenticated desktop usage; only the Mac
- * LaunchAgent (scripts/local-snapshot.sh) may publish live meters.
+ * Hosted runners cannot measure authenticated CLI usage; only the Linux box
+ * (scripts/box-snapshot.sh) may publish live meters.
  */
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
@@ -15,8 +15,7 @@ const WORKFLOWS = path.join(ROOT, ".github", "workflows");
 const FORBIDDEN = [
   /npm\s+run\s+collect\b/,
   /node\s+collector\b/,
-  /local-snapshot\.sh/,
-  /install-launch-agent\.sh/,
+  /box-snapshot\.sh/,
 ];
 
 /** Drop YAML comments so documentation cannot trip the guard. */

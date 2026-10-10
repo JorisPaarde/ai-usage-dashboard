@@ -2,41 +2,21 @@
 
 export const SOURCE_IDS = [
   "openai-buzz",
-  "cursor-agent",
   "claude-code",
-  "ollama",
-  "enrich-labs",
   "openrouter",
   "sail",
 ];
 
 export const SOURCE_META = {
   "openai-buzz": {
-    name: "OpenAI / Buzz",
-    unit: "requests",
-    usageUrl: "https://chatgpt.com/#settings/Usage",
-  },
-  "cursor-agent": {
-    name: "Cursor Agent",
+    name: "OpenAI (ChatGPT/Codex)",
     unit: "mixed (see components)",
-    // Ground truth is the Spending page (Joris 2026-08-31), not Usage tab.
-    usageUrl: "https://cursor.com/dashboard/spending",
+    usageUrl: "https://chatgpt.com/#settings/Usage",
   },
   "claude-code": {
     name: "Claude Code",
     unit: "credits",
     usageUrl: "https://claude.ai/new#settings/usage",
-  },
-  ollama: {
-    name: "Ollama",
-    unit: "tokens",
-    // Local-only; no vendor cloud usage page.
-    usageUrl: null,
-  },
-  "enrich-labs": {
-    name: "Enrich Labs / Helena",
-    unit: "credits",
-    usageUrl: "https://www.enrichlabs.ai/login",
   },
   openrouter: {
     name: "OpenRouter",
@@ -49,10 +29,6 @@ export const SOURCE_META = {
     usageUrl: "https://app.sailresearch.com/usage",
   },
 };
-
-/** Public Enrich Starter budget and pace policy (list pricing / operating target). */
-export const ENRICH_MONTHLY_BUDGET = 200;
-export const ENRICH_WEEKLY_PACE_MAX = 50;
 
 export const STATUSES = new Set(["measured", "estimated", "unknown"]);
 export const COLLECTION_MODES = new Set(["automatic", "manual", "unavailable"]);
