@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-09-22T18:33:13.642Z",
+  "snapshotGeneratedAt": "2026-10-10T17:40:14.673Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -10,21 +10,21 @@
       "pool": "claude",
       "agent": "Claude-agent",
       "sourceId": "claude-code",
-      "percent": null,
+      "percent": 7,
       "capped": [],
-      "measuredAt": null,
+      "measuredAt": "2026-10-10T17:29:38.157Z",
       "maxAgeMinutes": 60,
-      "collectionMode": "unavailable",
+      "collectionMode": "automatic",
       "unmetered": false,
-      "reason": "Measured, but no usage/limit pair to turn into a percentage — consumption without a known limit is not room."
+      "reason": "Highest of session, weekly-all-models."
     },
     "openai": {
       "pool": "openai",
       "agent": "Codex-agent",
       "sourceId": "openai-buzz",
-      "percent": 4,
+      "percent": 12,
       "capped": [],
-      "measuredAt": "2026-09-22T18:33:13.642Z",
+      "measuredAt": "2026-10-10T17:40:14.673Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -47,14 +47,18 @@
       "pool": "openrouter",
       "agent": "or-worker",
       "sourceId": "openrouter",
-      "percent": null,
-      "capped": [],
-      "measuredAt": null,
+      "percent": 60.1,
+      "capped": [
+        {
+          "id": "key-limit",
+          "percent": 0.2
+        }
+      ],
+      "measuredAt": "2026-10-10T17:40:14.673Z",
       "maxAgeMinutes": 15,
-      "collectionMode": "unavailable",
+      "collectionMode": "automatic",
       "unmetered": false,
-      "reason": "Prepaid credits, pay per token. Last resort until a live meter exists. No OpenRouter API key on this host (set OPENROUTER_API_KEY or OPENROUTER_MANAGEMENT_KEY in ~/.config/ai-usage-dashboard/env). Official GET /api/v1/credits + /api/v1/key; no browser scrape. No usage fabricated.",
-      "paid": true
+      "reason": "Highest of credits, key-limit."
     }
   }
 }

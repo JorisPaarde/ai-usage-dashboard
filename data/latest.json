@@ -1,6 +1,6 @@
 {
   "version": "1.8.1",
-  "generatedAt": "2026-09-22T18:33:13.642Z",
+  "generatedAt": "2026-10-10T17:40:14.673Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Linux box cron runs scripts/box-snapshot.sh (collector → push data/latest.json). LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
   "routing": {
@@ -25,12 +25,12 @@
       "name": "OpenAI (ChatGPT/Codex)",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Codex account via codex app-server account/rateLimits/read (no model call, no token cost): 5-hour 3% (resets 2026-09-22T20:30:00.000Z); Weekly 4%. Same figure the provider shows.",
+      "reason": "Live from the signed-in Codex account via codex app-server account/rateLimits/read (no model call, no token cost): 5-hour 12% (resets 2026-10-10T22:00:31.000Z); Weekly 5% (resets 2026-10-15T18:39:56.000Z). Same figure the provider shows.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
-      "resetDate": "2026-09-22T20:30:00.000Z",
-      "lastUpdate": "2026-09-22T18:33:13.642Z",
+      "resetDate": "2026-10-10T22:00:31.000Z",
+      "lastUpdate": "2026-10-10T17:40:14.673Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -38,19 +38,19 @@
           "id": "five-hour",
           "label": "5-hour",
           "role": "capacity",
-          "usage": 3,
+          "usage": 12,
           "limit": 100,
           "unit": "% of 5-hour Codex limit",
-          "resetDate": "2026-09-22T20:30:00.000Z"
+          "resetDate": "2026-10-10T22:00:31.000Z"
         },
         {
           "id": "weekly",
           "label": "Weekly",
           "role": "capacity",
-          "usage": 4,
+          "usage": 5,
           "limit": 100,
           "unit": "% of weekly Codex limit",
-          "resetDate": null
+          "resetDate": "2026-10-15T18:39:56.000Z"
         }
       ],
       "usageUrl": "https://chatgpt.com/#settings/Usage",
@@ -66,19 +66,38 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "33069696 tokens this month (32629986 prompt/cache + 439710 output) across 436 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-09-01T13:16:40.770Z. Claude OAuth usage backoff is active until 2026-09-22T19:22:10.182Z, but no successful cached reading exists. Anthropic plan/credit percentages need a working local OAuth read and are not published here. Manual plan percentages were not used after an OAuth failure; the capacity pool stays unknown unless a cached automatic reading exists.",
-      "usage": 33069696,
+      "reason": "Cached signed-in Claude.ai OAuth usage (measured 2026-10-10T17:29:38.157Z, source=haiku) via Haiku Messages rate-limit headers (oauth/usage 403 fallback): session 7% (resets 2026-10-10T21:50:00.000Z); weekly all-models 6% (resets 2026-10-17T07:00:00.000Z). Same local-login pattern as Codex (no browser scrape). Local transcript detail: 1950451 tokens this month (1919220 prompt/cache + 31231 output) across 32 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-10-10T16:58:19.360Z.",
+      "usage": null,
       "limit": null,
-      "unit": "tokens",
-      "resetDate": null,
-      "lastUpdate": "2026-09-18T11:38:47.097Z",
-      "coverageStart": "2026-09-01T13:16:40.770Z",
+      "unit": "mixed (see components)",
+      "resetDate": "2026-10-17T07:00:00.000Z",
+      "lastUpdate": "2026-10-10T17:29:38.157Z",
+      "coverageStart": "2026-10-10T16:58:19.360Z",
       "breakdown": {
-        "promptTokens": 32629986,
-        "outputTokens": 439710,
-        "generations": 436
+        "promptTokens": 1919220,
+        "outputTokens": 31231,
+        "generations": 32
       },
-      "components": null,
+      "components": [
+        {
+          "id": "session",
+          "label": "Session window",
+          "role": "capacity",
+          "usage": 7,
+          "limit": 100,
+          "unit": "% of session limit",
+          "resetDate": "2026-10-10T21:50:00.000Z"
+        },
+        {
+          "id": "weekly-all-models",
+          "label": "Weekly (all models)",
+          "role": "capacity",
+          "usage": 6,
+          "limit": 100,
+          "unit": "% of weekly limit",
+          "resetDate": "2026-10-17T07:00:00.000Z"
+        }
+      ],
       "usageUrl": "https://claude.ai/new#settings/usage",
       "pace": {
         "daily": null,
@@ -87,57 +106,44 @@
       },
       "history": [
         {
-          "date": "2026-09-01",
-          "usage": 2831491
-        },
-        {
-          "date": "2026-09-02",
-          "usage": 4740476
-        },
-        {
-          "date": "2026-09-03",
-          "usage": 4391996
-        },
-        {
-          "date": "2026-09-04",
-          "usage": 3785880
-        },
-        {
-          "date": "2026-09-06",
-          "usage": 2457186
-        },
-        {
-          "date": "2026-09-09",
-          "usage": 294075
-        },
-        {
-          "date": "2026-09-16",
-          "usage": 300565
-        },
-        {
-          "date": "2026-09-17",
-          "usage": 14077569
-        },
-        {
-          "date": "2026-09-18",
-          "usage": 190458
+          "date": "2026-10-10",
+          "usage": 1950451
         }
       ]
     },
     {
       "id": "openrouter",
       "name": "OpenRouter",
-      "status": "unknown",
-      "collectionMode": "unavailable",
-      "reason": "No OpenRouter API key on this host (set OPENROUTER_API_KEY or OPENROUTER_MANAGEMENT_KEY in ~/.config/ai-usage-dashboard/env). Official GET /api/v1/credits + /api/v1/key; no browser scrape. No usage fabricated.",
-      "usage": null,
+      "status": "measured",
+      "collectionMode": "automatic",
+      "reason": "Live from OpenRouter account balance 9.96 USD remaining (15.036701217 / 25 USD used); key cap 0.0803842500000016 / 50 USD used (secondary). Headline is account balance from GET /api/v1/credits (total_credits − total_usage); key cap is secondary. Read-only (no model call). Same figures as openrouter.ai/workspaces/default.",
+      "usage": 9.963298783,
       "limit": null,
       "unit": "USD",
       "resetDate": null,
-      "lastUpdate": null,
+      "lastUpdate": "2026-10-10T17:40:14.673Z",
       "coverageStart": null,
       "breakdown": null,
-      "components": null,
+      "components": [
+        {
+          "id": "credits",
+          "label": "Account balance",
+          "role": "capacity",
+          "usage": 15.036701217,
+          "limit": 25,
+          "unit": "USD",
+          "resetDate": null
+        },
+        {
+          "id": "key-limit",
+          "label": "Key spending cap",
+          "role": "capped",
+          "usage": 0.0803842500000016,
+          "limit": 50,
+          "unit": "USD",
+          "resetDate": "daily"
+        }
+      ],
       "usageUrl": "https://openrouter.ai/workspaces/default",
       "pace": {
         "daily": null,
