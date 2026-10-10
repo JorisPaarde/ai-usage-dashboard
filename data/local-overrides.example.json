@@ -1,18 +1,6 @@
 {
   "sources": [
     {
-      "id": "enrich-labs",
-      "status": "measured",
-      "collectionMode": "manual",
-      "usage": 27,
-      "limit": 200,
-      "unit": "credits",
-      "reason": "Manual reading from the signed-in Enrich Labs / Helena workspace. No verified local meter yet (issue #10).",
-      "lastUpdate": "2026-09-02T09:34:17.833Z",
-      "resetDate": "2026-10-01",
-      "usageUrl": "https://www.enrichlabs.ai/login"
-    },
-    {
       "id": "openrouter",
       "status": "measured",
       "collectionMode": "manual",

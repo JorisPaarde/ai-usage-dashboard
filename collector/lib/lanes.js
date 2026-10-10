@@ -11,9 +11,7 @@
 
 /** Quality a pool is trusted with. `max` means real reasoning work. */
 export const POOL_QUALITY = Object.freeze({
-  local: ["cheap"],
   sail: ["cheap", "normal"],
-  cursor: ["cheap", "normal", "max"],
   claude: ["cheap", "normal", "max"],
   openai: ["cheap", "normal", "max"],
   openrouter: ["cheap", "normal", "max"],
@@ -27,11 +25,11 @@ export const QUALITIES = Object.freeze(["cheap", "normal", "max"]);
  * always preferred, even when it is only `low`.
  */
 export const LANES = Object.freeze({
-  code: ["cursor", "openai", "openrouter"],
+  code: ["openai", "claude", "openrouter"],
   review: ["claude", "openai", "openrouter"],
   research: ["claude", "openai", "openrouter"],
-  classify: ["local", "cursor", "openrouter"],
-  digest: ["local", "claude", "openrouter"],
+  classify: ["openai", "openrouter"],
+  digest: ["claude", "openrouter"],
   bulk: ["sail", "openrouter"],
 });
 

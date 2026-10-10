@@ -57,21 +57,9 @@ export const POOLS = Object.freeze({
   },
   openai: {
     sourceId: "openai-buzz",
-    useSourceUsage: true,
+    componentIds: ["five-hour", "weekly"],
     maxAgeMinutes: 15,
     agent: "Codex-agent",
-  },
-  cursor: {
-    sourceId: "cursor-agent",
-    componentRole: "capacity",
-    maxAgeMinutes: 60,
-    agent: "Cursor Builder",
-  },
-  local: {
-    sourceId: "ollama",
-    unmetered: true,
-    maxAgeMinutes: 60,
-    agent: "LocalAI guy",
   },
   sail: {
     sourceId: "sail",
@@ -83,7 +71,8 @@ export const POOLS = Object.freeze({
   },
   openrouter: {
     sourceId: "openrouter",
-    componentIds: ["credits", "key-limit"],
+    // Account credits are the headline meter; key cap is secondary only.
+    componentIds: ["credits"],
     maxAgeMinutes: 15,
     agent: "or-worker",
     paidFallback: true,

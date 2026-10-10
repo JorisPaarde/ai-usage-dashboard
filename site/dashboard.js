@@ -19,8 +19,8 @@ function fmtNum(n) {
 const MANUAL_STALE_HOURS = 12;
 
 /**
- * LaunchAgent publishes about every 15 minutes while the Mac is awake.
- * A snapshot older than this is treated as Mac offline / asleep.
+ * Box cron publishes about every 15 minutes while the host is up.
+ * A snapshot older than this is treated as box offline.
  */
 const MAC_ONLINE_MINUTES = 20;
 
@@ -60,7 +60,7 @@ function collectionBadgeClass(mode) {
 }
 
 /**
- * Honest Mac presence from snapshot age (no separate heartbeat).
+ * Honest box presence from snapshot age (no separate heartbeat).
  * @param {string|null|undefined} generatedAt
  * @param {Date} [now]
  * @returns {{ online: boolean, label: string, title: string, minutes: number|null }}
@@ -69,7 +69,7 @@ function macPresence(generatedAt, now = new Date()) {
   if (!generatedAt) {
     return {
       online: false,
-      label: "Mac offline",
+      label: "Box offline",
       title: "Geen snapshot-tijd beschikbaar",
       minutes: null,
     };
@@ -78,7 +78,7 @@ function macPresence(generatedAt, now = new Date()) {
   if (Number.isNaN(observed.getTime())) {
     return {
       online: false,
-      label: "Mac offline",
+      label: "Box offline",
       title: "Snapshot-tijd onleesbaar",
       minutes: null,
     };
@@ -88,14 +88,14 @@ function macPresence(generatedAt, now = new Date()) {
   if (minutes <= MAC_ONLINE_MINUTES) {
     return {
       online: true,
-      label: "Mac online",
+      label: "Box online",
       title: `Laatste collect ${stamp} (Europe/Amsterdam) · ${Math.round(minutes)} min geleden`,
       minutes,
     };
   }
   return {
     online: false,
-    label: "Mac offline / in slaap",
+    label: "Box offline",
     title: `Laatste collect ${stamp} (Europe/Amsterdam) · ${
       minutes < 120
         ? `${Math.round(minutes)} min`
@@ -709,8 +709,8 @@ async function renderDashboard(opts = {}) {
 }
 
 /**
- * Same-origin local collect only (Mac app server). Never called from github.io.
- * Never invokes Codex, Grok, or any AI agent — only LaunchAgent / local-snapshot.
+ * Same-origin local collect only (local app server). Never called from github.io.
+ * Never invokes Codex, Grok, or any AI agent — only box-snapshot / local helpers.
  */
 async function triggerLocalCollect() {
   const healthRes = await fetch("/api/health", { cache: "no-store" });
@@ -759,7 +759,7 @@ async function waitForNewerSnapshot(previousGeneratedAt, attempts = 24) {
 /**
  * "Alles updaten"
  * - On GitHub Pages: re-fetch published latest.json only (no vendor re-measure).
- * - On local Mac app (127.0.0.1): also POST /api/collect → LaunchAgent/local-snapshot.
+ * - On local app (127.0.0.1): also POST /api/collect when a collect helper is available.
  * Never uses Codex, Grok, cloud agents, or browser bots.
  */
 async function handleUpdateClick() {
@@ -781,7 +781,7 @@ async function handleUpdateClick() {
           setActionStatus("Alles bijgewerkt (lokale collect).", "ok");
         } else {
           setActionStatus(
-            "Collect gestart; snapshot nog niet vernieuwd — probeer zo opnieuw of wacht op de LaunchAgent.",
+            "Collect gestart; snapshot nog niet vernieuwd — probeer zo opnieuw of wacht op de box-cron.",
             "warn",
           );
         }
@@ -800,7 +800,7 @@ async function handleUpdateClick() {
       setActionStatus("Snapshot ververst (geen lokale collect).", "ok");
     } else {
       setActionStatus(
-        "Snapshot ververst. Meters meet de Mac elke 15 min — deze knop meet niet opnieuw vanaf Pages.",
+        "Snapshot ververst. Meters meet de box op cron — deze knop meet niet opnieuw vanaf Pages.",
         "ok",
       );
     }
@@ -835,7 +835,7 @@ async function main() {
 if (typeof document !== "undefined") {
   main();
 
-  // Soft refresh of the published snapshot between LaunchAgent runs.
+  // Soft refresh of the published snapshot between box cron runs.
   setInterval(() => {
     renderDashboard().catch(() => {});
   }, 5 * 60 * 1000);

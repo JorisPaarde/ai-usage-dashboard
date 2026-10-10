@@ -6,8 +6,6 @@ import {
   assertHonestSource,
   assertPublishableSnapshot,
   validateLocalOverrides,
-  ENRICH_MONTHLY_BUDGET,
-  ENRICH_WEEKLY_PACE_MAX,
   SOURCE_IDS,
 } from "../collector/lib/schema.js";
 import {
@@ -30,11 +28,8 @@ import {
   nearAmsterdamSlot,
   shouldRunCollect,
 } from "../scripts/amsterdam-gate.js";
-import * as enrich from "../collector/adapters/enrich-labs.js";
 import * as openai from "../collector/adapters/openai-buzz.js";
-import * as ollama from "../collector/adapters/ollama.js";
 import * as claudeCode from "../collector/adapters/claude-code.js";
-import * as cursorAgent from "../collector/adapters/cursor-agent.js";
 import { poolsFromSnapshot, verdictForPool } from "../collector/lib/routing.js";
 import { EventEmitter } from "node:events";
 import { readFile, writeFile, rm } from "node:fs/promises";
@@ -42,40 +37,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const CURSOR_PERIOD_FIXTURE = path.join(
-  ROOT,
-  "test",
-  "fixtures",
-  "cursor-get-current-period-usage.json",
-);
-const CURSOR_GROK_FIXTURE = path.join(
-  ROOT,
-  "test",
-  "fixtures",
-  "cursor-get-sand-usage-status.json",
-);
 
 /**
- * Keep collectSnapshot override tests hermetic: a signed-in Cursor on the
- * machine would otherwise produce an automatic measurement and ignore
- * non-supplement overrides (by design).
+ * Keep collectSnapshot override tests hermetic: stub Claude credentials and
+ * prepaid API keys so automatic collectors stay unavailable unless mocked.
  */
-async function withMissingCursorLocalState(fn) {
-  const prevDb = process.env.CURSOR_STATE_DB;
-  const prevJson = process.env.CURSOR_STORAGE_JSON;
+async function withMissingLocalCollectorSecrets(fn) {
   const prevClaudeCredentials = process.env.CLAUDE_CREDENTIALS_PATH;
-  process.env.CURSOR_STATE_DB = path.join(
-    ROOT,
-    "test",
-    "fixtures",
-    "missing-cursor-state.vscdb",
-  );
-  process.env.CURSOR_STORAGE_JSON = path.join(
-    ROOT,
-    "test",
-    "fixtures",
-    "missing-cursor-storage.json",
-  );
   process.env.CLAUDE_CREDENTIALS_PATH = path.join(
     ROOT,
     "test",
@@ -91,10 +59,6 @@ async function withMissingCursorLocalState(fn) {
   try {
     return await fn();
   } finally {
-    if (prevDb === undefined) delete process.env.CURSOR_STATE_DB;
-    else process.env.CURSOR_STATE_DB = prevDb;
-    if (prevJson === undefined) delete process.env.CURSOR_STORAGE_JSON;
-    else process.env.CURSOR_STORAGE_JSON = prevJson;
     if (prevClaudeCredentials === undefined) delete process.env.CLAUDE_CREDENTIALS_PATH;
     else process.env.CLAUDE_CREDENTIALS_PATH = prevClaudeCredentials;
     if (prevOpenrouter === undefined) delete process.env.OPENROUTER_API_KEY;
@@ -255,9 +219,18 @@ describe("schema", () => {
   it("requires usage for estimated", () => {
     assert.throws(() =>
       assertHonestSource(
-        emptySource({ id: "cursor-agent", status: "estimated", reason: "guess" }),
+        emptySource({ id: "openrouter", status: "estimated", reason: "guess" }),
       ),
     );
+  });
+
+  it("SOURCE_IDS is the four remaining collectors", () => {
+    assert.deepEqual(SOURCE_IDS, [
+      "openai-buzz",
+      "claude-code",
+      "openrouter",
+      "sail",
+    ]);
   });
 });
 
@@ -282,7 +255,7 @@ describe("pace", () => {
   });
 
   it("maps weekly max to daily cap", () => {
-    assert.equal(dailyCapFromWeekly(ENRICH_WEEKLY_PACE_MAX), 7.1);
+    assert.equal(dailyCapFromWeekly(50), 7.1);
   });
 });
 
@@ -311,9 +284,16 @@ describe("adapters", () => {
     });
     assert.equal(r.status, "measured");
     assert.equal(r.collectionMode, "automatic");
-    assert.equal(r.usage, 15);
+    assert.equal(r.usage, null);
+    assert.equal(r.limit, null);
+    assert.equal(r.unit, "mixed (see components)");
+    assert.equal(r.components.length, 2);
+    assert.equal(r.components[0].id, "five-hour");
+    assert.equal(r.components[0].usage, 15);
+    assert.equal(r.components[1].id, "weekly");
+    assert.equal(r.components[1].usage, 2);
     assert.match(r.reason, /Live from the signed-in Codex account/);
-    assert.match(r.reason, /weekly window is 2% used/);
+    assert.match(r.reason, /Weekly 2%/);
     assert.equal(r.resetDate, new Date(1788199791 * 1000).toISOString());
   });
 
@@ -351,6 +331,21 @@ describe("adapters", () => {
     assert.doesNotMatch(JSON.stringify(reading), /903\.20|plus|codex/);
   });
 
+  it("openai componentsFromLimits builds five-hour and weekly capacity bars", () => {
+    const components = openai.componentsFromLimits({
+      observedAt: "2026-08-31T13:13:25.000Z",
+      primary: { usedPercent: 15, windowMinutes: 300, resetsAt: 1788199791 },
+      secondary: { usedPercent: 2, windowMinutes: 10080, resetsAt: 1788786591 },
+    });
+    assert.equal(components.length, 2);
+    assert.equal(components[0].id, "five-hour");
+    assert.equal(components[0].role, "capacity");
+    assert.equal(components[0].usage, 15);
+    assert.equal(components[0].limit, 100);
+    assert.equal(components[1].id, "weekly");
+    assert.equal(components[1].usage, 2);
+  });
+
   it("openai falls back to the log when the live read fails", async () => {
     const failingSpawn = () => {
       throw new Error("codex not installed");
@@ -369,6 +364,7 @@ describe("adapters", () => {
     assert.equal(r.status, "unknown");
     assert.equal(r.usage, null);
     assert.ok(r.reason.length > 0);
+    assert.match(r.reason, /missing or not logged in/i);
 
     const empty = await openai.collect({
       queryLive: async () => null,
@@ -376,6 +372,7 @@ describe("adapters", () => {
     });
     assert.equal(empty.status, "unknown");
     assert.equal(empty.usage, null);
+    assert.match(empty.reason, /missing or not logged in/i);
   });
 
   it("openai reads provider rate-limit percentages from the session log", async () => {
@@ -400,10 +397,16 @@ describe("adapters", () => {
     });
     assert.equal(r.status, "measured");
     assert.equal(r.collectionMode, "automatic");
-    assert.equal(r.usage, 100);
-    assert.equal(r.limit, 100);
-    assert.equal(r.unit, "% of 5-hour Codex limit");
+    assert.equal(r.usage, null);
+    assert.equal(r.limit, null);
+    assert.equal(r.unit, "mixed (see components)");
+    assert.equal(r.components.length, 2);
+    assert.equal(r.components[0].id, "five-hour");
+    assert.equal(r.components[0].usage, 100);
+    assert.equal(r.components[1].id, "weekly");
+    assert.equal(r.components[1].usage, 16);
     assert.match(r.reason, /weekly window is 16% used/);
+    assert.match(r.reason, /codex missing or not logged in/i);
     assert.equal(r.lastUpdate, "2026-08-31T10:34:53.019Z");
     // Credit balance and plan tier are account details and must not leak.
     assert.doesNotMatch(JSON.stringify(r), /903\.2|plus/);
@@ -451,149 +454,44 @@ describe("adapters", () => {
           : event("2026-08-31T09:00:00.000Z", 44),
       now: new Date("2026-08-31T09:30:00.000Z"),
     });
-    assert.equal(r.usage, 44);
-  });
-
-  it("cursor parses GetCurrentPeriodUsage fixture into spending components", async () => {
-    const period = JSON.parse(await readFile(CURSOR_PERIOD_FIXTURE, "utf8"));
-    const grok = JSON.parse(await readFile(CURSOR_GROK_FIXTURE, "utf8"));
-    const parsed = cursorAgent.parsePeriodUsage(period);
-    assert.ok(parsed);
-    assert.equal(parsed.components.length, 3);
-    assert.equal(parsed.components[0].id, "included-cursor-models");
-    assert.equal(parsed.components[0].usage, 14);
-    assert.equal(parsed.components[0].role, "capacity");
-    assert.equal(parsed.components[1].id, "other-models");
-    assert.equal(parsed.components[1].usage, 24);
-    assert.equal(parsed.components[2].id, "on-demand");
-    assert.equal(parsed.components[2].usage, 73.6);
-    assert.equal(parsed.components[2].limit, 75);
-    assert.equal(parsed.components[2].unit, "USD");
-    assert.equal(parsed.components[2].role, "capped");
-    // Fixture must never look like a real token / secret payload.
-    assert.doesNotMatch(JSON.stringify(period), /Bearer|eyJ|sk-/i);
-
-    const grokComponent = cursorAgent.parseGrokBotUsage(grok);
-    assert.equal(grokComponent.id, "grok-bot");
-    assert.equal(grokComponent.usage, 100);
-    assert.equal(grokComponent.role, "capped");
-    assert.equal(grokComponent.resetDate, "2026-08-31T18:29:14.000Z");
-  });
-
-  it("cursor omits Grok Bot when Sand status says no personal weekly meter", () => {
-    assert.equal(
-      cursorAgent.parseGrokBotUsage({
-        usagePercent: 0,
-        hasNonZeroIncludedLimit: false,
-      }),
-      null,
-    );
-    assert.equal(
-      cursorAgent.parseGrokBotUsage({
-        usagePercent: 50,
-        usesPooledEnterpriseAllowance: true,
-      }),
-      null,
-    );
-    assert.equal(
-      cursorAgent.parseGrokBotUsage({ includedLimitZero: true, usagePercent: 10 }),
-      null,
-    );
-  });
-
-  it("cursor collect measures from fixtures without leaking a token", async () => {
-    const period = JSON.parse(await readFile(CURSOR_PERIOD_FIXTURE, "utf8"));
-    const grok = JSON.parse(await readFile(CURSOR_GROK_FIXTURE, "utf8"));
-    const sentinel = "test-access-token-MUST-NOT-LEAK";
-    const r = await cursorAgent.collect({
-      now: new Date("2026-09-02T08:00:00.000Z"),
-      readToken: async () => sentinel,
-      fetchPeriod: async () => ({ ok: true, json: period }),
-      fetchGrok: async () => ({ ok: true, json: grok }),
-      fetchHard: async () => ({ ok: false }),
-      fetchSummary: async () => ({ ok: false }),
-    });
-    assert.equal(r.status, "measured");
-    assert.equal(r.collectionMode, "automatic");
     assert.equal(r.usage, null);
-    assert.equal(r.components.length, 4);
-    assert.equal(r.components[0].usage, 14);
-    assert.equal(r.components[2].usage, 73.6);
-    assert.equal(r.components[3].id, "grok-bot");
-    assert.match(r.reason, /GetCurrentPeriodUsage/);
-    assert.match(r.reason, /GetSandUsageStatus/);
-    const published = JSON.stringify(r);
-    assert.doesNotMatch(published, new RegExp(sentinel));
-    assert.doesNotMatch(published, /Bearer\s/i);
+    assert.equal(r.components[0].id, "five-hour");
+    assert.equal(r.components[0].usage, 44);
   });
 
-  it("cursor collect omits Grok Bot and notes it when Sand endpoint fails", async () => {
-    const period = JSON.parse(await readFile(CURSOR_PERIOD_FIXTURE, "utf8"));
-    const r = await cursorAgent.collect({
-      now: new Date("2026-09-02T08:00:00.000Z"),
-      readToken: async () => "unused-in-assertions",
-      fetchPeriod: async () => ({ ok: true, json: period }),
-      fetchGrok: async () => ({ ok: false, status: 404 }),
-      fetchHard: async () => ({ ok: false }),
-      fetchSummary: async () => ({ ok: false }),
-    });
-    assert.equal(r.status, "measured");
-    assert.equal(r.collectionMode, "automatic");
-    assert.equal(r.components.length, 3);
-    assert.ok(!r.components.some((c) => c.id === "grok-bot"));
-    assert.match(r.reason, /Grok Bot weekly % omitted/i);
-    assert.doesNotMatch(JSON.stringify(r), /unused-in-assertions/);
-  });
-
-  it("cursor fails closed when the local token/DB is missing", async () => {
-    const r = await cursorAgent.collect({
-      readToken: async () => null,
-      fetchPeriod: async () => {
-        throw new Error("must not call API without a token");
-      },
-    });
-    assert.equal(r.status, "unknown");
-    assert.equal(r.collectionMode, "unavailable");
-    assert.equal(r.usage, null);
-    assert.equal(r.components, undefined);
-    assert.match(r.reason, /no signed-in access token/i);
-  });
-
-  it("cursor fails closed when GetCurrentPeriodUsage is unavailable", async () => {
-    const r = await cursorAgent.collect({
-      readToken: async () => "tok",
-      fetchPeriod: async () => ({ ok: false, status: 401 }),
-      fetchGrok: async () => ({ ok: false }),
-    });
-    assert.equal(r.status, "unknown");
-    assert.equal(r.usage, null);
-    assert.match(r.reason, /GetCurrentPeriodUsage was unavailable/);
-    assert.doesNotMatch(JSON.stringify(r), /\btok\b/);
-  });
-
-  it("cursor automatic measurement ignores a non-supplement manual seed", () => {
+  it("openai automatic measurement ignores a non-supplement manual seed", () => {
     const base = normalizeSource({
-      id: "cursor-agent",
+      id: "openai-buzz",
       status: "measured",
       collectionMode: "automatic",
-      reason: "Live from GetCurrentPeriodUsage.",
+      reason: "Live from the signed-in Codex account.",
       usage: null,
+      limit: null,
+      unit: "mixed (see components)",
       lastUpdate: "2026-09-02T08:00:00.000Z",
       components: [
         {
-          id: "included-cursor-models",
-          label: "Included Cursor Models",
+          id: "five-hour",
+          label: "5-hour",
           role: "capacity",
-          usage: 14,
+          usage: 15,
           limit: 100,
-          unit: "% of included allowance",
+          unit: "% of 5-hour Codex limit",
+        },
+        {
+          id: "weekly",
+          label: "Weekly",
+          role: "capacity",
+          usage: 2,
+          limit: 100,
+          unit: "% of weekly Codex limit",
         },
       ],
     });
     const merged = applyOverride(
       base,
       {
-        id: "cursor-agent",
+        id: "openai-buzz",
         status: "measured",
         collectionMode: "manual",
         usage: null,
@@ -601,28 +499,20 @@ describe("adapters", () => {
         reason: "stale manual seed",
         components: [
           {
-            id: "included-cursor-models",
-            label: "Included Cursor Models",
+            id: "five-hour",
+            label: "5-hour",
             role: "capacity",
             usage: 99,
             limit: 100,
-            unit: "% of included allowance",
-          },
-          {
-            id: "grok-bot",
-            label: "Grok Bot (weekly)",
-            role: "capped",
-            usage: 100,
-            limit: 100,
-            unit: "% of weekly allowance",
+            unit: "% of 5-hour Codex limit",
           },
         ],
       },
       new Date("2026-09-02T08:00:00.000Z"),
     );
     assert.equal(merged.collectionMode, "automatic");
-    assert.equal(merged.components.length, 1);
-    assert.equal(merged.components[0].usage, 14);
+    assert.equal(merged.components.length, 2);
+    assert.equal(merged.components[0].usage, 15);
     assert.match(merged.reason, /manual override was ignored/i);
     assert.doesNotMatch(merged.reason, /stale manual seed/);
   });
@@ -716,6 +606,55 @@ describe("adapters", () => {
     assert.match(r.reason, /OAuth/);
     assert.doesNotMatch(r.reason, /sk-ant-oat/);
     assert.doesNotMatch(JSON.stringify(r), /sk-ant-oat/);
+  });
+
+  it("claude-code falls back to Haiku rate-limit headers on oauth/usage 403", async () => {
+    const reset5h = Math.floor(Date.parse("2026-09-02T18:00:00.000Z") / 1000);
+    const reset7d = Math.floor(Date.parse("2026-09-09T12:00:00.000Z") / 1000);
+    const headerMap = {
+      "anthropic-ratelimit-unified-5h-utilization": "0.14",
+      "anthropic-ratelimit-unified-5h-reset": String(reset5h),
+      "anthropic-ratelimit-unified-7d-utilization": "0.08",
+      "anthropic-ratelimit-unified-7d-reset": String(reset7d),
+    };
+    const fromHeaders = claudeCode.parseUnifiedRateLimitHeaders({
+      get: (name) => headerMap[name] ?? null,
+    });
+    assert.ok(fromHeaders);
+    assert.equal(fromHeaders.components[0].id, "session");
+    assert.equal(fromHeaders.components[0].usage, 14);
+    assert.equal(fromHeaders.components[1].id, "weekly-all-models");
+    assert.equal(fromHeaders.components[1].usage, 8);
+
+    let haikuCalls = 0;
+    const r = await claudeCode.collect({
+      listFiles: async () => [],
+      readToken: async () => "sk-ant-oat-SETUP-TOKEN",
+      queryOauth: async () => ({ ok: false, status: 403 }),
+      queryHaikuHeaders: async ({ token }) => {
+        haikuCalls += 1;
+        assert.equal(token, "sk-ant-oat-SETUP-TOKEN");
+        return { ok: true, oauth: fromHeaders };
+      },
+      readOauthCache: async () => null,
+      writeOauthCache: async () => {},
+      now: new Date("2026-09-02T12:00:00.000Z"),
+    });
+    assert.equal(haikuCalls, 1);
+    assert.equal(r.status, "measured");
+    assert.equal(r.collectionMode, "automatic");
+    assert.equal(r.usage, null);
+    assert.equal(r.unit, "mixed (see components)");
+    assert.equal(r.components.length, 2);
+    assert.equal(r.components[0].id, "session");
+    assert.equal(r.components[0].usage, 14);
+    assert.equal(r.components[0].resetDate, "2026-09-02T18:00:00.000Z");
+    assert.equal(r.components[1].id, "weekly-all-models");
+    assert.equal(r.components[1].usage, 8);
+    assert.equal(r.components[1].resetDate, "2026-09-09T12:00:00.000Z");
+    assert.match(r.reason, /Haiku/);
+    assert.match(r.reason, /403/);
+    assert.doesNotMatch(JSON.stringify(r), /sk-ant-oat-SETUP/);
   });
 
   it("claude-code falls back to transcripts when OAuth is rate-limited", async () => {
@@ -887,65 +826,6 @@ describe("adapters", () => {
     });
     assert.equal(token, "sk-ant-oat-ABC");
   });
-
-  it("enrich exposes public budget constants only", async () => {
-    const r = await enrich.collect();
-    assert.equal(r.status, "unknown");
-    assert.equal(r.usage, null);
-    assert.equal(r.limit, ENRICH_MONTHLY_BUDGET);
-    assert.equal(r.budget.monthly, 200);
-    assert.equal(r.budget.weeklyPaceMax, 50);
-    assert.equal(r.pace.weeklyTarget, 50);
-    assert.match(r.reason, /Hard stop/i);
-    assert.match(r.reason, /enrich\.so/i);
-  });
-
-  it("ollama reports unknown or measured without fake usage", async () => {
-    const r = await ollama.collect({
-      fetchImpl: async () => {
-        throw new Error("offline");
-      },
-      readLog: async () => "",
-    });
-    assert.equal(r.status, "unknown");
-    assert.equal(r.usage, null);
-    assert.match(r.reason, /unavailable|fabricated/i);
-
-    const ok = await ollama.collect({
-      fetchImpl: async () => ({
-        ok: true,
-        async json() {
-          return { models: [{ name: "x" }, { name: "y" }] };
-        },
-      }),
-      readLog: async () => {
-        throw new Error("no log");
-      },
-    });
-    assert.equal(ok.status, "measured");
-    assert.equal(ok.usage, null);
-    assert.match(ok.reason, /2 model/);
-
-    const withLog = await ollama.collect({
-      fetchImpl: async () => ({
-        ok: true,
-        async json() {
-          return { models: [{ name: "x" }] };
-        },
-      }),
-      readLog: async () =>
-          [
-            "time=2026-08-31T10:00:00.000+02:00 level=INFO source=server.go msg=start",
-            "slot print_timing: id  0 | task 0 | prompt eval time =    100.00 ms /    10 tokens (   10.00 ms per token,   100.00 tokens per second)",
-            "slot print_timing: id  0 | task 0 |        eval time =    200.00 ms /    20 tokens (   10.00 ms per token,   100.00 tokens per second)",
-            '[GIN] 2026/08/31 - 12:00:00 | 200 |         1.0s |       127.0.0.1 | POST     "/api/chat"',
-          ].join("\n"),
-      // Pin collect time to the fixture month — parser scopes to Amsterdam month.
-      now: new Date("2026-08-31T10:00:00.000Z"),
-    });
-    assert.equal(withLog.status, "measured");
-    assert.equal(withLog.usage, 30);
-  });
 });
 
 describe("overrides path", () => {
@@ -978,10 +858,10 @@ describe("overrides path", () => {
       JSON.stringify({
         sources: [
           {
-            id: "enrich-labs",
+            id: "openrouter",
             status: "measured",
             usage: 7,
-            limit: 200,
+            limit: 100,
             reason: "fixture",
             lastUpdate: "2026-08-31T10:00:00.000Z",
           },
@@ -1000,20 +880,21 @@ describe("overrides path", () => {
 
 describe("collector", () => {
   it("builds a valid honest snapshot", async () => {
-    await withMissingCursorLocalState(async () => {
+    await withMissingLocalCollectorSecrets(async () => {
       const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
         overrides: [],
       });
       assert.equal(validateSnapshot(snap).ok, true);
-      assert.equal(snap.version, "1.7.0");
+      assert.equal(snap.version, "1.8.0");
       assert.equal(snap.sources.length, SOURCE_IDS.length);
       for (const s of snap.sources) {
         assertHonestSource(s);
         if (s.status === "unknown") assert.equal(s.usage, null);
       }
-      const enrichSrc = snap.sources.find((s) => s.id === "enrich-labs");
-      assert.equal(enrichSrc.limit, 200);
-      assert.equal(enrichSrc.pace.weeklyTarget, 50);
+      const openaiSrc = snap.sources.find((s) => s.id === "openai-buzz");
+      assert.equal(openaiSrc.name, "OpenAI (ChatGPT/Codex)");
+      assert.equal(openaiSrc.unit, "mixed (see components)");
+      assert.equal(openaiSrc.usageUrl, "https://chatgpt.com/#settings/Usage");
       const orSrc = snap.sources.find((s) => s.id === "openrouter");
       assert.equal(orSrc.status, "unknown");
       assert.equal(orSrc.usage, null);
@@ -1025,22 +906,23 @@ describe("collector", () => {
     });
   });
 
-  it("normalizeSource keeps enrich weekly target", () => {
+  it("normalizeSource keeps OpenAI mixed unit from meta", () => {
     const src = normalizeSource({
-      id: "enrich-labs",
+      id: "openai-buzz",
       status: "unknown",
       reason: "test",
       usage: null,
     });
-    assert.equal(src.budget.monthly, 200);
-    assert.equal(src.pace.weeklyTarget, 50);
+    assert.equal(src.name, "OpenAI (ChatGPT/Codex)");
+    assert.equal(src.unit, "mixed (see components)");
+    assert.equal(src.usageUrl, "https://chatgpt.com/#settings/Usage");
   });
 
   it("applies schema-validated local overrides into aggregate only", async () => {
     const check = validateLocalOverrides({
       sources: [
         {
-          id: "cursor-agent",
+          id: "sail",
           status: "estimated",
           usage: 42,
           reason: "manual UI read",
@@ -1051,15 +933,15 @@ describe("collector", () => {
     assert.equal(check.ok, true);
 
     const bad = validateLocalOverrides({
-      sources: [{ id: "cursor-agent", status: "unknown", usage: 1 }],
+      sources: [{ id: "sail", status: "unknown", usage: 1 }],
     });
     assert.equal(bad.ok, false);
 
-    await withMissingCursorLocalState(async () => {
+    await withMissingLocalCollectorSecrets(async () => {
       const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
         overrides: [
           {
-            id: "cursor-agent",
+            id: "sail",
             status: "estimated",
             usage: 42,
             limit: 100,
@@ -1068,30 +950,30 @@ describe("collector", () => {
           },
         ],
       });
-      const cursor = snap.sources.find((s) => s.id === "cursor-agent");
-      assert.equal(cursor.status, "estimated");
-      assert.equal(cursor.usage, 42);
-      assert.equal(cursor.limit, 100);
-      assert.match(cursor.reason, /manual UI read/);
-      assert.equal(cursor.pace.daily, null);
-      assert.equal(cursor.pace.monthly, null);
+      const sail = snap.sources.find((s) => s.id === "sail");
+      assert.equal(sail.status, "estimated");
+      assert.equal(sail.usage, 42);
+      assert.equal(sail.limit, 100);
+      assert.match(sail.reason, /manual UI read/);
+      assert.equal(sail.pace.daily, null);
+      assert.equal(sail.pace.monthly, null);
     });
   });
 
   it("stamps every manual override with how old the reading is", () => {
     const base = normalizeSource({
-      id: "enrich-labs",
+      id: "openrouter",
       status: "unknown",
-      reason: "no public API",
+      reason: "no key",
       usage: null,
     });
     const fresh = applyOverride(
       base,
       {
-        id: "enrich-labs",
+        id: "openrouter",
         status: "measured",
-        usage: 200,
-        limit: 200,
+        usage: 20,
+        limit: 100,
         reason: "read from the workspace",
         lastUpdate: "2026-08-31T10:00:00.000Z",
       },
@@ -1103,17 +985,17 @@ describe("collector", () => {
     const stale = applyOverride(
       base,
       {
-        id: "enrich-labs",
+        id: "openrouter",
         status: "measured",
-        usage: 200,
-        limit: 200,
+        usage: 20,
+        limit: 100,
         reason: "read from the workspace",
         lastUpdate: "2026-08-30T10:00:00.000Z",
       },
       new Date("2026-08-31T12:00:00.000Z"),
     );
     assert.match(stale.reason, /^STALE: |\bSTALE: /);
-    assert.equal(stale.usage, 200);
+    assert.equal(stale.usage, 20);
   });
 
   it("refuses to let a manual override overwrite an automatic measurement", () => {
@@ -1122,10 +1004,20 @@ describe("collector", () => {
       status: "measured",
       collectionMode: "automatic",
       reason: "read from the Codex session log",
-      usage: 100,
-      limit: 100,
-      unit: "% of 5-hour Codex limit",
+      usage: null,
+      limit: null,
+      unit: "mixed (see components)",
       lastUpdate: "2026-08-31T10:34:53.019Z",
+      components: [
+        {
+          id: "five-hour",
+          label: "5-hour",
+          role: "capacity",
+          usage: 100,
+          limit: 100,
+          unit: "% of 5-hour Codex limit",
+        },
+      ],
     });
     const merged = applyOverride(
       base,
@@ -1139,7 +1031,8 @@ describe("collector", () => {
       },
       new Date("2026-08-31T12:00:00.000Z"),
     );
-    assert.equal(merged.usage, 100);
+    assert.equal(merged.usage, null);
+    assert.equal(merged.components[0].usage, 100);
     assert.equal(merged.collectionMode, "automatic");
     assert.doesNotMatch(merged.reason, /typed from the billing screen/);
     assert.match(merged.reason, /manual override was ignored/i);
@@ -1289,63 +1182,66 @@ describe("collector", () => {
     assert.doesNotMatch(merged.reason, /Local automatic measurement alongside it/);
   });
 
-  it("accepts Cursor spending-page capacity vs capped component roles", async () => {
-    await withMissingCursorLocalState(async () => {
+  it("accepts OpenAI capacity vs OpenRouter capped component roles", async () => {
+    await withMissingLocalCollectorSecrets(async () => {
       const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
         overrides: [
           {
-            id: "cursor-agent",
+            id: "openai-buzz",
             status: "measured",
             usage: null,
             limit: null,
-            reason: "spending-page capacity/capped split test",
+            reason: "capacity/capped split test",
             lastUpdate: "2026-08-31T08:00:00.000Z",
-            usageUrl: "https://cursor.com/dashboard/spending",
+            usageUrl: "https://chatgpt.com/#settings/Usage",
             components: [
               {
-                id: "included-cursor-models",
-                label: "Included Cursor Models",
+                id: "five-hour",
+                label: "5-hour",
                 role: "capacity",
-                usage: 14,
+                usage: 15,
                 limit: 100,
-                unit: "% of included allowance",
+                unit: "% of 5-hour Codex limit",
               },
               {
-                id: "other-models",
-                label: "Other Models",
+                id: "weekly",
+                label: "Weekly",
                 role: "capacity",
-                usage: 24,
+                usage: 2,
                 limit: 100,
-                unit: "% of included allowance",
+                unit: "% of weekly Codex limit",
               },
+            ],
+          },
+          {
+            id: "openrouter",
+            status: "measured",
+            usage: null,
+            limit: null,
+            reason: "capped credits test",
+            lastUpdate: "2026-08-31T08:00:00.000Z",
+            components: [
               {
-                id: "on-demand",
-                label: "On-demand spend",
+                id: "credits",
+                label: "Credits",
                 role: "capped",
-                usage: 73.6,
-                limit: 75,
+                usage: 12.5,
+                limit: 50,
                 unit: "USD",
-              },
-              {
-                id: "grok-bot",
-                label: "Grok Bot (weekly)",
-                role: "capped",
-                usage: 100,
-                limit: 100,
-                unit: "% of weekly allowance",
               },
             ],
           },
         ],
       });
-      const cursor = snap.sources.find((s) => s.id === "cursor-agent");
-      assert.equal(cursor.components.length, 4);
-      assert.equal(cursor.usageUrl, "https://cursor.com/dashboard/spending");
-      assert.equal(cursor.usage, null);
-      assert.equal(cursor.components[0].role, "capacity");
-      assert.equal(cursor.components[0].usage, 14);
-      assert.equal(cursor.components[2].role, "capped");
-      assert.equal(cursor.components[2].limit, 75);
+      const openaiSrc = snap.sources.find((s) => s.id === "openai-buzz");
+      assert.equal(openaiSrc.components.length, 2);
+      assert.equal(openaiSrc.usageUrl, "https://chatgpt.com/#settings/Usage");
+      assert.equal(openaiSrc.usage, null);
+      assert.equal(openaiSrc.components[0].role, "capacity");
+      assert.equal(openaiSrc.components[0].usage, 15);
+      const orSrc = snap.sources.find((s) => s.id === "openrouter");
+      assert.equal(orSrc.components[0].role, "capped");
+      assert.equal(orSrc.components[0].limit, 50);
     });
   });
 
@@ -1354,7 +1250,7 @@ describe("collector", () => {
       validateLocalOverrides({
         sources: [
           {
-            id: "cursor-agent",
+            id: "openai-buzz",
             status: "measured",
             usage: null,
             lastUpdate: "2026-08-31T08:00:00.000Z",
@@ -1374,13 +1270,13 @@ describe("collector", () => {
     );
   });
 
-  it("defaults Cursor usageUrl to the spending page", async () => {
-    await withMissingCursorLocalState(async () => {
+  it("defaults OpenAI usageUrl to the ChatGPT usage page", async () => {
+    await withMissingLocalCollectorSecrets(async () => {
       const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
         overrides: [],
       });
-      const cursor = snap.sources.find((s) => s.id === "cursor-agent");
-      assert.equal(cursor.usageUrl, "https://cursor.com/dashboard/spending");
+      const openaiSrc = snap.sources.find((s) => s.id === "openai-buzz");
+      assert.equal(openaiSrc.usageUrl, "https://chatgpt.com/#settings/Usage");
     });
   });
 
@@ -1410,7 +1306,7 @@ describe("collector", () => {
             status: "unknown",
             reason: "n/a",
             components:
-              id === "cursor-agent"
+              id === "openai-buzz"
                 ? [{ id: "x", label: "X", usage: "bad", limit: 1 }]
                 : null,
           }),
@@ -1487,25 +1383,15 @@ describe("public seed", () => {
     const snap = JSON.parse(raw);
     assert.equal(validateSnapshot(snap).ok, true);
     assert.doesNotThrow(() => assertPublishableSnapshot(snap));
+    assert.equal(snap.version, "1.8.0");
+    assert.equal(snap.sources.length, SOURCE_IDS.length);
     for (const s of snap.sources) {
       if (s.status === "unknown") assert.equal(s.usage, null);
     }
-    const cursor = snap.sources.find((s) => s.id === "cursor-agent");
-    assert.ok(Array.isArray(cursor.components));
-    // Shape, not a count: the number of meters is whatever the provider shows.
-    assert.ok(cursor.components.length > 0);
-    for (const c of cursor.components) {
-      assert.ok(typeof c.label === "string" && c.label.length > 0);
-      assert.ok(c.usage === null || typeof c.usage === "number");
-    }
-    assert.equal(cursor.usage, null);
-    assert.match(cursor.usageUrl, /^https:\/\/cursor\.com\//);
-    const capacity = cursor.components.filter((c) => c.role === "capacity");
-    const capped = cursor.components.filter((c) => c.role === "capped");
-    assert.ok(capacity.length >= 2);
-    assert.ok(capped.length >= 2);
-    // Live capacity can exceed 50%; "Planruimte ruim" is a UI threshold, not a publish gate.
-    assert.ok(capacity.every((c) => typeof c.usage === "number"));
+    const openaiSrc = snap.sources.find((s) => s.id === "openai-buzz");
+    assert.equal(openaiSrc.name, "OpenAI (ChatGPT/Codex)");
+    assert.equal(openaiSrc.unit, "mixed (see components)");
+    assert.match(openaiSrc.usageUrl, /^https:\/\/chatgpt\.com\//);
     assert.match(
       await readFile(path.join(ROOT, "site", "dashboard.js"), "utf8"),
       /capacity-callout/,
@@ -1549,8 +1435,8 @@ describe("public seed", () => {
     assert.match(html, /btn-update/);
     assert.match(html, /mac-badge/);
     assert.match(html, /last-updated/);
-    assert.match(html, /dashboard\.js\?v=1\.7\.0/);
-    assert.match(html, /styles\.css\?v=1\.7\.0/);
+    assert.match(html, /dashboard\.js\?v=1\.8\.0/);
+    assert.match(html, /styles\.css\?v=1\.8\.0/);
     assert.match(html, /Laatst bijgewerkt:/);
     assert.doesNotMatch(js, /meta\.textContent = `Snapshot /);
     assert.doesNotMatch(js, /Dagtempo|Maandtempo/);
@@ -1584,8 +1470,8 @@ describe("public seed", () => {
     assert.match(js, /Aangehouden — geen runtime-bewijs/);
     assert.match(js, /data-freshness/);
     assert.match(js, /MAC_ONLINE_MINUTES\s*=\s*20/);
-    assert.match(js, /Mac online/);
-    assert.match(js, /Mac offline \/ in slaap/);
+    assert.match(js, /Box online/);
+    assert.match(js, /Box offline/);
     assert.match(js, /updateMacBadge/);
     assert.match(js, /card-more/);
     assert.match(js, /glanceMeter/);
@@ -1602,15 +1488,15 @@ describe("public seed", () => {
     const now = new Date("2026-09-03T12:00:00.000Z");
     const online = macPresence("2026-09-03T11:50:00.000Z", now);
     assert.equal(online.online, true);
-    assert.equal(online.label, "Mac online");
+    assert.equal(online.label, "Box online");
     assert.match(online.title, /Europe\/Amsterdam/);
     const offline = macPresence("2026-09-03T11:30:00.000Z", now);
     assert.equal(offline.online, false);
-    assert.equal(offline.label, "Mac offline / in slaap");
+    assert.equal(offline.label, "Box offline");
     assert.match(offline.title, /Laatste collect/);
     const missing = macPresence(null, now);
     assert.equal(missing.online, false);
-    assert.match(missing.label, /Mac offline/);
+    assert.match(missing.label, /Box offline/);
   });
 
   it("glanceMeter picks hottest capped meter for home", async () => {
@@ -1619,7 +1505,7 @@ describe("public seed", () => {
       components: [
         { id: "a", role: "capacity", usage: 20, limit: 100, label: "Incl" },
         { id: "b", role: "capped", usage: 98, limit: 100, label: "On-demand" },
-        { id: "c", role: "capped", usage: 40, limit: 100, label: "Grok" },
+        { id: "c", role: "capped", usage: 40, limit: 100, label: "Credits" },
       ],
     });
     assert.equal(pick.id, "b");

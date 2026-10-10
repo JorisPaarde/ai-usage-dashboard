@@ -17,9 +17,11 @@ const APP_SERVER_TIMEOUT_MS = 20000;
  * Normalize one `rate_limits`-shaped payload. The live app-server uses
  * camelCase and the session log uses snake_case; everything else matches.
  *
- * Deliberately narrow: `credits.balance`, `planType`, and the installation and
- * host identifiers that travel in the same response are account details and
- * must never reach the published snapshot.
+ * Verified against openai/codex `RateLimitWindow` / `GetAccountRateLimitsResponse`:
+ * `rateLimits.primary|secondary` with `usedPercent`, `windowDurationMins`,
+ * `resetsAt` (unix seconds). Account fields (`credits`, `planType`, limit ids)
+ * are deliberately ignored and never published.
+ *
  * @param {object} limits
  * @param {string} observedAt
  */
@@ -48,11 +50,71 @@ function normalizeLimits(limits, observedAt) {
 }
 
 /**
+ * Two capacity bars for the existing dashboard Planruimte layout.
+ * Primary ≈ 5-hour; secondary ≈ weekly (Codex ChatGPT/Codex windows).
+ * @param {object} reading normalizeLimits result
+ */
+export function componentsFromLimits(reading) {
+  /** @type {object[]} */
+  const components = [];
+  if (reading?.primary && typeof reading.primary.usedPercent === "number") {
+    const label = windowLabel(reading.primary.windowMinutes);
+    components.push({
+      id: "five-hour",
+      label: label === "weekly" ? "Weekly" : label === "current" ? "5-hour" : label,
+      role: "capacity",
+      usage: reading.primary.usedPercent,
+      limit: 100,
+      unit: `% of ${label === "current" ? "5-hour" : label} Codex limit`,
+      resetDate: reading.primary.resetsAt
+        ? new Date(reading.primary.resetsAt * 1000).toISOString()
+        : null,
+    });
+  }
+  if (reading?.secondary && typeof reading.secondary.usedPercent === "number") {
+    const label = windowLabel(reading.secondary.windowMinutes);
+    components.push({
+      id: "weekly",
+      label: label === "current" ? "Weekly" : label.charAt(0).toUpperCase() + label.slice(1),
+      role: "capacity",
+      usage: reading.secondary.usedPercent,
+      limit: 100,
+      unit: `% of ${label === "current" ? "weekly" : label} Codex limit`,
+      resetDate: reading.secondary.resetsAt
+        ? new Date(reading.secondary.resetsAt * 1000).toISOString()
+        : null,
+    });
+  }
+  return components;
+}
+
+function measuredFromLimits(reading, reason) {
+  const components = componentsFromLimits(reading);
+  const fiveHour = components.find((c) => c.id === "five-hour");
+  return {
+    id: "openai-buzz",
+    status: "measured",
+    collectionMode: "automatic",
+    reason,
+    usage: null,
+    limit: null,
+    unit: "mixed (see components)",
+    resetDate: fiveHour?.resetDate ?? components[0]?.resetDate ?? null,
+    lastUpdate: reading.observedAt,
+    coverageStart: null,
+    breakdown: null,
+    components,
+    pace: { daily: null, monthly: null, weeklyTarget: null },
+    history: [],
+  };
+}
+
+/**
  * Ask the signed-in Codex account for its current rate-limit state.
  *
  * `codex app-server` is a local JSON-RPC process that reuses the existing
  * login. `account/rateLimits/read` is read-only, runs no model, and therefore
- * costs no tokens — it is safe on a 15-minute schedule.
+ * costs no tokens — it is safe on a schedule.
  *
  * @param {{ spawnImpl?: Function, timeoutMs?: number, now?: Date }} [opts]
  * @returns {Promise<object|null>} normalized reading, or null if unavailable
@@ -105,6 +167,10 @@ export function queryLiveRateLimits({
           continue;
         }
         if (message.id !== 2) continue;
+        if (message.error) {
+          finish(null);
+          return;
+        }
         const limits = message.result?.rateLimits;
         finish(limits ? normalizeLimits(limits, now.toISOString()) : null);
         return;
@@ -116,7 +182,7 @@ export function queryLiveRateLimits({
         id: 1,
         method: "initialize",
         params: {
-          clientInfo: { name: "ai-usage-dashboard", version: "1.0.0" },
+          clientInfo: { name: "ai-usage-dashboard", version: "1.8.0" },
         },
       })}\n${JSON.stringify({ method: "initialized", params: {} })}\n${JSON.stringify(
         { id: 2, method: "account/rateLimits/read", params: {} },
@@ -198,14 +264,18 @@ async function newestRolloutFiles(dir, limit = MAX_FILES_SCANNED) {
 }
 
 /**
- * OpenAI / Buzz (Codex).
+ * OpenAI (ChatGPT/Codex).
  *
  * Preferred route: ask the signed-in account for its live rate-limit state via
  * the local `codex app-server`. Read-only, no model call, no token cost.
+ * Publishes 5-hour + weekly as two capacity bars (dashboard Planruimte).
  *
  * Fallback: the last state Codex wrote to its own session log. That figure
  * only advances when Codex runs, so it is treated as expired once its window's
  * reset time has passed.
+ *
+ * If Codex is missing or not logged in (and no usable session fallback): clear
+ * unavailable — other collector sources still run.
  */
 export async function collect({
   sessionsDir = process.env.CODEX_SESSIONS_DIR || DEFAULT_SESSIONS_DIR,
@@ -216,30 +286,18 @@ export async function collect({
 } = {}) {
   const live = await queryLive({ now });
   if (live) {
-    const liveWindow = windowLabel(live.primary.windowMinutes);
-    const liveSecondary = live.secondary
-      ? ` The ${windowLabel(live.secondary.windowMinutes)} window is ${live.secondary.usedPercent}% used.`
-      : "";
-    return {
-      id: "openai-buzz",
-      status: "measured",
-      collectionMode: "automatic",
-      reason:
-        `Live from the signed-in Codex account: ${live.primary.usedPercent}% of the ` +
-        `${liveWindow} limit used.${liveSecondary} Read read-only via the local codex app-server ` +
-        "(no model call, no token cost); this is the same figure the provider shows.",
-      usage: live.primary.usedPercent,
-      limit: 100,
-      unit: `% of ${liveWindow} Codex limit`,
-      resetDate: live.primary.resetsAt
-        ? new Date(live.primary.resetsAt * 1000).toISOString()
-        : null,
-      lastUpdate: live.observedAt,
-      coverageStart: null,
-      breakdown: null,
-      pace: { daily: null, monthly: null, weeklyTarget: null },
-      history: [],
-    };
+    const components = componentsFromLimits(live);
+    const parts = components.map(
+      (c) =>
+        `${c.label} ${c.usage}%` +
+        (c.resetDate ? ` (resets ${c.resetDate})` : ""),
+    );
+    return measuredFromLimits(
+      live,
+      `Live from the signed-in Codex account via codex app-server ` +
+        `account/rateLimits/read (no model call, no token cost): ${parts.join("; ")}. ` +
+        "Same figure the provider shows.",
+    );
   }
 
   let files;
@@ -248,16 +306,18 @@ export async function collect({
   } catch (err) {
     return unknown(
       "openai-buzz",
-      `Codex session log directory unavailable (${err?.message || "unreadable"}). No usage fabricated.`,
-      { collectionMode: "unavailable" },
+      `Codex app-server unavailable (missing or not logged in) and session logs ` +
+        `unreadable (${err?.message || "unreadable"}). Install/sign in to Codex on this host. No usage fabricated.`,
+      { collectionMode: "unavailable", unit: "mixed (see components)" },
     );
   }
 
   if (files.length === 0) {
     return unknown(
       "openai-buzz",
-      "No Codex session logs found locally, so the provider rate-limit state cannot be read. No usage fabricated.",
-      { collectionMode: "unavailable" },
+      "Codex app-server unavailable (missing or not logged in) and no Codex session logs found. " +
+        "Install/sign in to Codex on this host, then collect again. No usage fabricated.",
+      { collectionMode: "unavailable", unit: "mixed (see components)" },
     );
   }
 
@@ -277,8 +337,8 @@ export async function collect({
   if (!newest) {
     return unknown(
       "openai-buzz",
-      "Codex session logs contain no rate-limit reading yet. No usage fabricated.",
-      { collectionMode: "unavailable" },
+      "Codex app-server unavailable (missing or not logged in) and session logs contain no rate-limit reading yet. No usage fabricated.",
+      { collectionMode: "unavailable", unit: "mixed (see components)" },
     );
   }
 
@@ -287,44 +347,29 @@ export async function collect({
     0,
     Math.round((now.getTime() - new Date(newest.observedAt).getTime()) / 60000),
   );
+  const components = componentsFromLimits(newest);
   const secondaryNote = newest.secondary
     ? ` The ${windowLabel(newest.secondary.windowMinutes)} window is ${newest.secondary.usedPercent}% used.`
     : "";
 
   // A percentage only describes the window it was recorded in. Once that
   // window's reset time has passed the figure is spent, and Codex has written
-  // nothing since — so the new window has no reading yet. Publishing the old
-  // number here is exactly how a dashboard ends up showing a full bar against
-  // an allowance the provider has already reset.
+  // nothing since — so the new window has no reading yet.
   const resetsAtMs = newest.primary.resetsAt ? newest.primary.resetsAt * 1000 : null;
   if (resetsAtMs != null && resetsAtMs <= now.getTime()) {
     return unknown(
       "openai-buzz",
-      `The last recorded ${primaryWindow} window ended ${new Date(resetsAtMs).toISOString()} at ` +
+      `Codex app-server unavailable; the last recorded ${primaryWindow} window ended ${new Date(resetsAtMs).toISOString()} at ` +
         `${newest.primary.usedPercent}% used, and Codex has not run since, so the current window has no reading yet. ` +
-        `The next Codex request refreshes this automatically.${secondaryNote}`,
-      { collectionMode: "automatic", limit: 100, unit: `% of ${primaryWindow} Codex limit` },
+        `Sign in / run Codex to refresh.${secondaryNote}`,
+      { collectionMode: "automatic", unit: "mixed (see components)" },
     );
   }
 
-  return {
-    id: "openai-buzz",
-    status: "measured",
-    collectionMode: "automatic",
-    reason:
-      `Live account read unavailable, so this is the last state Codex wrote to its own session log: ` +
-      `${newest.primary.usedPercent}% of the ${primaryWindow} limit used.${secondaryNote} ` +
-      `Recorded ${ageMinutes} minute(s) before this collect; it only advances when Codex is used.`,
-    usage: newest.primary.usedPercent,
-    limit: 100,
-    unit: `% of ${primaryWindow} Codex limit`,
-    resetDate: newest.primary.resetsAt
-      ? new Date(newest.primary.resetsAt * 1000).toISOString()
-      : null,
-    lastUpdate: newest.observedAt,
-    coverageStart: null,
-    breakdown: null,
-    pace: { daily: null, monthly: null, weeklyTarget: null },
-    history: [],
-  };
+  return measuredFromLimits(
+    newest,
+    `Live account read unavailable (codex missing or not logged in), so this is the last state Codex wrote to its own session log: ` +
+      `${components.map((c) => `${c.label} ${c.usage}%`).join("; ")}.` +
+      `${secondaryNote} Recorded ${ageMinutes} minute(s) before this collect; it only advances when Codex is used.`,
+  );
 }

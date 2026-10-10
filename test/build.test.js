@@ -47,24 +47,24 @@ describe("build", () => {
     await access(path.join(DIST, "styles.css"));
     await access(path.join(DIST, "dashboard.js"));
     await access(path.join(DIST, "app.js"));
-    await access(path.join(DIST, "d", "1.7.0.js"));
+    await access(path.join(DIST, "d", "1.8.0.js"));
     await access(path.join(DIST, "go.html"));
     const indexHtml = await readFile(path.join(DIST, "index.html"), "utf8");
-    assert.match(indexHtml, /d\/1\.7\.0\.js/);
-    assert.match(indexHtml, /styles\.css\?v=1\.7\.0/);
+    assert.match(indexHtml, /d\/1\.8\.0\.js/);
+    assert.match(indexHtml, /styles\.css\?v=1\.8\.0/);
     assert.match(indexHtml, /Laatst bijgewerkt:/);
     assert.match(indexHtml, /mac-badge/);
     assert.match(indexHtml, /Alles updaten/);
     assert.doesNotMatch(indexHtml, /src="\.\/app\.js"/);
     const goHtml = await readFile(path.join(DIST, "go.html"), "utf8");
     assert.match(goHtml, /Laatst bijgewerkt:/);
-    assert.match(goHtml, /d\/1\.7\.0\.js/);
+    assert.match(goHtml, /d\/1\.8\.0\.js/);
     const latest = await readFile(path.join(DIST, "data", "latest.json"), "utf8");
     const meta = JSON.parse(
       await readFile(path.join(DIST, "data", "build-meta.json"), "utf8"),
     );
-    assert.equal(JSON.parse(latest).version, "1.7.0");
-    assert.equal(meta.version, "1.7.0");
+    assert.equal(JSON.parse(latest).version, "1.8.0");
+    assert.equal(meta.version, "1.8.0");
     // The built site must not ship a local percentage while the metric is held.
     assert.ok(JSON.parse(latest).routing);
     assert.equal(JSON.parse(latest).routing.today.percent, null);
@@ -130,19 +130,18 @@ describe("build", () => {
     assert.doesNotMatch(src, /codex exec/i);
   });
 
-  it("scheduled snapshots publish routing facts beside every usage snapshot", async () => {
+  it("box snapshot pushes via gh auth without a token env var", async () => {
     const src = await readFile(
-      path.join(ROOT, "scripts", "local-snapshot.sh"),
+      path.join(ROOT, "scripts", "box-snapshot.sh"),
       "utf8",
     );
-    assert.match(src, /npm run collect \|\| ! npm run routing/);
-    assert.match(src, /git add data\/latest\.json data\/routing\.json/);
-    assert.match(src, /for output in data\/latest\.json data\/routing\.json/);
-    assert.match(
-      src,
-      /git restore --source=HEAD --staged --worktree -- data\/latest\.json data\/routing\.json/,
-    );
-    assert.match(src, /AI_USAGE_ENV_FILE|ai-usage-dashboard\/env/);
+    assert.match(src, /set -euo pipefail/);
+    assert.match(src, /gh auth status/);
+    assert.match(src, /npm run collect/);
+    assert.match(src, /git push/);
+    assert.match(src, /No snapshot change/);
+    assert.doesNotMatch(src, /AI_USAGE_GH_TOKEN/);
+    assert.doesNotMatch(src, /x-access-token|Bearer \$\{/);
   });
 
 });

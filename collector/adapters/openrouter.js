@@ -48,8 +48,11 @@ export function historyFromActivity(payload) {
 }
 
 /**
+ * Account prepaid pot from GET /credits.
+ * Balance (remaining) = total_credits − total_usage — that remaining figure is
+ * the dashboard headline; spent/total stay on the meter for the bar.
  * @param {unknown} payload GET /credits body
- * @returns {{ usage: number, limit: number } | null}
+ * @returns {{ usage: number, limit: number, balance: number } | null}
  */
 export function creditsMeter(payload) {
   const data = payload && typeof payload === "object" ? payload.data : null;
@@ -57,7 +60,7 @@ export function creditsMeter(payload) {
   const usage = finiteNumber(data.total_usage);
   const limit = finiteNumber(data.total_credits);
   if (usage == null || limit == null || limit <= 0) return null;
-  return { usage, limit };
+  return { usage, limit, balance: Math.max(0, limit - usage) };
 }
 
 /**
@@ -131,7 +134,7 @@ export async function collect({
   if (credits) {
     components.push({
       id: "credits",
-      label: "Account credits",
+      label: "Account balance",
       role: "capacity",
       usage: credits.usage,
       limit: credits.limit,
@@ -151,15 +154,15 @@ export async function collect({
     });
   }
 
-  const headline = keyLimit || credits;
+  // Account balance from /credits is the main figure; key cap stays secondary.
+  const headline = credits || keyLimit;
   if (!headline) {
-    const keyFailed = !keyRes.ok;
     const creditsDenied = creditsRes.status === 403;
-    const why = keyFailed
-      ? "OpenRouter /api/v1/key was unreachable or returned no numeric usage."
-      : creditsDenied
-        ? "This key cannot read /api/v1/credits (management key required) and the inference key has no spending cap, so there is no usage/limit pair."
-        : "OpenRouter returned no usage/limit pair (no account credits and no per-key cap).";
+    const why = creditsDenied
+      ? "This key cannot read /api/v1/credits (management key required) and the inference key has no spending cap, so there is no account balance."
+      : !creditsRes.ok
+        ? "OpenRouter /api/v1/credits was unreachable or returned no numeric balance."
+        : "OpenRouter returned no account credits balance (and no per-key cap fallback).";
     return unknown(
       SOURCE_ID,
       `${why} No usage fabricated.`,
@@ -173,12 +176,15 @@ export async function collect({
     if (activityRes.ok) history = historyFromActivity(activityRes.json);
   }
 
-  const remaining = headline.limit - headline.usage;
+  const balance =
+    credits != null
+      ? credits.balance
+      : Math.max(0, headline.limit - headline.usage);
   const creditsNote = credits
-    ? `account ${credits.usage} / ${credits.limit} USD used`
+    ? `account balance ${balance.toFixed(2)} USD remaining (${credits.usage} / ${credits.limit} USD used)`
     : "";
   const capNote = keyLimit
-    ? `key cap ${keyLimit.usage} / ${keyLimit.limit} USD used`
+    ? `key cap ${keyLimit.usage} / ${keyLimit.limit} USD used (secondary)`
     : "";
   const parts = [creditsNote, capNote].filter(Boolean);
 
@@ -187,12 +193,15 @@ export async function collect({
     status: "measured",
     collectionMode: "automatic",
     reason:
-      `Live from OpenRouter ${parts.join("; ")} (${remaining.toFixed(2)} USD remaining on the headline meter). ` +
-      "Read-only GET /api/v1/credits and/or /api/v1/key (no model call). Same figures as openrouter.ai/workspaces/default.",
+      `Live from OpenRouter ${parts.join("; ")}. ` +
+      "Headline is account balance from GET /api/v1/credits (total_credits − total_usage); key cap is secondary. " +
+      "Read-only (no model call). Same figures as openrouter.ai/workspaces/default.",
+    // Primary meter: spent / purchased so the bar fills with use; glance shows %.
+    // Balance remaining is the explicit main figure in the reason above.
     usage: headline.usage,
     limit: headline.limit,
     unit: "USD",
-    resetDate: keyLimit?.reset ?? null,
+    resetDate: credits ? null : (keyLimit?.reset ?? null),
     lastUpdate: now.toISOString(),
     coverageStart: null,
     breakdown: null,

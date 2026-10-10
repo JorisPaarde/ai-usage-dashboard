@@ -6,7 +6,6 @@ import {
   poolFromSource,
   poolsFromSnapshot,
   verdictForPool,
-  verdictsFor,
   ageMinutes,
   CLAUDE_MAX_AGE_MINUTES,
   OK_BELOW_PERCENT,
@@ -25,19 +24,17 @@ const NOW = new Date("2026-09-04T09:00:00.000Z");
 const FRESH = "2026-09-04T08:55:00.000Z"; // 5 min old
 const OLD = "2026-09-04T06:00:00.000Z"; // 3 h old
 
-function cursorSource(overrides = {}) {
+function openaiSource(fiveHour, weekly, overrides = {}) {
   return {
-    id: "cursor-agent",
+    id: "openai-buzz",
     status: "measured",
     collectionMode: "automatic",
     lastUpdate: FRESH,
     usage: null,
     limit: null,
     components: [
-      { id: "included-cursor-models", usage: 28.8, limit: 100, role: "capacity" },
-      { id: "other-models", usage: 35.2, limit: 100, role: "capacity" },
-      { id: "on-demand", usage: 73.6, limit: 75, role: "capped" },
-      { id: "grok-bot", usage: 94.9, limit: 100, role: "capped" },
+      { id: "five-hour", usage: fiveHour, limit: 100, role: "capacity" },
+      { id: "weekly", usage: weekly, limit: 100, role: "capacity" },
     ],
     ...overrides,
   };
@@ -61,14 +58,9 @@ function claudeSource(session, weekly, overrides = {}) {
 }
 
 describe("capacity facts", () => {
-  it("reads Cursor capacity from capacity meters, not capped ones", () => {
-    const fact = poolFromSource("cursor", POOLS.cursor, cursorSource());
-    // on-demand sits at 98.1% of its cap; that must not read as "Cursor is full".
-    assert.equal(fact.percent, 35.2);
-    assert.deepEqual(
-      fact.capped.map((c) => c.id).sort(),
-      ["grok-bot", "on-demand"],
-    );
+  it("takes the highest of OpenAI's 5-hour and weekly meters", () => {
+    const fact = poolFromSource("openai", POOLS.openai, openaiSource(15, 40));
+    assert.equal(fact.percent, 40);
     assert.equal(verdictForPool(fact, NOW).verdict, "ok");
   });
 
@@ -110,11 +102,11 @@ describe("capacity facts", () => {
   it("builds every pool, including prepaid last-resort when unmetered", () => {
     const facts = poolsFromSnapshot({
       generatedAt: NOW.toISOString(),
-      sources: [cursorSource()],
+      sources: [openaiSource(10, 12)],
     });
     assert.deepEqual(
       Object.keys(facts.pools).sort(),
-      ["claude", "cursor", "local", "openai", "openrouter", "sail"],
+      ["claude", "openai", "openrouter", "sail"],
     );
     assert.equal(facts.pools.sail.paid, true);
     assert.equal(facts.pools.sail.percent, null);
@@ -123,7 +115,7 @@ describe("capacity facts", () => {
     assert.equal(facts.pools.openrouter.sourceId, "openrouter");
   });
 
-  it("meters OpenRouter from credits/key-limit and drops paid last-resort", () => {
+  it("meters OpenRouter from account credits (key cap is secondary)", () => {
     const fact = poolFromSource("openrouter", POOLS.openrouter, {
       id: "openrouter",
       status: "measured",
@@ -136,9 +128,9 @@ describe("capacity facts", () => {
         { id: "key-limit", usage: 42, limit: 50, role: "capped" },
       ],
     });
-    assert.equal(fact.percent, 84);
+    assert.equal(fact.percent, 25.6);
     assert.equal(fact.paid, undefined);
-    assert.equal(verdictForPool(fact, NOW).verdict, "low");
+    assert.equal(verdictForPool(fact, NOW).verdict, "ok");
   });
 
   it("meters Sail from the billing-period component", () => {
@@ -263,58 +255,38 @@ describe("verdicts", () => {
     });
     assert.equal(v.verdict, "ok");
   });
-
-  it("only calls the local runtime ok when this run proved it up", () => {
-    const up = {
-      pool: "local",
-      unmetered: true,
-      measuredAt: FRESH,
-      maxAgeMinutes: 60,
-      collectionMode: "automatic",
-    };
-    assert.equal(verdictForPool(up, NOW).verdict, "ok");
-    assert.equal(
-      verdictForPool({ ...up, collectionMode: "manual" }, NOW).verdict,
-      "low",
-    );
-    assert.equal(verdictForPool({ ...up, measuredAt: OLD }, NOW).verdict, "low");
-  });
 });
 
 describe("lane choice", () => {
   const facts = {
     pools: {
-      cursor: { pool: "cursor", agent: "Cursor Builder" },
       claude: { pool: "claude", agent: "Claude-agent" },
       openai: { pool: "openai", agent: "Codex-agent" },
-      local: { pool: "local", agent: "LocalAI guy" },
       sail: { pool: "sail", agent: "sail-worker" },
       openrouter: { pool: "openrouter", agent: "or-worker" },
     },
   };
   const V = (over = {}) => ({
-    cursor: { verdict: "ok" },
     claude: { verdict: "ok" },
     openai: { verdict: "ok" },
-    local: { verdict: "ok" },
     sail: { verdict: "paid" },
     openrouter: { verdict: "paid" },
     ...over,
   });
 
-  it("sends code work to Cursor while it has room", () => {
+  it("sends code work to OpenAI while it has room", () => {
     const p = pickPool({ type: "code", quality: "normal" }, V(), facts.pools);
-    assert.equal(p.pool, "cursor");
-    assert.equal(p.agent, "Cursor Builder");
+    assert.equal(p.pool, "openai");
+    assert.equal(p.agent, "Codex-agent");
   });
 
   it("steps to the next lane when the first is full", () => {
     const p = pickPool(
       { type: "code", quality: "normal" },
-      V({ cursor: { verdict: "full" } }),
+      V({ openai: { verdict: "full" } }),
       facts.pools,
     );
-    assert.equal(p.pool, "openai");
+    assert.equal(p.pool, "claude");
   });
 
   it("prefers a metered low pool over a paid one", () => {
@@ -336,14 +308,6 @@ describe("lane choice", () => {
     assert.match(p.reason, /last resort/);
   });
 
-  it("never sends max-quality work to the local runtime", () => {
-    assert.equal(candidatesFor({ type: "digest", quality: "cheap" })[0], "local");
-    assert.equal(
-      candidatesFor({ type: "digest", quality: "max" }).includes("local"),
-      false,
-    );
-  });
-
   it("keeps Sail out of anything that is not bulk or cheap", () => {
     assert.deepEqual(LANES.bulk, ["sail", "openrouter"]);
     assert.equal(
@@ -355,7 +319,11 @@ describe("lane choice", () => {
   it("dispatches nothing when every candidate is full", () => {
     const p = pickPool(
       { type: "code", quality: "normal" },
-      V({ cursor: { verdict: "full" }, openai: { verdict: "full" }, openrouter: { verdict: "full" } }),
+      V({
+        openai: { verdict: "full" },
+        claude: { verdict: "full" },
+        openrouter: { verdict: "full" },
+      }),
       facts.pools,
     );
     assert.equal(p.pool, null);
@@ -364,7 +332,7 @@ describe("lane choice", () => {
 
   it("is reproducible: same task and same verdicts give the same lane", () => {
     const task = { type: "code", quality: "normal" };
-    const verdicts = V({ cursor: { verdict: "low" } });
+    const verdicts = V({ openai: { verdict: "low" } });
     const runs = new Set();
     for (let i = 0; i < 25; i += 1) {
       runs.add(pickPool(task, verdicts, facts.pools).pool);
@@ -414,16 +382,16 @@ describe("plan", () => {
   it("names the chosen pool, the reason and the remaining fallback order", () => {
     const facts = poolsFromSnapshot({
       generatedAt: NOW.toISOString(),
-      sources: [cursorSource()],
+      sources: [openaiSource(10, 12)],
     });
     const plan = planRoute(
       { id: "T-2", type: "code", quality: "normal", prompt: "Run the tests." },
       facts,
       NOW,
     );
-    assert.equal(plan.pool, "cursor");
-    assert.equal(plan.agent, "Cursor Builder");
-    assert.deepEqual(plan.fallbackOrder, ["openai", "openrouter"]);
+    assert.equal(plan.pool, "openai");
+    assert.equal(plan.agent, "Codex-agent");
+    assert.deepEqual(plan.fallbackOrder, ["claude", "openrouter"]);
     assert.ok(plan.reason.length > 0);
     assert.equal(plan.considered.length, 3);
   });
@@ -431,15 +399,15 @@ describe("plan", () => {
   it("routes around a pool the provider just refused", () => {
     const facts = poolsFromSnapshot({
       generatedAt: NOW.toISOString(),
-      sources: [cursorSource()],
+      sources: [openaiSource(10, 12)],
     });
     const plan = planRoute(
       { id: "T-3", type: "code", quality: "normal", prompt: "Run the tests." },
       facts,
       NOW,
-      { cursor: { until: "2026-09-04T10:00:00.000Z", reason: "429" } },
+      { openai: { until: "2026-09-04T10:00:00.000Z", reason: "429" } },
     );
-    assert.notEqual(plan.pool, "cursor");
+    assert.notEqual(plan.pool, "openai");
   });
 });
 
@@ -468,17 +436,12 @@ describe("quota detection", () => {
 });
 
 describe("provenance: a hand-typed meter is not a measurement", () => {
-  // Reproduces the live 2026-09-04 state: the Claude OAuth token was rejected,
-  // so the adapter published transcript tokens (a real measurement) while the
-  // plan percentages came from a 26-hour-old manual fill. The source therefore
-  // reads status "measured", collectionMode "automatic", and lastUpdate = this
-  // collect — while its session % is a day old and was, in reality, 82%.
   const FILLED_AT = "2026-09-03T07:00:00.000Z"; // 26 h before NOW
   const source = {
     id: "claude-code",
     status: "measured",
     collectionMode: "automatic",
-    lastUpdate: "2026-09-04T08:59:00.000Z", // one minute old
+    lastUpdate: "2026-09-04T08:59:00.000Z",
     usage: 13778301,
     limit: null,
     components: [
@@ -503,7 +466,7 @@ describe("provenance: a hand-typed meter is not a measurement", () => {
   });
 
   it("keeps a genuinely measured pool automatic", () => {
-    const fact = poolFromSource("cursor", POOLS.cursor, cursorSource());
+    const fact = poolFromSource("openai", POOLS.openai, openaiSource(3, 4));
     assert.equal(fact.collectionMode, "automatic");
     assert.equal(fact.measuredAt, FRESH);
     assert.equal("filledFrom" in fact, false);
