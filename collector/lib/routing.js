@@ -71,8 +71,7 @@ export const POOLS = Object.freeze({
   },
   openrouter: {
     sourceId: "openrouter",
-    // Account credits are the headline meter; key cap is secondary only.
-    componentIds: ["credits"],
+    componentIds: ["credits", "key-limit"],
     maxAgeMinutes: 15,
     agent: "or-worker",
     paidFallback: true,

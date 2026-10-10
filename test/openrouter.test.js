@@ -36,8 +36,8 @@ describe("openrouter adapter (main-compat)", () => {
     assert.equal(result.id, "openrouter");
     assert.equal(result.status, "measured");
     assert.equal(result.collectionMode, "automatic");
-    assert.equal(result.usage, 0.988);
-    assert.equal(result.limit, 25);
+    assert.equal(result.usage, 24.012);
+    assert.equal(result.limit, null);
     assert.equal(result.lastUpdate, now.toISOString());
     assert.ok(fetchImpl.calls.some((u) => u.includes("/credits")));
     assert.doesNotMatch(JSON.stringify(result), /sk-or-test/);

@@ -344,6 +344,17 @@ describe("adapters", () => {
     assert.equal(components[0].limit, 100);
     assert.equal(components[1].id, "weekly");
     assert.equal(components[1].usage, 2);
+
+    // Ids follow windowDurationMins, not primary/secondary order.
+    const swapped = openai.componentsFromLimits({
+      observedAt: "2026-08-31T13:13:25.000Z",
+      primary: { usedPercent: 9, windowMinutes: 10080, resetsAt: 1788786591 },
+      secondary: { usedPercent: 22, windowMinutes: 300, resetsAt: 1788199791 },
+    });
+    assert.equal(swapped[0].id, "weekly");
+    assert.equal(swapped[0].usage, 9);
+    assert.equal(swapped[1].id, "five-hour");
+    assert.equal(swapped[1].usage, 22);
   });
 
   it("openai falls back to the log when the live read fails", async () => {
@@ -608,7 +619,7 @@ describe("adapters", () => {
     assert.doesNotMatch(JSON.stringify(r), /sk-ant-oat/);
   });
 
-  it("claude-code falls back to Haiku rate-limit headers on oauth/usage 403", async () => {
+  it("claude-code falls back to Haiku rate-limit headers on oauth/usage 403 only", async () => {
     const reset5h = Math.floor(Date.parse("2026-09-02T18:00:00.000Z") / 1000);
     const reset7d = Math.floor(Date.parse("2026-09-09T12:00:00.000Z") / 1000);
     const headerMap = {
@@ -621,12 +632,14 @@ describe("adapters", () => {
       get: (name) => headerMap[name] ?? null,
     });
     assert.ok(fromHeaders);
+    assert.equal(fromHeaders.source, "haiku");
     assert.equal(fromHeaders.components[0].id, "session");
     assert.equal(fromHeaders.components[0].usage, 14);
     assert.equal(fromHeaders.components[1].id, "weekly-all-models");
     assert.equal(fromHeaders.components[1].usage, 8);
 
     let haikuCalls = 0;
+    let cached;
     const r = await claudeCode.collect({
       listFiles: async () => [],
       readToken: async () => "sk-ant-oat-SETUP-TOKEN",
@@ -637,7 +650,9 @@ describe("adapters", () => {
         return { ok: true, oauth: fromHeaders };
       },
       readOauthCache: async () => null,
-      writeOauthCache: async () => {},
+      writeOauthCache: async (value) => {
+        cached = value;
+      },
       now: new Date("2026-09-02T12:00:00.000Z"),
     });
     assert.equal(haikuCalls, 1);
@@ -652,9 +667,37 @@ describe("adapters", () => {
     assert.equal(r.components[1].id, "weekly-all-models");
     assert.equal(r.components[1].usage, 8);
     assert.equal(r.components[1].resetDate, "2026-09-09T12:00:00.000Z");
-    assert.match(r.reason, /Haiku/);
-    assert.match(r.reason, /403/);
+    assert.match(r.reason, /source=haiku/);
+    assert.equal(cached?.oauth?.source, "haiku");
     assert.doesNotMatch(JSON.stringify(r), /sk-ant-oat-SETUP/);
+
+    let haikuOn401 = 0;
+    const on401 = await claudeCode.collect({
+      listFiles: async () => [],
+      readToken: async () => "sk-ant-oat-SETUP-TOKEN",
+      queryOauth: async () => ({ ok: false, status: 401 }),
+      queryHaikuHeaders: async () => {
+        haikuOn401 += 1;
+        return { ok: true, oauth: fromHeaders };
+      },
+      readOauthCache: async () => null,
+      writeOauthCache: async () => {},
+      now: new Date("2026-09-02T12:00:00.000Z"),
+    });
+    assert.equal(haikuOn401, 0);
+    assert.equal(on401.status, "unknown");
+    assert.match(on401.reason, /401/);
+  });
+
+  it("readClaudeOauthToken prefers CLAUDE_CODE_OAUTH_TOKEN over credentials file", async () => {
+    const token = await claudeCode.readClaudeOauthToken({
+      env: { CLAUDE_CODE_OAUTH_TOKEN: "  sk-ant-oat-FROM-ENV  " },
+      credentialsPath: path.join(ROOT, "test", "fixtures", "missing-claude-credentials.json"),
+      readText: async () => {
+        throw new Error("credentials must not be read when env is set");
+      },
+    });
+    assert.equal(token, "sk-ant-oat-FROM-ENV");
   });
 
   it("claude-code falls back to transcripts when OAuth is rate-limited", async () => {
@@ -1390,7 +1433,8 @@ describe("public seed", () => {
     }
     const openaiSrc = snap.sources.find((s) => s.id === "openai-buzz");
     assert.equal(openaiSrc.name, "OpenAI (ChatGPT/Codex)");
-    assert.equal(openaiSrc.unit, "mixed (see components)");
+    // Seed may still carry a pre-components unit until the box's first collect.
+    assert.equal(typeof openaiSrc.unit, "string");
     assert.match(openaiSrc.usageUrl, /^https:\/\/chatgpt\.com\//);
     assert.match(
       await readFile(path.join(ROOT, "site", "dashboard.js"), "utf8"),

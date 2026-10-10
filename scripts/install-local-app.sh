@@ -2,7 +2,7 @@
 set -eu
 
 # Optional local HTTP app (127.0.0.1:8787) so "Alles updaten" can trigger
-# LaunchAgent / local-snapshot without a terminal — NEVER Codex/Grok/agent.
+# Local app without a terminal — NEVER Codex/Grok/agent. Collect uses box-snapshot.
 # Does not replace the 15-minute collector agent.
 # GitHub Pages cannot call this server (HTTPS mixed-content block).
 
@@ -59,5 +59,5 @@ launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST"
 launchctl enable "gui/$(id -u)/$LABEL"
 echo "Installed $PLIST (local app on http://127.0.0.1:8787/)."
-echo "Open that URL for on-demand Alles updaten (LaunchAgent collect)."
+echo "Open that URL for on-demand Alles updaten (box-snapshot collect)."
 echo "Pages (github.io) only re-fetches latest.json — it cannot reach this server."

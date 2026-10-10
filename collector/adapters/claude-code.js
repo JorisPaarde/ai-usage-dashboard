@@ -14,10 +14,14 @@ const DEFAULT_CREDENTIALS_FILE = path.join(
 const OAUTH_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
 const MESSAGES_URL = "https://api.anthropic.com/v1/messages";
 const OAUTH_BETA = "oauth-2025-04-20";
+/** Claude Code OAuth Messages surface (required with setup / claude.ai tokens). */
+const CLAUDE_CODE_BETA = "claude-code-20250219,oauth-2025-04-20";
 const OAUTH_TIMEOUT_MS = 15000;
-/** Cheap probe for unified rate-limit headers when /api/oauth/usage rejects the token. */
-export const DEFAULT_HAIKU_PROBE_MODEL =
-  process.env.CLAUDE_HAIKU_PROBE_MODEL || "claude-haiku-4-5-20251001";
+/** Hard-coded Haiku probe when /api/oauth/usage returns 403. */
+const HAIKU_PROBE_MODEL = "claude-haiku-4-5-20251001";
+/** Claude Code identity string required for OAuth Messages (Haiku is often exempt; send anyway). */
+const CLAUDE_CODE_SYSTEM =
+  "You are Claude Code, Anthropic's official CLI for Claude.";
 export const DEFAULT_OAUTH_CACHE_TTL_MINUTES = 60;
 export const DEFAULT_OAUTH_CACHE_FILE = path.join(
   os.homedir(),
@@ -30,6 +34,8 @@ const HEADER_5H_UTIL = "anthropic-ratelimit-unified-5h-utilization";
 const HEADER_5H_RESET = "anthropic-ratelimit-unified-5h-reset";
 const HEADER_7D_UTIL = "anthropic-ratelimit-unified-7d-utilization";
 const HEADER_7D_RESET = "anthropic-ratelimit-unified-7d-reset";
+
+const READING_SOURCES = new Set(["oauth", "haiku"]);
 
 function monthKeyInAmsterdam(now) {
   return dateKeyInZone(now).slice(0, 7);
@@ -121,19 +127,28 @@ function monthResetLabel(iso) {
 }
 
 /**
- * Read Claude.ai OAuth access token from the local Claude Code credentials file.
- * Token is returned only to the caller for Authorization — never log it.
+ * Read Claude.ai OAuth access token.
+ * Prefer `CLAUDE_CODE_OAUTH_TOKEN` (box setup token), then
+ * `~/.claude/.credentials.json`. Token is for Authorization only — never log it.
  *
  * @param {{
  *   credentialsPath?: string,
  *   readText?: typeof readFile,
+ *   env?: NodeJS.ProcessEnv,
  * }} [opts]
  * @returns {Promise<string|null>}
  */
 export async function readClaudeOauthToken({
   credentialsPath = process.env.CLAUDE_CREDENTIALS_PATH || DEFAULT_CREDENTIALS_FILE,
   readText = readFile,
+  env = process.env,
 } = {}) {
+  const fromEnv =
+    typeof env.CLAUDE_CODE_OAUTH_TOKEN === "string"
+      ? env.CLAUDE_CODE_OAUTH_TOKEN.trim()
+      : "";
+  if (fromEnv) return fromEnv;
+
   let raw;
   try {
     raw = await readText(credentialsPath, "utf8");
@@ -254,7 +269,7 @@ export function parseOauthUsage(json) {
     components.find((c) => c.id === "session")?.resetDate ||
     null;
 
-  return { components, resetDate, missing };
+  return { components, resetDate, missing, source: "oauth" };
 }
 
 function sanitizeCachedOauth(value) {
@@ -307,7 +322,8 @@ function sanitizeCachedOauth(value) {
   const missing = Array.isArray(value.missing)
     ? value.missing.filter((item) => typeof item === "string").slice(0, 3)
     : [];
-  return { components, resetDate, missing };
+  const source = READING_SOURCES.has(value.source) ? value.source : "oauth";
+  return { components, resetDate, missing, source };
 }
 
 function sanitizeOauthCache(value) {
@@ -443,9 +459,8 @@ export function parseUnifiedRateLimitHeaders(headers) {
     if (raw == null || String(raw).trim() === "") return null;
     const n = Number(raw);
     if (!Number.isFinite(n)) return null;
-    // Headers are 0–1; tolerate an already-percent value just in case.
-    const pct = n <= 1.5 ? n * 100 : n;
-    return roundPct(pct);
+    // Unified headers are always a 0–1 fraction.
+    return roundPct(n * 100);
   };
 
   /** @type {object[]} */
@@ -490,20 +505,19 @@ export function parseUnifiedRateLimitHeaders(headers) {
     components.find((c) => c.id === "session")?.resetDate ||
     null;
 
-  return { components, resetDate, missing };
+  return { components, resetDate, missing, source: "haiku" };
 }
 
 /**
  * One max_tokens=1 Haiku Messages call to read unified rate-limit headers.
- * Used only when /api/oauth/usage returns 401/403 (setup token / wrong scope).
- * Token stays in the Authorization header only.
+ * Used only when /api/oauth/usage returns 403 (setup token / wrong scope).
+ * Sends Claude Code OAuth identity headers + system prompt; only 2xx responses
+ * are accepted (rate-limit headers on errors are ignored).
  *
  * @param {{
  *   token: string,
  *   fetchImpl?: typeof fetch,
  *   timeoutMs?: number,
- *   url?: string,
- *   model?: string,
  * }} opts
  * @returns {Promise<
  *   { ok: true, oauth: object } |
@@ -514,37 +528,36 @@ export async function fetchHaikuRateLimitHeaders({
   token,
   fetchImpl = globalThis.fetch,
   timeoutMs = OAUTH_TIMEOUT_MS,
-  url = process.env.CLAUDE_MESSAGES_URL || MESSAGES_URL,
-  model = DEFAULT_HAIKU_PROBE_MODEL,
 }) {
   if (typeof fetchImpl !== "function") return { ok: false };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetchImpl(url, {
+    const res = await fetchImpl(MESSAGES_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/json",
         "Content-Type": "application/json",
         "anthropic-version": "2023-06-01",
-        "anthropic-beta": OAUTH_BETA,
-        "User-Agent": "ai-usage-dashboard",
+        "anthropic-beta": CLAUDE_CODE_BETA,
+        "User-Agent": "claude-cli/1.0.0 (external, cli)",
+        "x-app": "cli",
       },
       body: JSON.stringify({
-        model,
+        model: HAIKU_PROBE_MODEL,
         max_tokens: 1,
+        system: CLAUDE_CODE_SYSTEM,
         messages: [{ role: "user", content: "." }],
       }),
       signal: controller.signal,
     });
     if (!res || typeof res.status !== "number") return { ok: false };
-    // Headers can appear on success and on some error responses; prefer any parseable set.
-    const parsed = parseUnifiedRateLimitHeaders(res.headers);
-    if (parsed) return { ok: true, oauth: parsed };
     if (res.status < 200 || res.status >= 300) {
       return { ok: false, status: res.status };
     }
+    const parsed = parseUnifiedRateLimitHeaders(res.headers);
+    if (parsed) return { ok: true, oauth: parsed };
     return { ok: false, status: res.status };
   } catch {
     return { ok: false };
@@ -720,13 +733,14 @@ function tokenReason(totals) {
 /**
  * Claude Code.
  *
- * Preferred: signed-in Claude.ai OAuth token from `~/.claude/.credentials.json`
- * → `GET /api/oauth/usage` for session / weekly / extra-usage meters (same local
- * login idea as Codex). Token never enters the snapshot.
+ * Preferred: `CLAUDE_CODE_OAUTH_TOKEN` or `~/.claude/.credentials.json`
+ * → `GET /api/oauth/usage` for session / weekly / extra-usage meters.
+ * Token never enters the snapshot.
  *
- * Fallback only on HTTP 401/403 from that usage endpoint (e.g. setup token with
- * `user:inference` only): one max_tokens=1 Haiku Messages request, then read
- * anthropic-ratelimit-unified-5h/7d utilization + reset headers as two bars.
+ * Fallback only on HTTP 403 from that usage endpoint (e.g. setup token with
+ * `user:inference` only): one max_tokens=1 Haiku Messages request with Claude
+ * Code OAuth headers/system prompt, then read unified 5h/7d rate-limit headers
+ * from a successful (2xx) response as two bars.
  *
  * Always: local transcript token totals as breakdown / fallback when OAuth is
  * unavailable. Plan percentages are never invented.
@@ -746,6 +760,7 @@ export async function collect({
   readOauthCache = readOauthUsageCache,
   writeOauthCache = writeOauthUsageCache,
   now = new Date(),
+  env = process.env,
 } = {}) {
   const transcript = await collectTranscriptTotals({
     projectsDir,
@@ -757,6 +772,7 @@ export async function collect({
   const token = await readToken({
     credentialsPath,
     readText: readCredentials,
+    env,
   });
 
   let oauth = null;
@@ -780,19 +796,13 @@ export async function collect({
       const res = await queryOauth({ token, fetchImpl });
       const attemptAt = now.toISOString();
       let parsed = res.ok ? parseOauthUsage(res.json) : null;
-      let fromHaikuHeaders = false;
 
       // Setup tokens (scope user:inference) get 403 on /api/oauth/usage.
       // Only then: one max_tokens=1 Haiku call and read unified rate-limit headers.
-      if (
-        !parsed &&
-        !res.ok &&
-        (res.status === 401 || res.status === 403)
-      ) {
+      if (!parsed && !res.ok && res.status === 403) {
         const probe = await queryHaikuHeaders({ token, fetchImpl });
         if (probe.ok) {
           parsed = probe.oauth;
-          fromHaikuHeaders = true;
         }
       }
 
@@ -827,10 +837,6 @@ export async function collect({
       if (parsed && !oauthFailure) {
         oauth = parsed;
         oauthMeasuredAt = attemptAt;
-        if (fromHaikuHeaders) {
-          oauthFailure =
-            "OAuth /api/oauth/usage returned 403/unauthorized; used Haiku max_tokens=1 header probe instead.";
-        }
       } else if (cache?.oauth) {
         oauth = cache.oauth;
         oauthMeasuredAt = cache.measuredAt;
@@ -844,9 +850,12 @@ export async function collect({
           oauthFailure = retryAfter
             ? `Anthropic OAuth usage API rate-limited this collect (HTTP 429); retry after ${retryAfter}.`
             : "Anthropic OAuth usage API rate-limited this collect (HTTP 429); the one-hour cache interval applies.";
-        } else if (res.status === 401 || res.status === 403) {
+        } else if (res.status === 403) {
           oauthFailure =
-            "Claude OAuth token rejected by the usage API (HTTP 401/403) and the Haiku rate-limit header probe also failed; re-auth in Claude Code, then collect again.";
+            "Claude OAuth usage API returned HTTP 403 and the Haiku rate-limit header probe also failed.";
+        } else if (res.status === 401) {
+          oauthFailure =
+            "Claude OAuth token rejected by the usage API (HTTP 401); re-auth or refresh CLAUDE_CODE_OAUTH_TOKEN, then collect again.";
         } else {
           oauthFailure = "Claude OAuth usage API unavailable this collect.";
         }
@@ -854,7 +863,7 @@ export async function collect({
     }
   } else {
     oauthFailure =
-      "No local Claude.ai OAuth token in ~/.claude/.credentials.json.";
+      "No Claude OAuth token (set CLAUDE_CODE_OAUTH_TOKEN or ~/.claude/.credentials.json).";
   }
 
   if (oauth) {
@@ -887,10 +896,11 @@ export async function collect({
     const tokenNote = transcript.ok
       ? ` Local transcript detail: ${tokenReason(transcript.totals)}`
       : ` ${transcript.reason} No usage fabricated for tokens.`;
-    const viaHaiku = /Haiku max_tokens=1 header probe/.test(oauthFailure || "");
-    const sourceNote = viaHaiku
-      ? "via Haiku Messages rate-limit headers (oauth/usage 403 fallback)"
-      : "via /api/oauth/usage";
+    const readingSource = oauth.source === "haiku" ? "haiku" : "oauth";
+    const sourceNote =
+      readingSource === "haiku"
+        ? "via Haiku Messages rate-limit headers (oauth/usage 403 fallback)"
+        : "via /api/oauth/usage";
 
     return {
       id: "claude-code",
@@ -898,7 +908,7 @@ export async function collect({
       collectionMode: "automatic",
       reason:
         `${oauthFromCache ? "Cached" : "Live"} signed-in Claude.ai OAuth usage ` +
-        `(measured ${oauthMeasuredAt}) ${sourceNote}: ${parts.join("; ")}.` +
+        `(measured ${oauthMeasuredAt}, source=${readingSource}) ${sourceNote}: ${parts.join("; ")}.` +
         `${oauthFailure ? ` ${oauthFailure}` : ""}` +
         `${missingNote} Same local-login pattern as Codex (no browser scrape).` +
         tokenNote,

@@ -16,19 +16,19 @@
       "maxAgeMinutes": 60,
       "collectionMode": "unavailable",
       "unmetered": false,
-      "reason": "No Claude Code transcripts found locally, so token usage cannot be measured. No local Claude.ai OAuth token in ~/.claude/.credentials.json. No usage fabricated."
+      "reason": "Measured, but no usage/limit pair to turn into a percentage — consumption without a known limit is not room."
     },
     "openai": {
       "pool": "openai",
       "agent": "Codex-agent",
       "sourceId": "openai-buzz",
-      "percent": null,
+      "percent": 3,
       "capped": [],
-      "measuredAt": null,
+      "measuredAt": "2026-09-22T18:33:13.642Z",
       "maxAgeMinutes": 15,
-      "collectionMode": "unavailable",
+      "collectionMode": "automatic",
       "unmetered": false,
-      "reason": "Codex app-server unavailable (missing or not logged in) and no Codex session logs found. Install/sign in to Codex on this host, then collect again. No usage fabricated."
+      "reason": "Source usage against its own limit."
     },
     "sail": {
       "pool": "sail",

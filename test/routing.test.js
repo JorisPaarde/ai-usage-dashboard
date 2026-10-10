@@ -115,22 +115,23 @@ describe("capacity facts", () => {
     assert.equal(facts.pools.openrouter.sourceId, "openrouter");
   });
 
-  it("meters OpenRouter from account credits (key cap is secondary)", () => {
+  it("meters OpenRouter from credits and key-limit (max of both)", () => {
     const fact = poolFromSource("openrouter", POOLS.openrouter, {
       id: "openrouter",
       status: "measured",
       collectionMode: "automatic",
       lastUpdate: FRESH,
-      usage: 25.75,
-      limit: 100.5,
+      usage: 74.75,
+      limit: null,
       components: [
         { id: "credits", usage: 25.75, limit: 100.5, role: "capacity" },
         { id: "key-limit", usage: 42, limit: 50, role: "capped" },
       ],
     });
-    assert.equal(fact.percent, 25.6);
+    // key-limit 84% is hotter than credits 25.6% for the capacity pool.
+    assert.equal(fact.percent, 84);
     assert.equal(fact.paid, undefined);
-    assert.equal(verdictForPool(fact, NOW).verdict, "ok");
+    assert.equal(verdictForPool(fact, NOW).verdict, "low");
   });
 
   it("meters Sail from the billing-period component", () => {

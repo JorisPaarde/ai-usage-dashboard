@@ -203,8 +203,12 @@ function usageLabel(src) {
 /**
  * One home-screen meter. Prefer the hottest capped meter (what bites first),
  * else hottest capacity, else first readable component.
+ *
+ * OpenRouter is special: the glance must show account balance (remaining USD)
+ * from the source headline — never let key-limit win. Key cap stays under Meer.
  */
 function glanceMeter(src) {
+  if (src?.id === "openrouter") return null;
   const comps = Array.isArray(src.components) ? src.components : [];
   if (!comps.length) return null;
   const ranked = (list) =>
@@ -223,6 +227,14 @@ function glanceMeter(src) {
 
 /** Home glance: one large number + tiny label / reset. */
 function renderGlancePrimary(src) {
+  if (src?.id === "openrouter" && src.usage != null && src.limit == null) {
+    return renderPrimary({
+      value: fmtNum(src.usage),
+      empty: false,
+      sub: "Account balance · USD remaining",
+      bar: null,
+    });
+  }
   const meter = glanceMeter(src);
   if (meter) {
     const metric = primaryDisplay(meter);

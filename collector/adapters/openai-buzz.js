@@ -50,40 +50,54 @@ function normalizeLimits(limits, observedAt) {
 }
 
 /**
+ * Map one rate-limit window to a capacity component.
+ * Id/label come from windowDurationMins (300 → five-hour, 10080 → weekly).
+ * @param {object} bucket
+ */
+function componentFromWindow(bucket) {
+  if (!bucket || typeof bucket.usedPercent !== "number") return null;
+  const minutes = bucket.windowMinutes;
+  let id;
+  let label;
+  if (minutes === 300) {
+    id = "five-hour";
+    label = "5-hour";
+  } else if (minutes === 10080) {
+    id = "weekly";
+    label = "Weekly";
+  } else {
+    const wl = windowLabel(minutes);
+    id = wl === "current" ? "window" : wl.replace(/\s+/g, "-");
+    label = wl === "current" ? "Current window" : wl.charAt(0).toUpperCase() + wl.slice(1);
+  }
+  const unitLabel = windowLabel(minutes);
+  return {
+    id,
+    label,
+    role: "capacity",
+    usage: bucket.usedPercent,
+    limit: 100,
+    unit: `% of ${unitLabel === "current" ? "Codex" : unitLabel} Codex limit`,
+    resetDate: bucket.resetsAt
+      ? new Date(bucket.resetsAt * 1000).toISOString()
+      : null,
+  };
+}
+
+/**
  * Two capacity bars for the existing dashboard Planruimte layout.
- * Primary ≈ 5-hour; secondary ≈ weekly (Codex ChatGPT/Codex windows).
+ * Each window's id/label is chosen from its own windowDurationMins.
  * @param {object} reading normalizeLimits result
  */
 export function componentsFromLimits(reading) {
   /** @type {object[]} */
   const components = [];
-  if (reading?.primary && typeof reading.primary.usedPercent === "number") {
-    const label = windowLabel(reading.primary.windowMinutes);
-    components.push({
-      id: "five-hour",
-      label: label === "weekly" ? "Weekly" : label === "current" ? "5-hour" : label,
-      role: "capacity",
-      usage: reading.primary.usedPercent,
-      limit: 100,
-      unit: `% of ${label === "current" ? "5-hour" : label} Codex limit`,
-      resetDate: reading.primary.resetsAt
-        ? new Date(reading.primary.resetsAt * 1000).toISOString()
-        : null,
-    });
-  }
-  if (reading?.secondary && typeof reading.secondary.usedPercent === "number") {
-    const label = windowLabel(reading.secondary.windowMinutes);
-    components.push({
-      id: "weekly",
-      label: label === "current" ? "Weekly" : label.charAt(0).toUpperCase() + label.slice(1),
-      role: "capacity",
-      usage: reading.secondary.usedPercent,
-      limit: 100,
-      unit: `% of ${label === "current" ? "weekly" : label} Codex limit`,
-      resetDate: reading.secondary.resetsAt
-        ? new Date(reading.secondary.resetsAt * 1000).toISOString()
-        : null,
-    });
+  const seen = new Set();
+  for (const bucket of [reading?.primary, reading?.secondary]) {
+    const c = componentFromWindow(bucket);
+    if (!c || seen.has(c.id)) continue;
+    seen.add(c.id);
+    components.push(c);
   }
   return components;
 }

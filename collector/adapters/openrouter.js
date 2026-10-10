@@ -196,10 +196,9 @@ export async function collect({
       `Live from OpenRouter ${parts.join("; ")}. ` +
       "Headline is account balance from GET /api/v1/credits (total_credits − total_usage); key cap is secondary. " +
       "Read-only (no model call). Same figures as openrouter.ai/workspaces/default.",
-    // Primary meter: spent / purchased so the bar fills with use; glance shows %.
-    // Balance remaining is the explicit main figure in the reason above.
-    usage: headline.usage,
-    limit: headline.limit,
+    // Home glance shows remaining USD balance; components keep spent/total + key cap.
+    usage: credits ? balance : headline.usage,
+    limit: credits ? null : headline.limit,
     unit: "USD",
     resetDate: credits ? null : (keyLimit?.reset ?? null),
     lastUpdate: now.toISOString(),

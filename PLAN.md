@@ -16,7 +16,7 @@ Cursor cloud agents may **plan, backlog, and implement**. Once shipped, **collec
 | GHA `collect.yml` | Validate committed snapshot only — **not** a meter |
 | `local-overrides.json` | Temporary seed for sources that cannot be automated |
 
-The former Mac LaunchAgent / `local-snapshot.sh` schedule is retired as the live meter path. The box owns measurement. Push uses the box's existing `gh auth` — no separate token env var.
+The former Mac LaunchAgent / `local-snapshot.sh` schedule is retired as the live meter path. The box owns measurement. Push uses the box's existing `gh auth` (one-time `gh auth login` + `gh auth setup-git` on the box) — no separate token env var.
 
 ## Sources (box)
 

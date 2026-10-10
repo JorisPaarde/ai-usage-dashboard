@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Local Mac app server for on-demand collect + viewing the dashboard.
+ * Local app server for on-demand collect + viewing the dashboard.
  *
  * Binds 127.0.0.1 only. Serves the built site (or site/ + data/) and exposes:
  *   GET  /api/health  → { ok, collect: true }
- *   POST /api/collect → kickstarts the LaunchAgent (or runs local-snapshot.sh)
+ *   POST /api/collect → runs scripts/box-snapshot.sh
  *
  * NEVER invokes Codex, Grok, cloud agents, or browser bots.
  * NEVER call this from github.io (HTTPS → HTTP localhost is blocked).
@@ -22,7 +22,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const HOST = process.env.AI_USAGE_APP_HOST || "127.0.0.1";
 const PORT = Number(process.env.AI_USAGE_APP_PORT || 8787);
-const LABEL = "nl.jpwebcreation.ai-usage-dashboard";
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -67,38 +66,17 @@ function json(res, status, body) {
 }
 
 /**
- * Prefer kickstarting the installed LaunchAgent (same path as the schedule).
- * Fall back to running local-snapshot.sh directly in this checkout.
+ * Run box-snapshot.sh in this checkout (same path as the box cron).
  * Never shells out to `codex`, agents, or browsers.
  */
 function triggerCollect() {
-  return new Promise((resolve) => {
-    const uid = typeof process.getuid === "function" ? process.getuid() : null;
-    const target = uid != null ? `gui/${uid}/${LABEL}` : LABEL;
-    const child = spawn("launchctl", ["kickstart", "-k", target], {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    child.on("error", () => {
-      runSnapshotScript().then(resolve);
-    });
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve({
-          ok: true,
-          via: "launchctl",
-          message: "LaunchAgent collect gestart.",
-        });
-        return;
-      }
-      runSnapshotScript().then(resolve);
-    });
-  });
+  return runSnapshotScript();
 }
 
 function runSnapshotScript() {
   return new Promise((resolve) => {
-    const script = path.join(ROOT, "scripts", "local-snapshot.sh");
-    const child = spawn("/bin/sh", [script], {
+    const script = path.join(ROOT, "scripts", "box-snapshot.sh");
+    const child = spawn("/bin/bash", [script], {
       cwd: ROOT,
       stdio: ["ignore", "pipe", "pipe"],
       env: { ...process.env },
@@ -117,7 +95,7 @@ function runSnapshotScript() {
       resolve({
         ok: false,
         via: "script",
-        message: e.message || "local-snapshot failed to start",
+        message: e.message || "box-snapshot failed to start",
       });
     });
     child.on("close", (code) => {
@@ -126,8 +104,8 @@ function runSnapshotScript() {
         via: "script",
         message:
           code === 0
-            ? "local-snapshot voltooid."
-            : `local-snapshot exit ${code}: ${(err || out).trim().slice(0, 240)}`,
+            ? "box-snapshot voltooid."
+            : `box-snapshot exit ${code}: ${(err || out).trim().slice(0, 240)}`,
       });
     });
   });
@@ -223,6 +201,6 @@ const server = createServer((req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`AI Usage local app http://${HOST}:${PORT}/`);
   console.log(
-    `Collect: POST http://${HOST}:${PORT}/api/collect (LaunchAgent / local-snapshot only)`,
+    `Collect: POST http://${HOST}:${PORT}/api/collect (box-snapshot.sh only)`,
   );
 });

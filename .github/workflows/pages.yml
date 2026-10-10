@@ -2,8 +2,9 @@ name: Deploy GitHub Pages
 
 # Hosts the committed public snapshot only.
 # Never runs `npm run collect` — hosted runners cannot measure authenticated
-# desktop usage. Live meters are published by the Mac LaunchAgent pushing
-# data/latest.json to main. See docs/SCHEDULE.md and PLAN.md.
+# CLI usage. Live meters are published by the Linux box
+# (scripts/box-snapshot.sh) pushing data/latest.json to main.
+# See docs/SCHEDULE.md and PLAN.md.
 
 on:
   push:

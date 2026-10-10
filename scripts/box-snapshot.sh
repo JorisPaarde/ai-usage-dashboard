@@ -4,7 +4,8 @@
 # See PLAN.md and docs/SCHEDULE.md.
 #
 # Auth: the box's existing `gh` login over HTTPS (credential helper).
-# No token env vars; never put credentials in a remote URL or log output.
+# One-time on the box: `gh auth login` and `gh auth setup-git`.
+# No token env vars for GitHub; never put credentials in a remote URL or log.
 # Cron is set up by the server owner — this script does not install cron.
 set -euo pipefail
 
@@ -13,8 +14,6 @@ export PATH
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 LOCK="$ROOT/.box-snapshot.lock"
-BRANCH="${AI_USAGE_GH_BRANCH:-main}"
-SNAPSHOT_PATH="data/latest.json"
 
 if ! mkdir "$LOCK" 2>/dev/null; then
   echo "Another box snapshot run is active; skipping."
@@ -32,14 +31,26 @@ if [ -f "$ENV_FILE" ]; then
   set +a
 fi
 
+# Setup token for Claude (cron has no login profile). Never print the value.
+if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -f "$HOME/.claude-oauth-token" ]; then
+  CLAUDE_CODE_OAUTH_TOKEN=$(tr -d '\r\n' < "$HOME/.claude-oauth-token")
+  export CLAUDE_CODE_OAUTH_TOKEN
+fi
+
 echo "=== box snapshot run $(date -u +%Y-%m-%dT%H:%M:%SZ) in $ROOT ==="
+
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$CURRENT_BRANCH" != "main" ]; then
+  echo "box-snapshot.sh must run on main (checked out: ${CURRENT_BRANCH})." >&2
+  exit 1
+fi
 
 if ! command -v node >/dev/null 2>&1; then
   echo "node not on PATH ($PATH)." >&2
   exit 1
 fi
 if ! command -v git >/dev/null 2>&1; then
-  echo "git is required to commit and push ${SNAPSHOT_PATH}." >&2
+  echo "git is required to commit and push." >&2
   exit 1
 fi
 if ! command -v gh >/dev/null 2>&1; then
@@ -54,39 +65,42 @@ if ! gh auth status >/dev/null 2>&1; then
   exit 1
 fi
 
-# Ensure git HTTPS uses the existing gh login (no tokens handled here).
-gh auth setup-git >/dev/null 2>&1 || true
-
-# A failed prior run may leave latest.json dirty; discard only that generated
-# path before checking that no other agent work is present.
-if ! git diff --quiet -- "$SNAPSHOT_PATH" || ! git diff --cached --quiet -- "$SNAPSHOT_PATH"; then
-  echo "Discarding leftover ${SNAPSHOT_PATH} from a prior run."
-  git restore --source=HEAD --staged --worktree -- "$SNAPSHOT_PATH"
-fi
+# latest.json and routing.json are this job's paired outputs. A failed run may
+# leave either dirty; discard only those generated paths before checking that
+# no other work is present.
+for output in data/latest.json data/routing.json; do
+  if ! git diff --quiet -- "$output" || ! git diff --cached --quiet -- "$output"; then
+    echo "Discarding leftover $output from a prior run."
+    git restore --source=HEAD --staged --worktree -- "$output"
+  fi
+done
 
 if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "Working tree has tracked changes; refusing scheduled update." >&2
   exit 1
 fi
 
-if ! npm run collect; then
-  echo "snapshot generation failed; restoring generated output." >&2
-  git restore --source=HEAD --staged --worktree -- "$SNAPSHOT_PATH" 2>/dev/null || true
+git fetch origin main
+git merge --ff-only origin/main
+
+if ! npm run collect || ! npm run routing; then
+  echo "snapshot generation failed; restoring generated outputs." >&2
+  git restore --source=HEAD --staged --worktree -- data/latest.json data/routing.json
+  exit 1
+fi
+if ! npm run check; then
+  echo "check failed; restoring generated outputs so the next interval can retry." >&2
+  git restore --source=HEAD --staged --worktree -- data/latest.json data/routing.json
   exit 1
 fi
 
-if [ ! -f "$ROOT/$SNAPSHOT_PATH" ]; then
-  echo "Expected ${SNAPSHOT_PATH} after collect; refusing to push." >&2
-  exit 1
-fi
+git add data/latest.json data/routing.json
 
-git add -- "$SNAPSHOT_PATH"
-
-if git diff --cached --quiet -- "$SNAPSHOT_PATH"; then
+if git diff --cached --quiet; then
   echo "No snapshot change."
   exit 0
 fi
 
 git commit -m "chore: refresh box AI usage snapshot"
-git push origin "HEAD:${BRANCH}"
-echo "Pushed ${SNAPSHOT_PATH} to origin/${BRANCH}."
+git push origin HEAD:main
+echo "Pushed data/latest.json and data/routing.json to origin/main."

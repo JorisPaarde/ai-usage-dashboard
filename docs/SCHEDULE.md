@@ -16,7 +16,7 @@ A run is only worth scheduling if it re-measures something. Per source:
 | Source | Route | Re-measured each run? |
 | --- | --- | --- |
 | OpenAI (ChatGPT/Codex) | `account/rateLimits/read` on the local `codex app-server` (5 h + weekly bars); session-log fallback when app-server is down | Yes — live from the account when Codex is signed in |
-| Claude Code | Prefer `GET /api/oauth/usage` with the local Claude.ai OAuth token; on HTTP 401/403 only, one Haiku `max_tokens=1` Messages call and read `anthropic-ratelimit-unified-5h/7d-*` headers; always also sum tokens from `~/.claude/projects/**/*.jsonl` | Yes when OAuth or header probe works; tokens always when transcripts exist |
+| Claude Code | Prefer `GET /api/oauth/usage` with `CLAUDE_CODE_OAUTH_TOKEN` (or `~/.claude/.credentials.json`); on HTTP **403** only, one Haiku `max_tokens=1` Messages call (Claude Code OAuth headers + system prompt) and read `anthropic-ratelimit-unified-5h/7d-*` headers from a **2xx** response; always also sum tokens from `~/.claude/projects/**/*.jsonl` when present | Yes when OAuth or header probe works; tokens when transcripts exist |
 | OpenRouter | Official `GET /api/v1/credits` (account balance = total_credits − total_usage as headline) + `/api/v1/key` secondary; optional `/activity` history | Yes when keys are present in `~/.config/ai-usage-dashboard/env` |
 | Sail Research | Official `GET /v2/usage/summary?range=period` (+ `/breakdown` history) with `SAIL_API_KEY` | Yes when the key is present in `~/.config/ai-usage-dashboard/env` |
 
@@ -84,15 +84,18 @@ carries a genuinely different metric it must say `"supplements": true`.
 GitHub-hosted runners **cannot** inspect authenticated desktop or CLI sessions.
 Real figures appear only when the collector runs on the box that can see them.
 
-`scripts/box-snapshot.sh`:
+`scripts/box-snapshot.sh` (must run on a clean `main` checkout):
 
 1. Checks `gh auth status` (fails clearly if not logged in)
-2. Runs `npm run collect` → `data/latest.json`
-3. Commits only when the snapshot changed
-4. `git push` via the existing `gh` HTTPS credential helper
+2. `git fetch` + `git merge --ff-only origin/main`
+3. Loads `CLAUDE_CODE_OAUTH_TOKEN` from `~/.claude-oauth-token` when unset
+4. Runs `npm run collect` + `npm run routing`, then `npm run check`
+5. Commits `data/latest.json` + `data/routing.json` only when they changed
+6. `git push` via the existing `gh` HTTPS credential helper
 
-No separate GitHub token env var. The server owner installs cron; this repo
-does not write crontab entries.
+One-time on the box: `gh auth login` and `gh auth setup-git` (not done by the
+cron script). No separate GitHub token env var. The server owner installs cron;
+this repo does not write crontab entries.
 
 Example cron (owner-managed):
 

@@ -124,8 +124,7 @@ describe("build", () => {
       "utf8",
     );
     assert.match(src, /NEVER invokes Codex/);
-    assert.match(src, /launchctl/);
-    assert.match(src, /local-snapshot\.sh/);
+    assert.match(src, /box-snapshot\.sh/);
     assert.doesNotMatch(src, /spawn\(\s*["']codex["']/);
     assert.doesNotMatch(src, /codex exec/i);
   });
@@ -137,10 +136,19 @@ describe("build", () => {
     );
     assert.match(src, /set -euo pipefail/);
     assert.match(src, /gh auth status/);
-    assert.match(src, /npm run collect/);
-    assert.match(src, /git push/);
+    assert.match(src, /git fetch origin main/);
+    assert.match(src, /git merge --ff-only origin\/main/);
+    assert.match(src, /npm run collect \|\| ! npm run routing/);
+    assert.match(src, /npm run check/);
+    assert.match(src, /git add data\/latest\.json data\/routing\.json/);
+    assert.match(src, /git push origin HEAD:main/);
     assert.match(src, /No snapshot change/);
+    assert.match(src, /CLAUDE_CODE_OAUTH_TOKEN/);
+    assert.match(src, /\.claude-oauth-token/);
     assert.doesNotMatch(src, /AI_USAGE_GH_TOKEN/);
+    assert.doesNotMatch(src, /AI_USAGE_GH_BRANCH/);
+    // One-time setup may be mentioned in comments; must not run on each tick.
+    assert.doesNotMatch(src, /^\s*gh auth setup-git/m);
     assert.doesNotMatch(src, /x-access-token|Bearer \$\{/);
   });
 

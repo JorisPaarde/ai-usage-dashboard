@@ -15,9 +15,7 @@ const WORKFLOWS = path.join(ROOT, ".github", "workflows");
 const FORBIDDEN = [
   /npm\s+run\s+collect\b/,
   /node\s+collector\b/,
-  /local-snapshot\.sh/,
   /box-snapshot\.sh/,
-  /install-launch-agent\.sh/,
 ];
 
 /** Drop YAML comments so documentation cannot trip the guard. */
