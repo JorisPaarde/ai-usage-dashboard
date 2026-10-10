@@ -33,6 +33,15 @@ Never uses Codex, Grok, cloud agents, or browser bots as the Update button path.
    snapshot script sources it when present.
 3. Owner-managed cron runs `scripts/box-snapshot.sh`: collect → commit
    `data/latest.json` only when it changed → `git push` via existing `gh` login.
+
+```cron
+CRON_TZ=Europe/Amsterdam
+*/15 * * * * cd /path/to/ai-usage-dashboard && ./scripts/box-snapshot.sh
+```
+
+One-time on the box: `gh auth login` && `gh auth setup-git`. Optional env file:
+`cp docs/env.example ~/.config/ai-usage-dashboard/env && chmod 600 …`.
+
 4. GitHub Pages rebuilds from that commit. Hosted runners **never** measure
    authenticated usage.
 

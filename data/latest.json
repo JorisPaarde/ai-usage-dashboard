@@ -25,15 +25,34 @@
       "name": "OpenAI (ChatGPT/Codex)",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Codex account: 3% of the 5-hour limit used. The weekly window is 4% used. Read read-only via the local codex app-server (no model call, no token cost); this is the same figure the provider shows. A manual override was ignored: the collector measures this source directly.",
-      "usage": 3,
-      "limit": 100,
-      "unit": "% of 5-hour Codex limit",
+      "reason": "Live from the signed-in Codex account via codex app-server account/rateLimits/read (no model call, no token cost): 5-hour 3% (resets 2026-09-22T20:30:00.000Z); Weekly 4%. Same figure the provider shows.",
+      "usage": null,
+      "limit": null,
+      "unit": "mixed (see components)",
       "resetDate": "2026-09-22T20:30:00.000Z",
       "lastUpdate": "2026-09-22T18:33:13.642Z",
       "coverageStart": null,
       "breakdown": null,
-      "components": null,
+      "components": [
+        {
+          "id": "five-hour",
+          "label": "5-hour",
+          "role": "capacity",
+          "usage": 3,
+          "limit": 100,
+          "unit": "% of 5-hour Codex limit",
+          "resetDate": "2026-09-22T20:30:00.000Z"
+        },
+        {
+          "id": "weekly",
+          "label": "Weekly",
+          "role": "capacity",
+          "usage": 4,
+          "limit": 100,
+          "unit": "% of weekly Codex limit",
+          "resetDate": null
+        }
+      ],
       "usageUrl": "https://chatgpt.com/#settings/Usage",
       "pace": {
         "daily": null,

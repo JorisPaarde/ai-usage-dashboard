@@ -22,13 +22,13 @@
       "pool": "openai",
       "agent": "Codex-agent",
       "sourceId": "openai-buzz",
-      "percent": 3,
+      "percent": 4,
       "capped": [],
       "measuredAt": "2026-09-22T18:33:13.642Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
-      "reason": "Source usage against its own limit."
+      "reason": "Highest of five-hour, weekly."
     },
     "sail": {
       "pool": "sail",
