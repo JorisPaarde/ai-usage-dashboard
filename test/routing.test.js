@@ -106,7 +106,7 @@ describe("capacity facts", () => {
     });
     assert.deepEqual(
       Object.keys(facts.pools).sort(),
-      ["claude", "openai", "openrouter", "sail"],
+      ["claude", "cursor", "openai", "openrouter", "sail"],
     );
     assert.equal(facts.pools.sail.paid, true);
     assert.equal(facts.pools.sail.percent, null);
@@ -392,9 +392,9 @@ describe("plan", () => {
     );
     assert.equal(plan.pool, "openai");
     assert.equal(plan.agent, "Codex-agent");
-    assert.deepEqual(plan.fallbackOrder, ["claude", "openrouter"]);
+    assert.deepEqual(plan.fallbackOrder, ["claude", "cursor", "openrouter"]);
     assert.ok(plan.reason.length > 0);
-    assert.equal(plan.considered.length, 3);
+    assert.equal(plan.considered.length, 4);
   });
 
   it("routes around a pool the provider just refused", () => {

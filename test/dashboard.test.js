@@ -45,6 +45,10 @@ const HERMETIC_ENV_KEYS = [
   "CLAUDE_PROJECTS_DIR",
   "CLAUDE_OAUTH_CACHE_PATH",
   "CODEX_SESSIONS_DIR",
+  "CURSOR_STATE_DB",
+  "CURSOR_STORAGE_JSON",
+  "CURSOR_API_BASE",
+  "AI_USAGE_MAC_SOURCES_PATH",
   "OPENROUTER_API_KEY",
   "OPENROUTER_MANAGEMENT_KEY",
   "SAIL_API_KEY",
@@ -54,8 +58,9 @@ const HERMETIC_ENV_KEYS = [
 
 /**
  * Keep collectSnapshot override tests hermetic: clear host secrets, point
- * HOME/Codex/Claude paths at a throwaway tree, and drop user bins that may
- * hold `codex` so a live box cannot replace fixture overrides.
+ * HOME/Codex/Claude/Cursor paths at a throwaway tree, and drop user bins that
+ * may hold `codex` so a live box/Mac cannot replace fixture overrides.
+ * Never reads real ~/.codex, Cursor state.vscdb, or tokens.
  */
 async function withMissingLocalCollectorSecrets(fn) {
   const prev = Object.fromEntries(
@@ -76,10 +81,25 @@ async function withMissingLocalCollectorSecrets(fn) {
     "claude-oauth-usage.json",
   );
   process.env.CODEX_SESSIONS_DIR = path.join(tmp, ".codex", "sessions");
+  // Point Cursor state at missing paths under the throwaway HOME — never the
+  // real Library/Application Support/Cursor DB on a developer Mac.
+  process.env.CURSOR_STATE_DB = path.join(
+    tmp,
+    "missing-cursor-state.vscdb",
+  );
+  process.env.CURSOR_STORAGE_JSON = path.join(
+    tmp,
+    "missing-cursor-storage.json",
+  );
+  process.env.AI_USAGE_MAC_SOURCES_PATH = path.join(
+    tmp,
+    "missing-mac-sources.json",
+  );
   delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
   delete process.env.OPENROUTER_API_KEY;
   delete process.env.OPENROUTER_MANAGEMENT_KEY;
   delete process.env.SAIL_API_KEY;
+  delete process.env.CURSOR_API_BASE;
   // Keep system binaries; omit ~/.local/bin and other user paths with `codex`.
   process.env.PATH = "/usr/local/bin:/usr/bin:/bin";
   try {
@@ -247,9 +267,11 @@ describe("schema", () => {
     );
   });
 
-  it("SOURCE_IDS is the four remaining collectors", () => {
+  it("SOURCE_IDS is box collectors plus Mac Cursor and Grok Bot", () => {
     assert.deepEqual(SOURCE_IDS, [
       "openai-buzz",
+      "cursor-agent",
+      "grok-bot",
       "claude-code",
       "openrouter",
       "sail",
@@ -964,7 +986,7 @@ describe("collector", () => {
         overrides: [],
       });
       assert.equal(validateSnapshot(snap).ok, true);
-      assert.equal(snap.version, "1.8.1");
+      assert.equal(snap.version, "1.9.0");
       assert.equal(snap.sources.length, SOURCE_IDS.length);
       for (const s of snap.sources) {
         assertHonestSource(s);
@@ -1324,10 +1346,25 @@ describe("collector", () => {
     });
   });
 
-  it("stays hermetic when HOME has Codex data and CLAUDE_CODE_OAUTH_TOKEN is set", async () => {
+  it("stays hermetic when HOME has Codex/Cursor data and CLAUDE_CODE_OAUTH_TOKEN is set", async () => {
     const hostileHome = await mkdtemp(path.join(os.tmpdir(), "ai-usage-hostile-"));
     const sessionsDir = path.join(hostileHome, ".codex", "sessions", "2026");
     await mkdir(sessionsDir, { recursive: true });
+    const cursorStorage = path.join(
+      hostileHome,
+      "Library",
+      "Application Support",
+      "Cursor",
+      "User",
+      "globalStorage",
+    );
+    await mkdir(cursorStorage, { recursive: true });
+    await writeFile(
+      path.join(cursorStorage, "storage.json"),
+      JSON.stringify({
+        "cursorAuth/accessToken": "eyJhbGci-HOSTILE-CURSOR-TOKEN",
+      }),
+    );
     const hostileLine = JSON.stringify({
       timestamp: "2026-08-31T09:00:00.000Z",
       type: "event_msg",
@@ -1380,6 +1417,11 @@ describe("collector", () => {
       await withMissingLocalCollectorSecrets(async () => {
         assert.equal(process.env.CLAUDE_CODE_OAUTH_TOKEN, undefined);
         assert.match(process.env.CODEX_SESSIONS_DIR || "", /ai-usage-hermetic-/);
+        assert.match(process.env.CURSOR_STATE_DB || "", /missing-cursor-state/);
+        assert.match(
+          process.env.AI_USAGE_MAC_SOURCES_PATH || "",
+          /missing-mac-sources/,
+        );
         const snap = await collectSnapshot(new Date("2026-08-31T10:00:00Z"), {
           overrides: [
             {
@@ -1404,7 +1446,12 @@ describe("collector", () => {
         });
         const openaiSrc = snap.sources.find((s) => s.id === "openai-buzz");
         assert.equal(openaiSrc.components[0].usage, 15);
+        const cursor = snap.sources.find((s) => s.id === "cursor-agent");
+        const grok = snap.sources.find((s) => s.id === "grok-bot");
+        assert.equal(cursor.status, "unknown");
+        assert.equal(grok.status, "unknown");
         assert.doesNotMatch(JSON.stringify(snap), /sk-ant-oat-HOSTILE/);
+        assert.doesNotMatch(JSON.stringify(snap), /HOSTILE-CURSOR-TOKEN/);
       });
     } finally {
       if (prevHome === undefined) delete process.env.HOME;
@@ -1555,7 +1602,7 @@ describe("public seed", () => {
     const snap = JSON.parse(raw);
     assert.equal(validateSnapshot(snap).ok, true);
     assert.doesNotThrow(() => assertPublishableSnapshot(snap));
-    assert.equal(snap.version, "1.8.1");
+    assert.equal(snap.version, "1.9.0");
     assert.equal(snap.sources.length, SOURCE_IDS.length);
     for (const s of snap.sources) {
       if (s.status === "unknown") assert.equal(s.usage, null);
@@ -1565,6 +1612,17 @@ describe("public seed", () => {
     // Seed may still carry a pre-components unit until the box's first collect.
     assert.equal(typeof openaiSrc.unit, "string");
     assert.match(openaiSrc.usageUrl, /^https:\/\/chatgpt\.com\//);
+    const cursor = snap.sources.find((s) => s.id === "cursor-agent");
+    const grok = snap.sources.find((s) => s.id === "grok-bot");
+    assert.ok(cursor);
+    assert.ok(grok);
+    assert.equal(cursor.usageUrl, "https://cursor.com/dashboard/spending");
+    assert.equal(grok.usageUrl, "https://cursor.com/dashboard");
+    // Live capacity can exceed 50%; "Planruimte ruim" is a UI threshold, not a publish gate.
+    if (Array.isArray(cursor.components)) {
+      const capacity = cursor.components.filter((c) => c.role === "capacity");
+      assert.ok(capacity.every((c) => typeof c.usage === "number"));
+    }
     assert.match(
       await readFile(path.join(ROOT, "site", "dashboard.js"), "utf8"),
       /capacity-callout/,
@@ -1612,8 +1670,8 @@ describe("public seed", () => {
     assert.match(html, /btn-update/);
     assert.match(html, /mac-badge/);
     assert.match(html, /last-updated/);
-    assert.match(html, /dashboard\.js\?v=1\.8\.1/);
-    assert.match(html, /styles\.css\?v=1\.8\.1/);
+    assert.match(html, /dashboard\.js\?v=1\.9\.0/);
+    assert.match(html, /styles\.css\?v=1\.9\.0/);
     assert.match(html, /Laatst bijgewerkt:/);
     assert.doesNotMatch(js, /meta\.textContent = `Snapshot /);
     assert.doesNotMatch(js, /Dagtempo|Maandtempo/);

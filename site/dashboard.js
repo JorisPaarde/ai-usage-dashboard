@@ -18,6 +18,9 @@ function fmtNum(n) {
 /** Hours after which a hand-entered reading is visually marked stale. */
 const MANUAL_STALE_HOURS = 12;
 
+/** Hours after which a merged Mac source is treated as stale (matches collector). */
+const MAC_SOURCE_STALE_HOURS = 2;
+
 /**
  * Box cron publishes about every 15 minutes while the host is up.
  * A snapshot older than this is treated as box offline.
@@ -120,7 +123,14 @@ function updateMacBadge(generatedAt, now = new Date()) {
   el.title = presence.title;
 }
 
-export { MAC_ONLINE_MINUTES, macPresence, updateMacBadge, glanceMeter };
+export {
+  MAC_ONLINE_MINUTES,
+  MAC_SOURCE_STALE_HOURS,
+  macPresence,
+  updateMacBadge,
+  glanceMeter,
+  sourceIsStale,
+};
 
 /** Amsterdam wall-clock for the prominent global stamp (Dutch numerals). */
 function fmtAmsterdamDateTime(iso) {
@@ -143,7 +153,7 @@ function fmtAmsterdamDateTime(iso) {
  * `generatedAt` cannot make a stale manual seed look current.
  * @returns {{ hours: number, label: string, stale: boolean }|null}
  */
-function readingAge(lastUpdate, now = new Date()) {
+function readingAge(lastUpdate, now = new Date(), staleHours = MANUAL_STALE_HOURS) {
   if (!lastUpdate) return null;
   const observed = new Date(lastUpdate);
   if (Number.isNaN(observed.getTime())) return null;
@@ -154,18 +164,43 @@ function readingAge(lastUpdate, now = new Date()) {
       : hours < 48
         ? `${Math.round(hours)} u`
         : `${Math.round(hours / 24)} d`;
-  return { hours, label, stale: hours >= MANUAL_STALE_HOURS };
+  return { hours, label, stale: hours >= staleHours };
+}
+
+/** Mac-merged sources carry measuredAt / stale from the box merge. */
+function isMacMergedSource(src) {
+  return src?.id === "cursor-agent" || src?.id === "grok-bot";
+}
+
+function sourceIsStale(src, now = new Date()) {
+  if (src?.stale === true) return true;
+  const mode = src?.collectionMode || "unavailable";
+  if (mode === "manual") {
+    return readingAge(src.lastUpdate, now, MANUAL_STALE_HOURS)?.stale === true;
+  }
+  if (mode === "automatic" && isMacMergedSource(src)) {
+    const stamp = src.measuredAt || src.lastUpdate;
+    return readingAge(stamp, now, MAC_SOURCE_STALE_HOURS)?.stale === true;
+  }
+  return false;
 }
 
 /** Home freshness: one short line. Long “not re-measured” copy stays in Meer. */
 function renderSourceFreshness(src) {
   const mode = src.collectionMode || "unavailable";
   if (mode === "automatic") {
-    const age = readingAge(src.lastUpdate);
-    if (!age && !src.lastUpdate) return "";
+    const stamp = src.measuredAt || src.lastUpdate;
+    const age = readingAge(
+      stamp,
+      new Date(),
+      isMacMergedSource(src) ? MAC_SOURCE_STALE_HOURS : MANUAL_STALE_HOURS,
+    );
+    if (!age && !stamp) return "";
+    const stale = sourceIsStale(src);
+    const staleClass = stale ? " is-stale" : " is-live";
     return `
-    <p class="source-freshness is-live" data-mode="automatic">
-      <span class="source-freshness-main">live${age ? ` · ${escapeHtml(age.label)}` : ""}</span>
+    <p class="source-freshness${staleClass}" data-mode="automatic">
+      <span class="source-freshness-main">${stale ? "verouderd" : "live"}${age ? ` · ${escapeHtml(age.label)}` : ""}</span>
     </p>`;
   }
   if (mode !== "manual") return "";
@@ -469,9 +504,8 @@ function renderCard(src) {
   const capacityAttr = capacityTone
     ? ` data-capacity="${escapeHtml(capacityTone)}"`
     : "";
-  const manualStale =
-    mode === "manual" && readingAge(src.lastUpdate)?.stale === true;
-  const staleAttr = manualStale ? ' data-freshness="stale"' : "";
+  const cardStale = sourceIsStale(src);
+  const staleAttr = cardStale ? ' data-freshness="stale"' : "";
 
   const moreBits = [];
   const componentsHtml = renderComponents(src.components);
@@ -520,7 +554,7 @@ function renderCard(src) {
         <div class="badge-stack">
           <span class="badge ${collectionBadgeClass(mode)}">${escapeHtml(collectionLabel(mode))}</span>
           ${
-            manualStale
+            cardStale
               ? `<span class="badge badge-manual">verouderd</span>`
               : status === "unknown"
                 ? `<span class="badge ${STATUS_CLASS.unknown}">${escapeHtml(STATUS_LABEL_NL.unknown)}</span>`

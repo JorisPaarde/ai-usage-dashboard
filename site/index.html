@@ -8,7 +8,7 @@
       name="description"
       content="AI-usage meters — publiek-veilige totalen, Europe/Amsterdam."
     />
-    <link rel="stylesheet" href="./styles.css?v=1.8.1" />
+    <link rel="stylesheet" href="./styles.css?v=1.9.0" />
   </head>
   <body>
     <header class="site-header">
@@ -35,13 +35,14 @@
 
     <footer class="site-footer">
       <p>
-        Publiek-veilige totalen. Geen tokens of e-mails. Meting op de box
-        (cron → <code>box-snapshot.sh</code>); deze pagina toont
+        Publiek-veilige totalen. Geen tokens of e-mails. Box cron
+        (<code>box-snapshot.sh</code>) + Mac LaunchAgent
+        (<code>mac-snapshot.sh</code>); deze pagina toont
         <code>latest.json</code>.
       </p>
       <p id="build-meta"></p>
     </footer>
 
-    <script type="module" src="./dashboard.js?v=1.8.1"></script>
+    <script type="module" src="./dashboard.js?v=1.9.0"></script>
   </body>
 </html>
