@@ -1589,7 +1589,11 @@ describe("public seed", () => {
     assert.equal(claude.usageUrl, "https://claude.ai/new#settings/usage");
     const openrouter = snap.sources.find((s) => s.id === "openrouter");
     assert.equal(openrouter.usageUrl, "https://openrouter.ai/workspaces/default");
-    assert.equal(openrouter.usage, null);
+    // Live box snapshots measure OpenRouter credits; the seed may still be null.
+    assert.ok(
+      openrouter.usage === null || Number.isFinite(openrouter.usage),
+      "openrouter.usage must be null or a finite number",
+    );
     const sail = snap.sources.find((s) => s.id === "sail");
     assert.equal(sail.usageUrl, "https://app.sailresearch.com/usage");
     assert.equal(sail.usage, null);
