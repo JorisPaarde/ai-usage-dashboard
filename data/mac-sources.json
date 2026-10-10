@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "measuredAt": "2026-10-10T19:54:56.778Z",
+  "measuredAt": "2026-10-10T20:10:00.458Z",
   "timezone": "Europe/Amsterdam",
   "sources": [
     {
@@ -13,7 +13,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-11-02",
-      "lastUpdate": "2026-10-10T19:54:56.778Z",
+      "lastUpdate": "2026-10-10T20:10:00.458Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -52,19 +52,19 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-10T19:54:56.778Z"
+      "measuredAt": "2026-10-10T20:10:00.458Z"
     },
     {
       "id": "grok-bot",
       "name": "Grok Bot",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 8.720944%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
+      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 8.738824%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-16T13:26:13.409Z",
-      "lastUpdate": "2026-10-10T19:54:56.778Z",
+      "lastUpdate": "2026-10-10T20:10:00.458Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -72,7 +72,7 @@
           "id": "included",
           "label": "Included",
           "role": "capacity",
-          "usage": 8.720944,
+          "usage": 8.738824,
           "limit": 100,
           "unit": "% of weekly allowance",
           "resetDate": "2026-10-16T13:26:13.409Z"
@@ -85,7 +85,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-10T19:54:56.778Z"
+      "measuredAt": "2026-10-10T20:10:00.458Z"
     }
   ]
 }
