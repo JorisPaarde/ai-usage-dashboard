@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "generatedAt": "2026-10-11T13:09:21.796Z",
+  "generatedAt": "2026-10-11T13:24:31.991Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Split meter: Linux box cron (scripts/box-snapshot.sh) measures box sources and merges data/mac-sources.json; Mac LaunchAgent (scripts/mac-snapshot.sh) publishes Cursor Agent + Grok Bot. LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
   "routing": {
@@ -25,12 +25,12 @@
       "name": "OpenAI (ChatGPT/Codex)",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Codex account via codex app-server account/rateLimits/read (no model call, no token cost): 5-hour 0% (resets 2026-10-11T18:09:22.000Z); Weekly 7% (resets 2026-10-18T07:46:11.000Z). Same figure the provider shows.",
+      "reason": "Live from the signed-in Codex account via codex app-server account/rateLimits/read (no model call, no token cost): 5-hour 0% (resets 2026-10-11T18:24:32.000Z); Weekly 7% (resets 2026-10-18T07:46:11.000Z). Same figure the provider shows.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
-      "resetDate": "2026-10-11T18:09:22.000Z",
-      "lastUpdate": "2026-10-11T13:09:21.796Z",
+      "resetDate": "2026-10-11T18:24:32.000Z",
+      "lastUpdate": "2026-10-11T13:24:31.991Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -41,7 +41,7 @@
           "usage": 0,
           "limit": 100,
           "unit": "% of 5-hour Codex limit",
-          "resetDate": "2026-10-11T18:09:22.000Z"
+          "resetDate": "2026-10-11T18:24:32.000Z"
         },
         {
           "id": "weekly",
@@ -66,12 +66,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 60.75966666666667%; Other Models 9.08%; On-demand $6.61/$90. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 61.08233333333334%; Other Models 9.08%; On-demand $6.61/$90. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-11-02",
-      "lastUpdate": "2026-10-11T12:59:09.963Z",
+      "lastUpdate": "2026-10-11T13:14:13.852Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -79,7 +79,7 @@
           "id": "included-cursor-models",
           "label": "Included Cursor Models",
           "role": "capacity",
-          "usage": 60.75966666666667,
+          "usage": 61.08233333333334,
           "limit": 100,
           "unit": "% of included allowance",
           "resetDate": "2026-11-02"
@@ -110,19 +110,19 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-11T12:59:09.963Z"
+      "measuredAt": "2026-10-11T13:14:13.852Z"
     },
     {
       "id": "grok-bot",
       "name": "Grok Bot",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 15.495202%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
+      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 15.904482%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-16T13:26:13.409Z",
-      "lastUpdate": "2026-10-11T12:59:09.963Z",
+      "lastUpdate": "2026-10-11T13:14:13.852Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -130,7 +130,7 @@
           "id": "included",
           "label": "Included",
           "role": "capacity",
-          "usage": 15.495202,
+          "usage": 15.904482,
           "limit": 100,
           "unit": "% of weekly allowance",
           "resetDate": "2026-10-16T13:26:13.409Z"
@@ -143,7 +143,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-11T12:59:09.963Z"
+      "measuredAt": "2026-10-11T13:14:13.852Z"
     },
     {
       "id": "claude-code",
@@ -204,12 +204,12 @@
       "name": "OpenRouter",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from OpenRouter account balance 8.78 USD remaining (16.224125592 / 25 USD used); key cap 0.6050078499999998 / 50 USD used (secondary). Headline is account balance from GET /api/v1/credits (total_credits − total_usage); key cap is secondary. Read-only (no model call). Same figures as openrouter.ai/workspaces/default.",
-      "usage": 8.775874408,
+      "reason": "Live from OpenRouter account balance 8.60 USD remaining (16.401889973 / 25 USD used); key cap 0.6601523499999971 / 50 USD used (secondary). Headline is account balance from GET /api/v1/credits (total_credits − total_usage); key cap is secondary. Read-only (no model call). Same figures as openrouter.ai/workspaces/default.",
+      "usage": 8.598110027,
       "limit": null,
       "unit": "USD",
       "resetDate": null,
-      "lastUpdate": "2026-10-11T13:09:21.796Z",
+      "lastUpdate": "2026-10-11T13:24:31.991Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -217,7 +217,7 @@
           "id": "credits",
           "label": "Account balance",
           "role": "capacity",
-          "usage": 16.224125592,
+          "usage": 16.401889973,
           "limit": 25,
           "unit": "USD",
           "resetDate": null
@@ -226,7 +226,7 @@
           "id": "key-limit",
           "label": "Key spending cap",
           "role": "capped",
-          "usage": 0.6050078499999998,
+          "usage": 0.6601523499999971,
           "limit": 50,
           "unit": "USD",
           "resetDate": "daily"
