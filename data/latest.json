@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "generatedAt": "2026-10-11T16:07:50.763Z",
+  "generatedAt": "2026-10-11T16:46:38.888Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Split meter: Linux box cron (scripts/box-snapshot.sh) measures box sources and merges data/mac-sources.json; Mac LaunchAgent (scripts/mac-snapshot.sh) publishes Cursor Agent + Grok Bot. LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-11T19:01:48.000Z",
-      "lastUpdate": "2026-10-11T16:07:50.763Z",
+      "lastUpdate": "2026-10-11T16:46:38.888Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -209,7 +209,7 @@
       "limit": null,
       "unit": "USD",
       "resetDate": null,
-      "lastUpdate": "2026-10-11T16:07:50.763Z",
+      "lastUpdate": "2026-10-11T16:46:38.888Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
