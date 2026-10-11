@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-10-10T20:17:02.414Z",
+  "snapshotGeneratedAt": "2026-10-11T06:25:43.622Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -10,9 +10,9 @@
       "pool": "claude",
       "agent": "Claude-agent",
       "sourceId": "claude-code",
-      "percent": 25,
+      "percent": 14,
       "capped": [],
-      "measuredAt": "2026-10-10T19:49:28.379Z",
+      "measuredAt": "2026-10-11T06:25:43.622Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -22,9 +22,9 @@
       "pool": "openai",
       "agent": "Codex-agent",
       "sourceId": "openai-buzz",
-      "percent": 12,
+      "percent": 0,
       "capped": [],
-      "measuredAt": "2026-10-10T20:17:02.414Z",
+      "measuredAt": "2026-10-11T06:25:43.622Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -41,7 +41,7 @@
           "percent": 7.3
         }
       ],
-      "measuredAt": "2026-10-10T20:10:00.458Z",
+      "measuredAt": "2026-10-11T06:12:28.219Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -68,10 +68,10 @@
       "capped": [
         {
           "id": "key-limit",
-          "percent": 1.3
+          "percent": 0
         }
       ],
-      "measuredAt": "2026-10-10T20:17:02.414Z",
+      "measuredAt": "2026-10-11T06:25:43.622Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
