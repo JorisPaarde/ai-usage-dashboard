@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "generatedAt": "2026-10-11T17:28:03.727Z",
+  "generatedAt": "2026-10-11T17:43:14.916Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Split meter: Linux box cron (scripts/box-snapshot.sh) measures box sources and merges data/mac-sources.json; Mac LaunchAgent (scripts/mac-snapshot.sh) publishes Cursor Agent + Grok Bot. LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-11T19:01:48.000Z",
-      "lastUpdate": "2026-10-11T17:28:03.727Z",
+      "lastUpdate": "2026-10-11T17:43:14.916Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -66,7 +66,7 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "STALE (Mac meter 2 hour(s) old, threshold 2h). Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 61.28333333333333%; Other Models 9.08%; On-demand $6.61/$90. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "STALE (Mac meter 3 hour(s) old, threshold 2h). Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 61.28333333333333%; Other Models 9.08%; On-demand $6.61/$90. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
@@ -118,7 +118,7 @@
       "name": "Grok Bot",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "STALE (Mac meter 2 hour(s) old, threshold 2h). Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 18.560956%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
+      "reason": "STALE (Mac meter 3 hour(s) old, threshold 2h). Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 18.560956%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
@@ -206,12 +206,12 @@
       "name": "OpenRouter",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from OpenRouter account balance 6.15 USD remaining (18.852635752 / 25 USD used); key cap 1.7365301749999986 / 50 USD used (secondary). Headline is account balance from GET /api/v1/credits (total_credits − total_usage); key cap is secondary. Read-only (no model call). Same figures as openrouter.ai/workspaces/default.",
-      "usage": 6.147364247999999,
+      "reason": "Live from OpenRouter account balance 5.64 USD remaining (19.363769402 / 25 USD used); key cap 2.2476638250000036 / 50 USD used (secondary). Headline is account balance from GET /api/v1/credits (total_credits − total_usage); key cap is secondary. Read-only (no model call). Same figures as openrouter.ai/workspaces/default.",
+      "usage": 5.636230598000001,
       "limit": null,
       "unit": "USD",
       "resetDate": null,
-      "lastUpdate": "2026-10-11T17:28:03.727Z",
+      "lastUpdate": "2026-10-11T17:43:14.916Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -219,7 +219,7 @@
           "id": "credits",
           "label": "Account balance",
           "role": "capacity",
-          "usage": 18.852635752,
+          "usage": 19.363769402,
           "limit": 25,
           "unit": "USD",
           "resetDate": null
@@ -228,7 +228,7 @@
           "id": "key-limit",
           "label": "Key spending cap",
           "role": "capped",
-          "usage": 1.7365301749999986,
+          "usage": 2.2476638250000036,
           "limit": 50,
           "unit": "USD",
           "resetDate": "daily"
