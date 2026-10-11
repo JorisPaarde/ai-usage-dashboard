@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-10-11T10:42:33.185Z",
+  "snapshotGeneratedAt": "2026-10-11T10:57:43.787Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -22,9 +22,9 @@
       "pool": "openai",
       "agent": "Codex-agent",
       "sourceId": "openai-buzz",
-      "percent": 18,
+      "percent": 36,
       "capped": [],
-      "measuredAt": "2026-10-11T10:42:33.185Z",
+      "measuredAt": "2026-10-11T10:57:43.787Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -34,14 +34,14 @@
       "pool": "cursor",
       "agent": "Cursor Builder",
       "sourceId": "cursor-agent",
-      "percent": 59.3,
+      "percent": 59.7,
       "capped": [
         {
           "id": "on-demand",
           "percent": 7.3
         }
       ],
-      "measuredAt": "2026-10-11T10:28:31.070Z",
+      "measuredAt": "2026-10-11T10:43:34.946Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -64,14 +64,14 @@
       "pool": "openrouter",
       "agent": "or-worker",
       "sourceId": "openrouter",
-      "percent": 62.9,
+      "percent": 63.5,
       "capped": [
         {
           "id": "key-limit",
-          "percent": 0.2
+          "percent": 0.5
         }
       ],
-      "measuredAt": "2026-10-11T10:42:33.185Z",
+      "measuredAt": "2026-10-11T10:57:43.787Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
