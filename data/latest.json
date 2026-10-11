@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "generatedAt": "2026-10-11T17:43:14.916Z",
+  "generatedAt": "2026-10-11T17:58:25.003Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Split meter: Linux box cron (scripts/box-snapshot.sh) measures box sources and merges data/mac-sources.json; Mac LaunchAgent (scripts/mac-snapshot.sh) publishes Cursor Agent + Grok Bot. LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-11T19:01:48.000Z",
-      "lastUpdate": "2026-10-11T17:43:14.916Z",
+      "lastUpdate": "2026-10-11T17:58:25.003Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -206,12 +206,12 @@
       "name": "OpenRouter",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from OpenRouter account balance 5.64 USD remaining (19.363769402 / 25 USD used); key cap 2.2476638250000036 / 50 USD used (secondary). Headline is account balance from GET /api/v1/credits (total_credits − total_usage); key cap is secondary. Read-only (no model call). Same figures as openrouter.ai/workspaces/default.",
-      "usage": 5.636230598000001,
+      "reason": "Live from OpenRouter account balance 4.92 USD remaining (20.079461102 / 25 USD used); key cap 2.963355524999997 / 50 USD used (secondary). Headline is account balance from GET /api/v1/credits (total_credits − total_usage); key cap is secondary. Read-only (no model call). Same figures as openrouter.ai/workspaces/default.",
+      "usage": 4.920538898,
       "limit": null,
       "unit": "USD",
       "resetDate": null,
-      "lastUpdate": "2026-10-11T17:43:14.916Z",
+      "lastUpdate": "2026-10-11T17:58:25.003Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -219,7 +219,7 @@
           "id": "credits",
           "label": "Account balance",
           "role": "capacity",
-          "usage": 19.363769402,
+          "usage": 20.079461102,
           "limit": 25,
           "unit": "USD",
           "resetDate": null
@@ -228,7 +228,7 @@
           "id": "key-limit",
           "label": "Key spending cap",
           "role": "capped",
-          "usage": 2.2476638250000036,
+          "usage": 2.963355524999997,
           "limit": 50,
           "unit": "USD",
           "resetDate": "daily"
