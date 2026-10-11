@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-10-11T10:24:44.073Z",
+  "snapshotGeneratedAt": "2026-10-11T10:40:12.052Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -24,7 +24,7 @@
       "sourceId": "openai-buzz",
       "percent": 18,
       "capped": [],
-      "measuredAt": "2026-10-11T10:24:44.073Z",
+      "measuredAt": "2026-10-11T10:40:12.052Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -34,14 +34,14 @@
       "pool": "cursor",
       "agent": "Cursor Builder",
       "sourceId": "cursor-agent",
-      "percent": 59,
+      "percent": 59.3,
       "capped": [
         {
           "id": "on-demand",
           "percent": 7.3
         }
       ],
-      "measuredAt": "2026-10-11T10:13:27.301Z",
+      "measuredAt": "2026-10-11T10:28:31.070Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -71,7 +71,7 @@
           "percent": 0.2
         }
       ],
-      "measuredAt": "2026-10-11T10:24:44.073Z",
+      "measuredAt": "2026-10-11T10:40:12.052Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,

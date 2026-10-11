@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "generatedAt": "2026-10-11T10:24:44.073Z",
+  "generatedAt": "2026-10-11T10:40:12.052Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Split meter: Linux box cron (scripts/box-snapshot.sh) measures box sources and merges data/mac-sources.json; Mac LaunchAgent (scripts/mac-snapshot.sh) publishes Cursor Agent + Grok Bot. LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-11T12:46:11.000Z",
-      "lastUpdate": "2026-10-11T10:24:44.073Z",
+      "lastUpdate": "2026-10-11T10:40:12.052Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -66,12 +66,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 59.01%; Other Models 9.08%; On-demand $6.61/$90. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 59.263999999999996%; Other Models 9.08%; On-demand $6.61/$90. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-11-02",
-      "lastUpdate": "2026-10-11T10:13:27.301Z",
+      "lastUpdate": "2026-10-11T10:28:31.070Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -79,7 +79,7 @@
           "id": "included-cursor-models",
           "label": "Included Cursor Models",
           "role": "capacity",
-          "usage": 59.01,
+          "usage": 59.263999999999996,
           "limit": 100,
           "unit": "% of included allowance",
           "resetDate": "2026-11-02"
@@ -110,19 +110,19 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-11T10:13:27.301Z"
+      "measuredAt": "2026-10-11T10:28:31.070Z"
     },
     {
       "id": "grok-bot",
       "name": "Grok Bot",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 10.361569%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
+      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 11.435372%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-16T13:26:13.409Z",
-      "lastUpdate": "2026-10-11T10:13:27.301Z",
+      "lastUpdate": "2026-10-11T10:28:31.070Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -130,7 +130,7 @@
           "id": "included",
           "label": "Included",
           "role": "capacity",
-          "usage": 10.361569,
+          "usage": 11.435372,
           "limit": 100,
           "unit": "% of weekly allowance",
           "resetDate": "2026-10-16T13:26:13.409Z"
@@ -143,14 +143,14 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-11T10:13:27.301Z"
+      "measuredAt": "2026-10-11T10:28:31.070Z"
     },
     {
       "id": "claude-code",
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live signed-in Claude.ai OAuth usage (measured 2026-10-11T10:24:44.073Z, source=haiku) via Haiku Messages rate-limit headers (oauth/usage 403 fallback): session 15% (resets 2026-10-11T10:40:00.000Z); weekly all-models 15% (resets 2026-10-17T07:00:00.000Z). Same local-login pattern as Codex (no browser scrape). Local transcript detail: 7294531 tokens this month (7198200 prompt/cache + 96331 output) across 122 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-10-10T16:58:19.360Z.",
+      "reason": "Cached signed-in Claude.ai OAuth usage (measured 2026-10-11T10:24:44.073Z, source=haiku) via Haiku Messages rate-limit headers (oauth/usage 403 fallback): session 15% (resets 2026-10-11T10:40:00.000Z); weekly all-models 15% (resets 2026-10-17T07:00:00.000Z). Same local-login pattern as Codex (no browser scrape). Local transcript detail: 7294531 tokens this month (7198200 prompt/cache + 96331 output) across 122 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-10-10T16:58:19.360Z.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
@@ -209,7 +209,7 @@
       "limit": null,
       "unit": "USD",
       "resetDate": null,
-      "lastUpdate": "2026-10-11T10:24:44.073Z",
+      "lastUpdate": "2026-10-11T10:40:12.052Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
