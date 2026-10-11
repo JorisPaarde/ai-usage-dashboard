@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "generatedAt": "2026-10-11T15:52:39.105Z",
+  "generatedAt": "2026-10-11T16:07:50.763Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Split meter: Linux box cron (scripts/box-snapshot.sh) measures box sources and merges data/mac-sources.json; Mac LaunchAgent (scripts/mac-snapshot.sh) publishes Cursor Agent + Grok Bot. LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-11T19:01:48.000Z",
-      "lastUpdate": "2026-10-11T15:52:39.105Z",
+      "lastUpdate": "2026-10-11T16:07:50.763Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -150,7 +150,7 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live signed-in Claude.ai OAuth usage (measured 2026-10-11T15:52:39.105Z, source=haiku) via Haiku Messages rate-limit headers (oauth/usage 403 fallback): session 5% (resets 2026-10-11T20:40:00.000Z); weekly all-models 19% (resets 2026-10-17T07:00:00.000Z). Same local-login pattern as Codex (no browser scrape). Local transcript detail: 13572944 tokens this month (13393570 prompt/cache + 179374 output) across 236 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-10-10T16:58:19.360Z.",
+      "reason": "Cached signed-in Claude.ai OAuth usage (measured 2026-10-11T15:52:39.105Z, source=haiku) via Haiku Messages rate-limit headers (oauth/usage 403 fallback): session 5% (resets 2026-10-11T20:40:00.000Z); weekly all-models 19% (resets 2026-10-17T07:00:00.000Z). Same local-login pattern as Codex (no browser scrape). Local transcript detail: 25481633 tokens this month (25189094 prompt/cache + 292539 output) across 404 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-10-10T16:58:19.360Z.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
@@ -158,9 +158,9 @@
       "lastUpdate": "2026-10-11T15:52:39.105Z",
       "coverageStart": "2026-10-10T16:58:19.360Z",
       "breakdown": {
-        "promptTokens": 13393570,
-        "outputTokens": 179374,
-        "generations": 236
+        "promptTokens": 25189094,
+        "outputTokens": 292539,
+        "generations": 404
       },
       "components": [
         {
@@ -195,7 +195,7 @@
         },
         {
           "date": "2026-10-11",
-          "usage": 11622493
+          "usage": 23531182
         }
       ]
     },
@@ -204,12 +204,12 @@
       "name": "OpenRouter",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from OpenRouter account balance 6.52 USD remaining (18.476092502 / 25 USD used); key cap 1.3599869250000012 / 50 USD used (secondary). Headline is account balance from GET /api/v1/credits (total_credits − total_usage); key cap is secondary. Read-only (no model call). Same figures as openrouter.ai/workspaces/default.",
-      "usage": 6.523907498,
+      "reason": "Live from OpenRouter account balance 6.42 USD remaining (18.575132402 / 25 USD used); key cap 1.4590268250000022 / 50 USD used (secondary). Headline is account balance from GET /api/v1/credits (total_credits − total_usage); key cap is secondary. Read-only (no model call). Same figures as openrouter.ai/workspaces/default.",
+      "usage": 6.424867597999999,
       "limit": null,
       "unit": "USD",
       "resetDate": null,
-      "lastUpdate": "2026-10-11T15:52:39.105Z",
+      "lastUpdate": "2026-10-11T16:07:50.763Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -217,7 +217,7 @@
           "id": "credits",
           "label": "Account balance",
           "role": "capacity",
-          "usage": 18.476092502,
+          "usage": 18.575132402,
           "limit": 25,
           "unit": "USD",
           "resetDate": null
@@ -226,7 +226,7 @@
           "id": "key-limit",
           "label": "Key spending cap",
           "role": "capped",
-          "usage": 1.3599869250000012,
+          "usage": 1.4590268250000022,
           "limit": 50,
           "unit": "USD",
           "resetDate": "daily"
