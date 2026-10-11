@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "generatedAt": "2026-10-11T16:46:38.888Z",
+  "generatedAt": "2026-10-11T17:05:56.643Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Split meter: Linux box cron (scripts/box-snapshot.sh) measures box sources and merges data/mac-sources.json; Mac LaunchAgent (scripts/mac-snapshot.sh) publishes Cursor Agent + Grok Bot. LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
   "routing": {
@@ -30,7 +30,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-11T19:01:48.000Z",
-      "lastUpdate": "2026-10-11T16:46:38.888Z",
+      "lastUpdate": "2026-10-11T17:05:56.643Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -66,7 +66,7 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 61.28333333333333%; Other Models 9.08%; On-demand $6.61/$90. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "STALE (Mac meter 2 hour(s) old, threshold 2h). Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 61.28333333333333%; Other Models 9.08%; On-demand $6.61/$90. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
@@ -110,6 +110,7 @@
         "weeklyTarget": null
       },
       "history": [],
+      "stale": true,
       "measuredAt": "2026-10-11T14:59:42.993Z"
     },
     {
@@ -117,7 +118,7 @@
       "name": "Grok Bot",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 18.560956%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
+      "reason": "STALE (Mac meter 2 hour(s) old, threshold 2h). Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 18.560956%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
@@ -143,6 +144,7 @@
         "weeklyTarget": null
       },
       "history": [],
+      "stale": true,
       "measuredAt": "2026-10-11T14:59:42.993Z"
     },
     {
@@ -150,12 +152,12 @@
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Cached signed-in Claude.ai OAuth usage (measured 2026-10-11T15:52:39.105Z, source=haiku) via Haiku Messages rate-limit headers (oauth/usage 403 fallback): session 5% (resets 2026-10-11T20:40:00.000Z); weekly all-models 19% (resets 2026-10-17T07:00:00.000Z). Same local-login pattern as Codex (no browser scrape). Local transcript detail: 25481633 tokens this month (25189094 prompt/cache + 292539 output) across 404 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-10-10T16:58:19.360Z.",
+      "reason": "Live signed-in Claude.ai OAuth usage (measured 2026-10-11T17:05:56.643Z, source=haiku) via Haiku Messages rate-limit headers (oauth/usage 403 fallback): session 29% (resets 2026-10-11T20:40:00.000Z); weekly all-models 21% (resets 2026-10-17T07:00:00.000Z). Same local-login pattern as Codex (no browser scrape). Local transcript detail: 25481633 tokens this month (25189094 prompt/cache + 292539 output) across 404 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-10-10T16:58:19.360Z.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-17T07:00:00.000Z",
-      "lastUpdate": "2026-10-11T15:52:39.105Z",
+      "lastUpdate": "2026-10-11T17:05:56.643Z",
       "coverageStart": "2026-10-10T16:58:19.360Z",
       "breakdown": {
         "promptTokens": 25189094,
@@ -167,7 +169,7 @@
           "id": "session",
           "label": "Session window",
           "role": "capacity",
-          "usage": 5,
+          "usage": 29,
           "limit": 100,
           "unit": "% of session limit",
           "resetDate": "2026-10-11T20:40:00.000Z"
@@ -176,7 +178,7 @@
           "id": "weekly-all-models",
           "label": "Weekly (all models)",
           "role": "capacity",
-          "usage": 19,
+          "usage": 21,
           "limit": 100,
           "unit": "% of weekly limit",
           "resetDate": "2026-10-17T07:00:00.000Z"
@@ -209,7 +211,7 @@
       "limit": null,
       "unit": "USD",
       "resetDate": null,
-      "lastUpdate": "2026-10-11T16:46:38.888Z",
+      "lastUpdate": "2026-10-11T17:05:56.643Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
