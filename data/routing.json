@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-10-11T17:05:56.643Z",
+  "snapshotGeneratedAt": "2026-10-11T17:28:03.727Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -24,7 +24,7 @@
       "sourceId": "openai-buzz",
       "percent": 100,
       "capped": [],
-      "measuredAt": "2026-10-11T17:05:56.643Z",
+      "measuredAt": "2026-10-11T17:28:03.727Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -64,14 +64,14 @@
       "pool": "openrouter",
       "agent": "or-worker",
       "sourceId": "openrouter",
-      "percent": 74.3,
+      "percent": 75.4,
       "capped": [
         {
           "id": "key-limit",
-          "percent": 2.9
+          "percent": 3.5
         }
       ],
-      "measuredAt": "2026-10-11T17:05:56.643Z",
+      "measuredAt": "2026-10-11T17:28:03.727Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
