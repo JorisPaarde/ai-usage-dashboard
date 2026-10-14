@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-10-11T18:30:32.300Z",
+  "snapshotGeneratedAt": "2026-10-14T10:00:52.546Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -10,9 +10,9 @@
       "pool": "claude",
       "agent": "Claude-agent",
       "sourceId": "claude-code",
-      "percent": 29,
+      "percent": 57,
       "capped": [],
-      "measuredAt": "2026-10-11T18:15:20.051Z",
+      "measuredAt": "2026-10-14T09:11:07.552Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -22,9 +22,9 @@
       "pool": "openai",
       "agent": "Codex-agent",
       "sourceId": "openai-buzz",
-      "percent": 100,
+      "percent": 74,
       "capped": [],
-      "measuredAt": "2026-10-11T18:30:32.300Z",
+      "measuredAt": "2026-10-14T10:00:52.546Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -34,14 +34,9 @@
       "pool": "cursor",
       "agent": "Cursor Builder",
       "sourceId": "cursor-agent",
-      "percent": 63.1,
-      "capped": [
-        {
-          "id": "on-demand",
-          "percent": 7.3
-        }
-      ],
-      "measuredAt": "2026-10-11T18:22:46.357Z",
+      "percent": 9,
+      "capped": [],
+      "measuredAt": "2026-10-14T09:51:00.818Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -57,21 +52,21 @@
       "maxAgeMinutes": 15,
       "collectionMode": "unavailable",
       "unmetered": false,
-      "reason": "Prepaid credits, flex window. Last resort until a live meter exists. No Sail API key on this host (set SAIL_API_KEY in ~/.config/ai-usage-dashboard/env). Official GET /v2/usage/summary; no browser scrape. No usage fabricated.",
+      "reason": "Prepaid credits, flex window. Last resort until a live meter exists. Sail Usage API /v2/usage/summary was unreachable (HTTP 503). No usage fabricated.",
       "paid": true
     },
     "openrouter": {
       "pool": "openrouter",
       "agent": "or-worker",
       "sourceId": "openrouter",
-      "percent": 84.4,
+      "percent": 71.4,
       "capped": [
         {
           "id": "key-limit",
-          "percent": 6.9
+          "percent": 1.8
         }
       ],
-      "measuredAt": "2026-10-11T18:30:32.300Z",
+      "measuredAt": "2026-10-14T10:00:52.546Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
