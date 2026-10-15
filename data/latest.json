@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "generatedAt": "2026-10-14T10:00:52.546Z",
+  "generatedAt": "2026-10-15T10:40:32.623Z",
   "timezone": "Europe/Amsterdam",
   "scheduleNote": "Split meter: Linux box cron (scripts/box-snapshot.sh) measures box sources and merges data/mac-sources.json; Mac LaunchAgent (scripts/mac-snapshot.sh) publishes Cursor Agent + Grok Bot. LLM-free, no cloud agent. Pages \"Alles updaten\" only re-fetches published latest.json. Box-online badge uses generatedAt age (~20 min).",
   "routing": {
@@ -25,12 +25,12 @@
       "name": "OpenAI (ChatGPT/Codex)",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Codex account via codex app-server account/rateLimits/read (no model call, no token cost): 5-hour 74% (resets 2026-10-14T10:51:38.000Z); Weekly 38% (resets 2026-10-20T08:08:24.000Z). Same figure the provider shows.",
+      "reason": "Live from the signed-in Codex account via codex app-server account/rateLimits/read (no model call, no token cost): 5-hour 64% (resets 2026-10-15T11:12:38.000Z); Weekly 10% (resets 2026-10-22T06:12:38.000Z). Same figure the provider shows.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
-      "resetDate": "2026-10-14T10:51:38.000Z",
-      "lastUpdate": "2026-10-14T10:00:52.546Z",
+      "resetDate": "2026-10-15T11:12:38.000Z",
+      "lastUpdate": "2026-10-15T10:40:32.623Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -38,19 +38,19 @@
           "id": "five-hour",
           "label": "5-hour",
           "role": "capacity",
-          "usage": 74,
+          "usage": 64,
           "limit": 100,
           "unit": "% of 5-hour Codex limit",
-          "resetDate": "2026-10-14T10:51:38.000Z"
+          "resetDate": "2026-10-15T11:12:38.000Z"
         },
         {
           "id": "weekly",
           "label": "Weekly",
           "role": "capacity",
-          "usage": 38,
+          "usage": 10,
           "limit": 100,
           "unit": "% of weekly Codex limit",
-          "resetDate": "2026-10-20T08:08:24.000Z"
+          "resetDate": "2026-10-22T06:12:38.000Z"
         }
       ],
       "usageUrl": "https://chatgpt.com/#settings/Usage",
@@ -66,12 +66,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 8.973734091524506%; Other Models 0%; On-demand $6.61. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "STALE (Mac meter 3 hour(s) old, threshold 2h). Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 13.553569816770466%; Other Models 0%; On-demand $6.61. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-20",
-      "lastUpdate": "2026-10-14T09:51:00.818Z",
+      "lastUpdate": "2026-10-15T07:15:57.722Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -79,7 +79,7 @@
           "id": "included-cursor-models",
           "label": "Included Cursor Models",
           "role": "capacity",
-          "usage": 8.973734091524506,
+          "usage": 13.553569816770466,
           "limit": 100,
           "unit": "% of included allowance",
           "resetDate": "2026-10-20"
@@ -110,19 +110,20 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-14T09:51:00.818Z"
+      "stale": true,
+      "measuredAt": "2026-10-15T07:15:57.722Z"
     },
     {
       "id": "grok-bot",
       "name": "Grok Bot",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 8.974293%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
+      "reason": "STALE (Mac meter 3 hour(s) old, threshold 2h). Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 13.553569816770466%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-20T06:53:21.509Z",
-      "lastUpdate": "2026-10-14T09:51:00.818Z",
+      "lastUpdate": "2026-10-15T07:15:57.722Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -130,7 +131,7 @@
           "id": "included",
           "label": "Included",
           "role": "capacity",
-          "usage": 8.974293,
+          "usage": 13.553569816770466,
           "limit": 100,
           "unit": "% of weekly allowance",
           "resetDate": "2026-10-20T06:53:21.509Z"
@@ -143,40 +144,41 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-14T09:51:00.818Z"
+      "stale": true,
+      "measuredAt": "2026-10-15T07:15:57.722Z"
     },
     {
       "id": "claude-code",
       "name": "Claude Code",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Cached signed-in Claude.ai OAuth usage (measured 2026-10-14T09:11:07.552Z, source=haiku) via Haiku Messages rate-limit headers (oauth/usage 403 fallback): session 45% (resets 2026-10-14T10:40:00.000Z); weekly all-models 57% (resets 2026-10-17T07:00:00.000Z). Same local-login pattern as Codex (no browser scrape). Local transcript detail: 188927141 tokens this month (187059453 prompt/cache + 1867688 output) across 2684 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-10-10T16:58:19.360Z.",
+      "reason": "Cached signed-in Claude.ai OAuth usage (measured 2026-10-15T08:35:51.086Z, source=haiku) via Haiku Messages rate-limit headers (oauth/usage 403 fallback): session 75% (resets 2026-10-15T10:50:00.000Z); weekly all-models 77% (resets 2026-10-17T07:00:00.000Z). Same local-login pattern as Codex (no browser scrape). Local transcript detail: 280426256 tokens this month (277727150 prompt/cache + 2699106 output) across 4247 assistant messages, measured from local Claude Code transcripts. Transcript coverage this month starts 2026-10-10T16:58:19.360Z.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-10-17T07:00:00.000Z",
-      "lastUpdate": "2026-10-14T09:11:07.552Z",
+      "lastUpdate": "2026-10-15T08:35:51.086Z",
       "coverageStart": "2026-10-10T16:58:19.360Z",
       "breakdown": {
-        "promptTokens": 187059453,
-        "outputTokens": 1867688,
-        "generations": 2684
+        "promptTokens": 277727150,
+        "outputTokens": 2699106,
+        "generations": 4247
       },
       "components": [
         {
           "id": "session",
           "label": "Session window",
           "role": "capacity",
-          "usage": 45,
+          "usage": 75,
           "limit": 100,
           "unit": "% of session limit",
-          "resetDate": "2026-10-14T10:40:00.000Z"
+          "resetDate": "2026-10-15T10:50:00.000Z"
         },
         {
           "id": "weekly-all-models",
           "label": "Weekly (all models)",
           "role": "capacity",
-          "usage": 57,
+          "usage": 77,
           "limit": 100,
           "unit": "% of weekly limit",
           "resetDate": "2026-10-17T07:00:00.000Z"
@@ -207,7 +209,11 @@
         },
         {
           "date": "2026-10-14",
-          "usage": 38310788
+          "usage": 91342286
+        },
+        {
+          "date": "2026-10-15",
+          "usage": 38467617
         }
       ]
     },
@@ -216,12 +222,12 @@
       "name": "OpenRouter",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from OpenRouter account balance 18.62 USD remaining (46.378075252 / 65 USD used); key cap 0.9220331499999972 / 50 USD used (secondary). Headline is account balance from GET /api/v1/credits (total_credits − total_usage); key cap is secondary. Read-only (no model call). Same figures as openrouter.ai/workspaces/default.",
-      "usage": 18.621924747999998,
+      "reason": "Live from OpenRouter account balance 16.97 USD remaining (48.026890327 / 65 USD used); key cap 0.2733285249999966 / 50 USD used (secondary). Headline is account balance from GET /api/v1/credits (total_credits − total_usage); key cap is secondary. Read-only (no model call). Same figures as openrouter.ai/workspaces/default.",
+      "usage": 16.973109673000003,
       "limit": null,
       "unit": "USD",
       "resetDate": null,
-      "lastUpdate": "2026-10-14T10:00:52.546Z",
+      "lastUpdate": "2026-10-15T10:40:32.623Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -229,7 +235,7 @@
           "id": "credits",
           "label": "Account balance",
           "role": "capacity",
-          "usage": 46.378075252,
+          "usage": 48.026890327,
           "limit": 65,
           "unit": "USD",
           "resetDate": null
@@ -238,7 +244,7 @@
           "id": "key-limit",
           "label": "Key spending cap",
           "role": "capped",
-          "usage": 0.9220331499999972,
+          "usage": 0.2733285249999966,
           "limit": 50,
           "unit": "USD",
           "resetDate": "daily"
@@ -257,7 +263,7 @@
       "name": "Sail Research",
       "status": "unknown",
       "collectionMode": "unavailable",
-      "reason": "Sail Usage API /v2/usage/summary was unreachable (HTTP 503). No usage fabricated.",
+      "reason": "Sail Usage API /v2/usage/summary was unreachable. No usage fabricated.",
       "usage": null,
       "limit": null,
       "unit": "USD",
