@@ -1,5 +1,5 @@
 {
-  "snapshotGeneratedAt": "2026-10-19T08:00:55.662Z",
+  "snapshotGeneratedAt": "2026-10-19T16:09:21.634Z",
   "thresholds": {
     "okBelowPercent": 80,
     "fullAtPercent": 95
@@ -10,9 +10,9 @@
       "pool": "claude",
       "agent": "Claude-agent",
       "sourceId": "claude-code",
-      "percent": 51,
+      "percent": 21,
       "capped": [],
-      "measuredAt": "2026-10-19T08:00:55.662Z",
+      "measuredAt": "2026-10-19T16:09:21.634Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -22,9 +22,9 @@
       "pool": "openai",
       "agent": "Codex-agent",
       "sourceId": "openai-buzz",
-      "percent": 39,
+      "percent": 22,
       "capped": [],
-      "measuredAt": "2026-10-19T08:00:55.662Z",
+      "measuredAt": "2026-10-19T16:09:21.634Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -34,9 +34,9 @@
       "pool": "cursor",
       "agent": "Cursor Builder",
       "sourceId": "cursor-agent",
-      "percent": 33.2,
+      "percent": 36.1,
       "capped": [],
-      "measuredAt": "2026-10-19T03:20:22.734Z",
+      "measuredAt": "2026-10-19T13:08:14.334Z",
       "maxAgeMinutes": 60,
       "collectionMode": "automatic",
       "unmetered": false,
@@ -52,21 +52,21 @@
       "maxAgeMinutes": 15,
       "collectionMode": "unavailable",
       "unmetered": false,
-      "reason": "Prepaid credits, flex window. Last resort until a live meter exists. Sail Usage API /v2/usage/summary was unreachable (HTTP 503). No usage fabricated.",
+      "reason": "Prepaid credits, flex window. Last resort until a live meter exists. Sail Usage API /v2/usage/summary was unreachable. No usage fabricated.",
       "paid": true
     },
     "openrouter": {
       "pool": "openrouter",
       "agent": "or-worker",
       "sourceId": "openrouter",
-      "percent": 98.4,
+      "percent": 100,
       "capped": [
         {
           "id": "key-limit",
-          "percent": 12.8
+          "percent": 14.7
         }
       ],
-      "measuredAt": "2026-10-19T08:00:55.662Z",
+      "measuredAt": "2026-10-19T16:09:21.634Z",
       "maxAgeMinutes": 15,
       "collectionMode": "automatic",
       "unmetered": false,
