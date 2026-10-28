@@ -1,19 +1,19 @@
 {
   "version": "1.9.0",
-  "measuredAt": "2026-10-28T21:28:46.586Z",
+  "measuredAt": "2026-10-28T21:43:50.529Z",
   "timezone": "Europe/Amsterdam",
   "sources": [
     {
       "id": "cursor-agent",
       "name": "Cursor Agent",
       "status": "measured",
-      "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 9.36727141438758%; Other Models 0%; On-demand $6.61. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "collectionMode": "manual",
+      "reason": "Signed-in reading from cursor.com/dashboard/spending at 2026-09-03T06:52:26Z: cycle reset 2026-09-24. Included Cursor Models 26%, Other Models 26%. On-demand USD 73.60/75. Grok Bot weekly 85%, resets 2026-09-07. Capacity meters are plan headroom; capped meters are separate limits. STALE: Manual reading 1335 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
-      "resetDate": "2026-11-03",
-      "lastUpdate": "2026-10-28T21:28:46.586Z",
+      "resetDate": "2026-09-24",
+      "lastUpdate": "2026-09-03T06:52:26.000Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -21,28 +21,37 @@
           "id": "included-cursor-models",
           "label": "Included Cursor Models",
           "role": "capacity",
-          "usage": 9.36727141438758,
+          "usage": 26,
           "limit": 100,
           "unit": "% of included allowance",
-          "resetDate": "2026-11-03"
+          "resetDate": "2026-09-24"
         },
         {
           "id": "other-models",
           "label": "Other Models",
           "role": "capacity",
-          "usage": 0,
+          "usage": 26,
           "limit": 100,
           "unit": "% of included allowance",
-          "resetDate": "2026-11-03"
+          "resetDate": "2026-09-24"
         },
         {
           "id": "on-demand",
           "label": "On-demand spend",
           "role": "capped",
-          "usage": 6.61,
-          "limit": null,
+          "usage": 73.6,
+          "limit": 75,
           "unit": "USD",
-          "resetDate": "2026-11-03"
+          "resetDate": "2026-09-24"
+        },
+        {
+          "id": "grok-bot",
+          "label": "Grok Bot (weekly)",
+          "role": "capped",
+          "usage": 85,
+          "limit": 100,
+          "unit": "% of weekly allowance",
+          "resetDate": "2026-09-07"
         }
       ],
       "usageUrl": "https://cursor.com/dashboard/spending",
@@ -52,7 +61,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-28T21:28:46.586Z"
+      "measuredAt": "2026-10-28T21:43:50.529Z"
     },
     {
       "id": "grok-bot",
@@ -64,7 +73,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-11-03T06:53:21.509Z",
-      "lastUpdate": "2026-10-28T21:28:46.586Z",
+      "lastUpdate": "2026-10-28T21:43:50.529Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -85,7 +94,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-28T21:28:46.586Z"
+      "measuredAt": "2026-10-28T21:43:50.529Z"
     }
   ]
 }
