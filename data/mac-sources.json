@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "measuredAt": "2026-10-31T23:59:54.019Z",
+  "measuredAt": "2026-11-01T00:14:58.042Z",
   "timezone": "Europe/Amsterdam",
   "sources": [
     {
@@ -8,12 +8,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 71.07500676956404%; Other Models 0%; On-demand $6.61. Same local login pattern as Codex (no browser scrape). A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 71.07500676956404%; Other Models 0%; On-demand $0/$21474836.47. Same local login pattern as Codex (no browser scrape). On-demand limit from GetHardLimit. A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-11-03",
-      "lastUpdate": "2026-10-31T23:59:54.019Z",
+      "lastUpdate": "2026-11-01T00:14:58.042Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -39,8 +39,8 @@
           "id": "on-demand",
           "label": "On-demand spend",
           "role": "capped",
-          "usage": 6.61,
-          "limit": null,
+          "usage": 0,
+          "limit": 21474836.47,
           "unit": "USD",
           "resetDate": "2026-11-03"
         }
@@ -52,7 +52,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-31T23:59:54.019Z"
+      "measuredAt": "2026-11-01T00:14:58.042Z"
     },
     {
       "id": "grok-bot",
@@ -64,7 +64,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-11-03T06:53:21.509Z",
-      "lastUpdate": "2026-10-31T23:59:54.019Z",
+      "lastUpdate": "2026-11-01T00:14:58.042Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -85,7 +85,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-10-31T23:59:54.019Z"
+      "measuredAt": "2026-11-01T00:14:58.042Z"
     }
   ]
 }
