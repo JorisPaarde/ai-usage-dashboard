@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "measuredAt": "2026-11-02T16:49:48.381Z",
+  "measuredAt": "2026-11-02T17:04:53.155Z",
   "timezone": "Europe/Amsterdam",
   "sources": [
     {
@@ -13,7 +13,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-11-03",
-      "lastUpdate": "2026-11-02T16:49:48.381Z",
+      "lastUpdate": "2026-11-02T17:04:53.155Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -52,7 +52,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-11-02T16:49:48.381Z"
+      "measuredAt": "2026-11-02T17:04:53.155Z"
     },
     {
       "id": "grok-bot",
@@ -64,7 +64,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-11-03T06:53:21.509Z",
-      "lastUpdate": "2026-11-02T16:49:48.381Z",
+      "lastUpdate": "2026-11-02T17:04:53.155Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -85,7 +85,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-11-02T16:49:48.381Z"
+      "measuredAt": "2026-11-02T17:04:53.155Z"
     }
   ]
 }
