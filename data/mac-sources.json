@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "measuredAt": "2026-11-03T11:46:43.591Z",
+  "measuredAt": "2026-11-03T12:01:48.359Z",
   "timezone": "Europe/Amsterdam",
   "sources": [
     {
@@ -8,12 +8,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 4.402924451665313%; Other Models 0%; On-demand $0/$21474836.47. Same local login pattern as Codex (no browser scrape). On-demand limit from GetHardLimit. A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 4.6989800523512955%; Other Models 0%; On-demand $0/$21474836.47. Same local login pattern as Codex (no browser scrape). On-demand limit from GetHardLimit. A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-11-10",
-      "lastUpdate": "2026-11-03T11:46:43.591Z",
+      "lastUpdate": "2026-11-03T12:01:48.359Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -21,7 +21,7 @@
           "id": "included-cursor-models",
           "label": "Included Cursor Models",
           "role": "capacity",
-          "usage": 4.402924451665313,
+          "usage": 4.6989800523512955,
           "limit": 100,
           "unit": "% of included allowance",
           "resetDate": "2026-11-10"
@@ -52,19 +52,19 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-11-03T11:46:43.591Z"
+      "measuredAt": "2026-11-03T12:01:48.359Z"
     },
     {
       "id": "grok-bot",
       "name": "Grok Bot",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 4.402924451665313%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
+      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 4.6989800523512955%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-11-10T06:53:21.509Z",
-      "lastUpdate": "2026-11-03T11:46:43.591Z",
+      "lastUpdate": "2026-11-03T12:01:48.359Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -72,7 +72,7 @@
           "id": "included",
           "label": "Included",
           "role": "capacity",
-          "usage": 4.402924451665313,
+          "usage": 4.6989800523512955,
           "limit": 100,
           "unit": "% of weekly allowance",
           "resetDate": "2026-11-10T06:53:21.509Z"
@@ -85,7 +85,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-11-03T11:46:43.591Z"
+      "measuredAt": "2026-11-03T12:01:48.359Z"
     }
   ]
 }
