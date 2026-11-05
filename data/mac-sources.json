@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "measuredAt": "2026-11-05T03:21:14.071Z",
+  "measuredAt": "2026-11-05T03:36:18.318Z",
   "timezone": "Europe/Amsterdam",
   "sources": [
     {
@@ -8,7 +8,7 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "manual",
-      "reason": "Signed-in reading from cursor.com/dashboard/spending at 2026-09-03T06:52:26Z: cycle reset 2026-09-24. Included Cursor Models 26%, Other Models 26%. On-demand USD 73.60/75. Grok Bot weekly 85%, resets 2026-09-07. Capacity meters are plan headroom; capped meters are separate limits. STALE: Manual reading 1508 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
+      "reason": "Signed-in reading from cursor.com/dashboard/spending at 2026-09-03T06:52:26Z: cycle reset 2026-09-24. Included Cursor Models 26%, Other Models 26%. On-demand USD 73.60/75. Grok Bot weekly 85%, resets 2026-09-07. Capacity meters are plan headroom; capped meters are separate limits. STALE: Manual reading 1509 hour(s) old at this collect; no local meter exists for this source, so this run did not re-measure it.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
@@ -61,32 +61,22 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-11-05T03:21:14.071Z"
+      "measuredAt": "2026-11-05T03:36:18.318Z"
     },
     {
       "id": "grok-bot",
       "name": "Grok Bot",
-      "status": "measured",
-      "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 35.20353822547161%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
+      "status": "unknown",
+      "collectionMode": "unavailable",
+      "reason": "GetSandUsageStatus was unavailable (HTTP 500). No Grok Bot figures fabricated.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
-      "resetDate": "2026-11-10T06:53:21.509Z",
-      "lastUpdate": "2026-11-05T03:21:14.071Z",
+      "resetDate": null,
+      "lastUpdate": "2026-11-05T03:36:18.318Z",
       "coverageStart": null,
       "breakdown": null,
-      "components": [
-        {
-          "id": "included",
-          "label": "Included",
-          "role": "capacity",
-          "usage": 35.20353822547161,
-          "limit": 100,
-          "unit": "% of weekly allowance",
-          "resetDate": "2026-11-10T06:53:21.509Z"
-        }
-      ],
+      "components": null,
       "usageUrl": "https://cursor.com/dashboard",
       "pace": {
         "daily": null,
@@ -94,7 +84,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-11-05T03:21:14.071Z"
+      "measuredAt": "2026-11-05T03:36:18.318Z"
     }
   ]
 }
