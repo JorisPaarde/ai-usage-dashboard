@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "measuredAt": "2026-11-12T19:36:31.077Z",
+  "measuredAt": "2026-11-12T19:51:35.330Z",
   "timezone": "Europe/Amsterdam",
   "sources": [
     {
@@ -8,12 +8,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 16.835454463399223%; On-demand $0/$21474836.47. Same local login pattern as Codex (no browser scrape). On-demand limit from GetHardLimit. Missing from API response: Other Models %. A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 0%; Other Models 0%; On-demand $0/$21474836.47. Same local login pattern as Codex (no browser scrape). On-demand limit from GetHardLimit. A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
-      "resetDate": "2026-11-17",
-      "lastUpdate": "2026-11-12T19:36:31.077Z",
+      "resetDate": "2026-12-01",
+      "lastUpdate": "2026-11-12T19:51:35.330Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -21,10 +21,19 @@
           "id": "included-cursor-models",
           "label": "Included Cursor Models",
           "role": "capacity",
-          "usage": 16.835454463399223,
+          "usage": 0,
           "limit": 100,
           "unit": "% of included allowance",
-          "resetDate": "2026-11-17"
+          "resetDate": "2026-12-01"
+        },
+        {
+          "id": "other-models",
+          "label": "Other Models",
+          "role": "capacity",
+          "usage": 0,
+          "limit": 100,
+          "unit": "% of included allowance",
+          "resetDate": "2026-12-01"
         },
         {
           "id": "on-demand",
@@ -33,7 +42,7 @@
           "usage": 0,
           "limit": 21474836.47,
           "unit": "USD",
-          "resetDate": "2026-11-17"
+          "resetDate": "2026-12-01"
         }
       ],
       "usageUrl": "https://cursor.com/dashboard/spending",
@@ -43,32 +52,22 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-11-12T19:36:31.077Z"
+      "measuredAt": "2026-11-12T19:51:35.330Z"
     },
     {
       "id": "grok-bot",
       "name": "Grok Bot",
-      "status": "measured",
-      "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetSandUsageStatus: Included 16.835454463399223%. Same local login pattern as Cursor Agent (no browser scrape). Missing from API response: On-demand.",
+      "status": "unknown",
+      "collectionMode": "unavailable",
+      "reason": "GetSandUsageStatus was unavailable. No Grok Bot figures fabricated.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
-      "resetDate": "2026-11-17T06:53:21.509Z",
-      "lastUpdate": "2026-11-12T19:36:31.077Z",
+      "resetDate": null,
+      "lastUpdate": "2026-11-12T19:51:35.330Z",
       "coverageStart": null,
       "breakdown": null,
-      "components": [
-        {
-          "id": "included",
-          "label": "Included",
-          "role": "capacity",
-          "usage": 16.835454463399223,
-          "limit": 100,
-          "unit": "% of weekly allowance",
-          "resetDate": "2026-11-17T06:53:21.509Z"
-        }
-      ],
+      "components": null,
       "usageUrl": "https://cursor.com/dashboard",
       "pace": {
         "daily": null,
@@ -76,7 +75,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-11-12T19:36:31.077Z"
+      "measuredAt": "2026-11-12T19:51:35.330Z"
     }
   ]
 }
