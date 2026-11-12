@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "measuredAt": "2026-11-12T15:34:32.021Z",
+  "measuredAt": "2026-11-12T15:49:56.131Z",
   "timezone": "Europe/Amsterdam",
   "sources": [
     {
@@ -8,12 +8,12 @@
       "name": "Cursor Agent",
       "status": "measured",
       "collectionMode": "automatic",
-      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 16.835454463399223%. Same local login pattern as Codex (no browser scrape). Missing from API response: Other Models %, On-demand USD. A manual override was ignored: the collector measures this source directly.",
+      "reason": "Live from the signed-in Cursor IDE session via GetCurrentPeriodUsage: Included Cursor Models 16.835454463399223%; On-demand $0/$21474836.47. Same local login pattern as Codex (no browser scrape). On-demand limit from GetHardLimit. Missing from API response: Other Models %. A manual override was ignored: the collector measures this source directly.",
       "usage": null,
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-11-17",
-      "lastUpdate": "2026-11-12T15:34:32.021Z",
+      "lastUpdate": "2026-11-12T15:49:56.131Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -25,6 +25,15 @@
           "limit": 100,
           "unit": "% of included allowance",
           "resetDate": "2026-11-17"
+        },
+        {
+          "id": "on-demand",
+          "label": "On-demand spend",
+          "role": "capped",
+          "usage": 0,
+          "limit": 21474836.47,
+          "unit": "USD",
+          "resetDate": "2026-11-17"
         }
       ],
       "usageUrl": "https://cursor.com/dashboard/spending",
@@ -34,7 +43,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-11-12T15:34:32.021Z"
+      "measuredAt": "2026-11-12T15:49:56.131Z"
     },
     {
       "id": "grok-bot",
@@ -46,7 +55,7 @@
       "limit": null,
       "unit": "mixed (see components)",
       "resetDate": "2026-11-17T06:53:21.509Z",
-      "lastUpdate": "2026-11-12T15:34:32.021Z",
+      "lastUpdate": "2026-11-12T15:49:56.131Z",
       "coverageStart": null,
       "breakdown": null,
       "components": [
@@ -67,7 +76,7 @@
         "weeklyTarget": null
       },
       "history": [],
-      "measuredAt": "2026-11-12T15:34:32.021Z"
+      "measuredAt": "2026-11-12T15:49:56.131Z"
     }
   ]
 }
